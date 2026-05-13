@@ -2,6 +2,9 @@
 ---
 <div
   id="cookie-banner"
+  role="dialog"
+  aria-label="Consentement aux cookies"
+  aria-live="polite"
   class="hidden fixed bottom-0 left-0 right-0 z-50 p-4 lg:p-6"
 >
   <div class="max-w-360 mx-auto">
@@ -12,8 +15,8 @@
         <a href="/mention_legal" class="text-primary-400 underline hover:text-primary-300">mentions légales</a>.
       </p>
       <div class="flex gap-3 shrink-0">
-        <button id="cookie-reject" class="btn-outline text-sm px-4 py-2">Refuser</button>
-        <button id="cookie-accept" class="btn-primary text-sm px-4 py-2">Accepter</button>
+        <button id="cookie-reject" class="btn-outline text-sm px-4 py-2" aria-label="Refuser les cookies">Refuser</button>
+        <button id="cookie-accept" class="btn-primary text-sm px-4 py-2" aria-label="Accepter les cookies">Accepter</button>
       </div>
     </div>
   </div>

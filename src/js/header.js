@@ -6,12 +6,16 @@ if (btn && menu && close) {
   btn.addEventListener('click', () => {
     menu.classList.remove('translate-x-full');
     menu.classList.add('translate-x-0');
+    menu.removeAttribute('aria-hidden');
+    btn.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
   });
 
   const closeMenu = () => {
     menu.classList.remove('translate-x-0');
     menu.classList.add('translate-x-full');
+    menu.setAttribute('aria-hidden', 'true');
+    btn.setAttribute('aria-expanded', 'false');
     document.body.style.overflow = '';
   };
 

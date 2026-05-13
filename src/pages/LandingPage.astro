@@ -122,9 +122,9 @@ const totalUsers = (await getCollection('users', { perPage: 200, fields: 'id' })
     </div>
 
     <!-- Indicateur de scroll -->
-    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40">
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40" aria-hidden="true">
       <span class="font-heading text-xs text-neutral-500 tracking-[0.3em] uppercase">Découvrir</span>
-      <svg class="w-4 h-4 text-primary-600 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg class="w-4 h-4 text-primary-600 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
     </div>

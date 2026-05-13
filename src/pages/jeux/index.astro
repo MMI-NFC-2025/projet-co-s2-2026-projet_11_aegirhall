@@ -65,9 +65,9 @@ const jeux = await getCollection('jeux', { sort: 'nom', token });
               <p class="font-body text-neutral-400 text-base line-clamp-3">{jeu.descrition}</p>
             )}
 
-            <div class="mt-auto pt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors">
+            <div class="mt-auto pt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors" aria-hidden="true">
               <span class="font-heading text-xs tracking-widest uppercase">Voir le jeu</span>
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </div>

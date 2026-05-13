@@ -47,12 +47,13 @@ const navLinks = isLoggedIn
     </a>
 
     <!-- Nav desktop -->
-    <nav class="hidden lg:flex items-center gap-1">
+    <nav class="hidden lg:flex items-center gap-1" aria-label="Navigation principale">
       {navLinks.map(link => {
         const isActive = currentPath === link.href;
         return (
           <a
             href={link.href}
+            aria-current={isActive ? 'page' : undefined}
             class={`relative font-heading text-sm tracking-widest uppercase px-4 py-2 rounded-md transition-colors duration-200 ${
               isActive
                 ? 'text-primary-400 bg-primary-400/8'
@@ -61,7 +62,7 @@ const navLinks = isLoggedIn
           >
             {link.label}
             {isActive && (
-              <span class="absolute bottom-0 left-3 right-3 h-px bg-primary-400/60 rounded-full" />
+              <span class="absolute bottom-0 left-3 right-3 h-px bg-primary-400/60 rounded-full" aria-hidden="true" />
             )}
           </a>
         );
@@ -95,8 +96,10 @@ const navLinks = isLoggedIn
       id="menu-btn"
       class="lg:hidden p-2 text-neutral-300 hover:text-primary-400 transition-colors"
       aria-label="Ouvrir le menu"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
     >
-      <Image src={menuIcon} alt="" width={24} height={24} class="invert" />
+      <Image src={menuIcon} alt="" width={24} height={24} class="invert" aria-hidden="true" />
     </button>
   </div>
 </header>
@@ -117,8 +120,8 @@ const navLinks = isLoggedIn
         <Image src={logo} alt="Ægirhall" width={24} height={28} style="color:#C49A2C;" />
         <span class="font-display text-base text-primary-400 tracking-wider">Ægirhall</span>
       </a>
-      <button id="menu-close" class="p-2 text-neutral-400 hover:text-primary-400 transition-colors rounded-md hover:bg-dark-700" aria-label="Fermer">
-        <Image src={closeIcon} alt="" width={20} height={20} class="invert" />
+      <button id="menu-close" class="p-2 text-neutral-400 hover:text-primary-400 transition-colors rounded-md hover:bg-dark-700" aria-label="Fermer le menu">
+        <Image src={closeIcon} alt="" width={20} height={20} class="invert" aria-hidden="true" />
       </button>
     </div>
 
@@ -136,12 +139,13 @@ const navLinks = isLoggedIn
     )}
 
     <!-- Liens nav -->
-    <div class="flex flex-col gap-1 px-3 py-4 flex-1">
+    <nav class="flex flex-col gap-1 px-3 py-4 flex-1" aria-label="Navigation mobile">
       {navLinks.map(link => {
         const isActive = currentPath === link.href;
         return (
           <a
             href={link.href}
+            aria-current={isActive ? 'page' : undefined}
             class={`flex items-center justify-between font-heading text-sm tracking-widest uppercase px-4 py-3.5 rounded-lg transition-colors ${
               isActive
                 ? 'text-primary-400 bg-primary-400/10 border border-primary-400/20'
@@ -149,11 +153,11 @@ const navLinks = isLoggedIn
             }`}
           >
             {link.label}
-            {isActive && <span class="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0" />}
+            {isActive && <span class="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0" aria-hidden="true" />}
           </a>
         );
       })}
-    </div>
+    </nav>
 
     <!-- Actions bas du drawer -->
     <div class="px-5 py-5 border-t border-dark-700 flex flex-col gap-3">

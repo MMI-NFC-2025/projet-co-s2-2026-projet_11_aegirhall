@@ -37,7 +37,7 @@ const mapBars = bars
   <!-- ── CARTE LEAFLET ─────────────────────────────────────── -->
   <section class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
     <h2 class="font-heading text-xl text-neutral-200 tracking-wide mb-6 flex items-center gap-2">
-      <Image src={carteIcon} alt="" width={22} height={22} class="invert opacity-70" />
+      <Image src={carteIcon} alt="" width={22} height={22} class="invert opacity-70" aria-hidden="true" />
       Carte des Tavernes
     </h2>
     <div id="map-data"
@@ -68,7 +68,7 @@ const mapBars = bars
           <span class="font-heading text-xs text-neutral-400 tracking-widest uppercase">Progression globale</span>
           <span class="font-heading text-sm text-primary-400">{progression}%</span>
         </div>
-        <div class="progress-bar-track">
+        <div class="progress-bar-track" role="progressbar" aria-valuenow={progression} aria-valuemin={0} aria-valuemax={100} aria-label={`Progression globale : ${progression}%`}>
           <div class="progress-bar-fill" style={`width:${progression}%`} />
         </div>
       </div>
@@ -79,7 +79,7 @@ const mapBars = bars
   <!-- ── LISTE DES BARS ────────────────────────────────────── -->
   <section class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
     <h2 class="font-heading text-2xl text-neutral-200 tracking-wide mb-8 flex items-center gap-3">
-      <Image src={bierreIcon} alt="" width={24} height={24} class="invert opacity-70" />
+      <Image src={bierreIcon} alt="" width={24} height={24} class="invert opacity-70" aria-hidden="true" />
       Les Tavernes de la Horde
     </h2>
 
@@ -129,8 +129,8 @@ const mapBars = bars
             </div>
 
             <!-- Flèche -->
-            <div class="hidden lg:flex items-center pr-6 text-neutral-600 group-hover:text-primary-400 transition-colors">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="hidden lg:flex items-center pr-6 text-neutral-600 group-hover:text-primary-400 transition-colors" aria-hidden="true">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </div>

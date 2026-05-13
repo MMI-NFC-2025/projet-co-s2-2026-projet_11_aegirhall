@@ -43,7 +43,7 @@ const lastVisit   = visites.sort((a, b) => new Date(b.created) - new Date(a.crea
             <span class="font-heading text-xs text-neutral-400 tracking-widest uppercase">Progression</span>
             <span class="font-display text-2xl text-primary-400">{progression}%</span>
           </div>
-          <div class="progress-bar-track">
+          <div class="progress-bar-track" role="progressbar" aria-valuenow={progression} aria-valuemin={0} aria-valuemax={100} aria-label={`Progression : ${progression}%`}>
             <div class="progress-bar-fill" style={`width:${progression}%`} />
           </div>
           <p class="font-body text-sm text-neutral-500 mt-2">

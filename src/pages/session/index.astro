@@ -76,7 +76,7 @@ const termine  = mySessions.filter(s => s.etat_session === 'fini');
         <div class="flex flex-col gap-3">
           {enCours.map(s => (
             <a href={`/session/${s.id}`} class="card-parchment rounded-lg p-5 flex items-center gap-4 hover:border-primary-400/40 transition-colors border-accent-rune/30">
-              <div class="w-2.5 h-2.5 rounded-full bg-accent-rune animate-pulse shrink-0" />
+              <div class="w-2.5 h-2.5 rounded-full bg-accent-rune animate-pulse shrink-0" aria-hidden="true" />
               <div class="flex-1 min-w-0">
                 <p class="font-heading text-base text-neutral-200 tracking-wide">{s.nom || 'Session'}</p>
                 <p class="font-body text-xs text-neutral-500">Hôte : {s.expand?.id_hote?.pseudo ?? s.expand?.id_hote?.nom ?? '—'}</p>

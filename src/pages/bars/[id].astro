@@ -82,7 +82,7 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
         {bar.desciption && (
           <div class="card-parchment rounded-lg p-6">
             <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-4 flex items-center gap-2">
-              <Image src={bierreIcon} alt="" width={18} height={18} class="invert opacity-60" />
+              <Image src={bierreIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
               La Taverne
             </h2>
             <p class="font-body text-lg text-neutral-300 leading-relaxed">{bar.desciption}</p>
@@ -96,7 +96,7 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
             {bar.adresse && (
               <div class="flex gap-4 items-start">
                 <dt class="font-heading text-xs text-neutral-500 tracking-widest uppercase w-28 shrink-0 pt-0.5 flex items-center gap-1.5">
-                  <Image src={pingIcon} alt="" width={14} height={14} class="invert opacity-50" />
+                  <Image src={pingIcon} alt="" width={14} height={14} class="invert opacity-50" aria-hidden="true" />
                   Adresse
                 </dt>
                 <dd class="font-body text-base text-neutral-300">{bar.adresse}</dd>
@@ -105,7 +105,7 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
             {bar.contact && (
               <div class="flex gap-4 items-start">
                 <dt class="font-heading text-xs text-neutral-500 tracking-widest uppercase w-28 shrink-0 pt-0.5 flex items-center gap-1.5">
-                  <Image src={tempsIcon} alt="" width={14} height={14} class="invert opacity-50" />
+                  <Image src={tempsIcon} alt="" width={14} height={14} class="invert opacity-50" aria-hidden="true" />
                   Contact
                 </dt>
                 <dd class="font-body text-base text-neutral-300">{bar.contact}</dd>
@@ -144,7 +144,7 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
         {hasMap && (
           <div>
             <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-4 flex items-center gap-2">
-              <Image src={carteIcon} alt="" width={18} height={18} class="invert opacity-60" />
+              <Image src={carteIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
               Localisation
             </h2>
             <div id="map-data"
@@ -179,10 +179,10 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
               <p class="font-body text-sm text-neutral-500 mb-4 leading-relaxed">
                 Vous y êtes ? Marquez votre passage pour que votre légende soit inscrite.
               </p>
-              <button id="checkin-btn" class="btn-primary w-full py-3">
+              <button id="checkin-btn" class="btn-primary w-full py-3" aria-label="Marquer ma visite dans cette taverne">
                 J'y suis — Marquer la visite
               </button>
-              <p id="checkin-error" class="hidden text-xs font-body text-accent-blood mt-2 text-center" />
+              <p id="checkin-error" class="hidden text-xs font-body text-accent-blood mt-2 text-center" role="alert" />
             </div>
           )}
         </div>
@@ -190,21 +190,21 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
         <!-- Navigation entre bars -->
         <div class="card-parchment rounded-lg p-5 flex flex-col gap-3">
           <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-1 flex items-center gap-1.5">
-            <Image src={boussol} alt="" width={14} height={14} class="invert opacity-60" />
+            <Image src={boussol} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
             Parcours
           </p>
           {prevBar && (
-            <a href={`/bars/${prevBar.id}`} class="flex items-center gap-3 text-neutral-400 hover:text-primary-300 transition-colors">
-              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <a href={`/bars/${prevBar.id}`} class="flex items-center gap-3 text-neutral-400 hover:text-primary-300 transition-colors" aria-label={`Étape précédente : étape ${prevBar.ordre}`}>
+              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
               </svg>
               <span class="font-heading text-sm tracking-wide">Étape {prevBar.ordre}</span>
             </a>
           )}
           {nextBar && (
-            <a href={`/bars/${nextBar.id}`} class="flex items-center gap-3 text-neutral-400 hover:text-primary-300 transition-colors justify-end">
+            <a href={`/bars/${nextBar.id}`} class="flex items-center gap-3 text-neutral-400 hover:text-primary-300 transition-colors justify-end" aria-label={`Étape suivante : étape ${nextBar.ordre}`}>
               <span class="font-heading text-sm tracking-wide">Étape {nextBar.ordre}</span>
-              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </a>
@@ -221,26 +221,8 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
 </Layout>
 
 {!hasVisited && (
-  <script define:vars={{ barId: bar.id }}>
-    document.getElementById('checkin-btn')?.addEventListener('click', async () => {
-      const btn = document.getElementById('checkin-btn');
-      const err = document.getElementById('checkin-error');
-      btn.disabled = true;
-      btn.textContent = 'Enregistrement...';
-
-      const res = await fetch(window.location.href, {
-        method: 'POST',
-      });
-
-      if (res.ok) {
-        window.location.reload();
-      } else {
-        btn.disabled = false;
-        btn.textContent = "J'y suis — Marquer la visite";
-        err.textContent = 'Erreur lors de l\'enregistrement. Réessayez.';
-        err.classList.remove('hidden');
-      }
-    });
+  <script>
+    import '../../js/checkin-btn.js';
   </script>
 )}
 

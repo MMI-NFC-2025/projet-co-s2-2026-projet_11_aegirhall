@@ -1,7 +1,7 @@
 ---
 const year = new Date().getFullYear();
 ---
-<footer class="relative bg-dark-900 border-t border-primary-400/20 mt-20">
+<footer class="relative bg-dark-900 border-t border-primary-400/20 mt-20" aria-label="Pied de page">
   <!-- Ligne or décorative -->
   <div class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/50 to-transparent" aria-hidden="true" />
 
@@ -17,7 +17,7 @@ const year = new Date().getFullYear();
       </div>
 
       <!-- Colonne 2 — Navigation -->
-      <div>
+      <nav aria-label="Navigation du site">
         <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Navigation</p>
         <ul class="space-y-2">
           {[
@@ -33,10 +33,10 @@ const year = new Date().getFullYear();
             </li>
           ))}
         </ul>
-      </div>
+      </nav>
 
       <!-- Colonne 3 — Compte -->
-      <div>
+      <nav aria-label="Votre compte">
         <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Votre Compte</p>
         <ul class="space-y-2">
           {[
@@ -51,10 +51,10 @@ const year = new Date().getFullYear();
             </li>
           ))}
         </ul>
-      </div>
+      </nav>
 
       <!-- Colonne 4 — Légal -->
-      <div>
+      <nav aria-label="Informations légales">
         <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Légal</p>
         <ul class="space-y-2">
           {[
@@ -68,7 +68,7 @@ const year = new Date().getFullYear();
             </li>
           ))}
         </ul>
-      </div>
+      </nav>
     </div>
 
     <!-- Bas de footer -->
@@ -76,7 +76,7 @@ const year = new Date().getFullYear();
       <p class="font-body text-neutral-600 text-sm">
         © {year} Ægirhall — Tous droits réservés
       </p>
-      <p class="font-heading text-xs text-primary-700 tracking-widest uppercase">
+      <p class="font-heading text-xs text-primary-700 tracking-widest uppercase" aria-hidden="true">
         ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ
       </p>
     </div>
