@@ -13,16 +13,16 @@ const currentPath = Astro.url.pathname;
 
 const navLinks = isLoggedIn
   ? [
-      { href: '/',           label: 'Accueil'     },
       { href: '/bars',       label: 'Bars'        },
       { href: '/jeux',       label: 'Jeux'        },
       { href: '/classement', label: 'Classement'  },
       { href: '/Apropos',    label: 'À Propos'    },
     ]
   : [
-      { href: '/LandingPage', label: 'Accueil'  },
-      { href: '/Apropos',     label: 'À Propos' },
-      { href: '/contact',     label: 'Contact'  },
+      { href: '/bars',     label: 'Bars'     },
+      { href: '/jeux',     label: 'Jeux'     },
+      { href: '/Apropos',  label: 'À Propos' },
+      { href: '/contact',  label: 'Contact'  },
     ];
 ---
 <header
@@ -80,15 +80,7 @@ const navLinks = isLoggedIn
               {userName ?? 'Profil'}
             </span>
           </a>
-          <form action="/logout" method="POST">
-            <button
-              type="submit"
-              class="font-heading text-xs text-neutral-600 hover:text-accent-blood tracking-widest uppercase px-3 py-2 transition-colors"
-              title="Se déconnecter"
-            >
-              ⏻
-            </button>
-          </form>
+          <a href="/session" class="btn-primary text-xs px-5 py-2">Sessions</a>
         </div>
       ) : (
         <>
@@ -166,11 +158,14 @@ const navLinks = isLoggedIn
     <!-- Actions bas du drawer -->
     <div class="px-5 py-5 border-t border-dark-700 flex flex-col gap-3">
       {isLoggedIn ? (
-        <form action="/logout" method="POST">
-          <button type="submit" class="w-full font-heading text-xs text-neutral-500 hover:text-accent-blood tracking-widest uppercase py-2 transition-colors">
-            Se déconnecter
-          </button>
-        </form>
+        <>
+          <a href="/session" class="btn-primary text-sm text-center">Sessions</a>
+          <form action="/profil" method="POST">
+            <button type="submit" class="w-full font-heading text-xs text-neutral-500 hover:text-accent-blood tracking-widest uppercase py-2 transition-colors">
+              Se déconnecter
+            </button>
+          </form>
+        </>
       ) : (
         <>
           <a href="/connexion"   class="btn-outline text-sm text-center">Connexion</a>

@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import { Image } from 'astro:assets';
-import { getRecord, getCollection, getVisitesByUser } from '../../js/backend.js';
+import { getRecord, getCollection, getVisitesByUser, PB_BASE_URL } from '../../js/backend.js';
 import pingIcon   from '../../assets/icon/ping.svg';
 import tempsIcon  from '../../assets/icon/Temps.svg';
 import bierreIcon from '../../assets/icon/bierre.svg';
@@ -14,10 +14,31 @@ const userId = Astro.cookies.get('pb_user_id')?.value;
 if (!token || !userId) return Astro.redirect('/connexion');
 
 const { id } = Astro.params;
+
+// Checkin POST
+if (Astro.request.method === 'POST') {
+  const PB = PB_BASE_URL;
+  const json = { 'Content-Type': 'application/json' };
+  const auth = { Authorization: `Bearer ${token}` };
+
+  const checkRes = await fetch(`${PB}/api/collections/visites/records?filter=user="${userId}"%26%26bar="${id}"`, { headers: auth });
+  const checkData = await checkRes.json();
+  if (checkData?.items?.length > 0) {
+    return new Response(JSON.stringify({ ok: true, alreadyVisited: true }), { status: 200, headers: json });
+  }
+
+  const res = await fetch(`${PB}/api/collections/visites/records`, {
+    method: 'POST',
+    headers: { ...json, ...auth },
+    body: JSON.stringify({ user: userId, bar: id, valide: true }),
+  });
+  if (!res.ok) return new Response(JSON.stringify({ error: 'Erreur PocketBase' }), { status: 400, headers: json });
+  return new Response(JSON.stringify({ ok: true }), { status: 200, headers: json });
+}
 const [bar, visites, allBars] = await Promise.all([
   getRecord('bar', id),
   getVisitesByUser(userId, token),
-  getCollection('bar', { sort: 'ordre', fields: 'id,ordre' }),
+  getCollection('bar', { sort: 'nom', fields: 'id', token }),
 ]);
 
 if (!bar) return Astro.redirect('/bars');
@@ -34,7 +55,7 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
 
   <!-- ── HERO BAR ──────────────────────────────────────────── -->
   <section class="relative h-72 lg:h-96 overflow-hidden">
-    <PbImage record={bar} recordImage={bar.img} class="w-full h-full object-cover" width={1440} height={384} />
+    <PbImage record={bar} recordImage={bar.img} width={1440} height={384} />
     <div class="absolute inset-0 bg-linear-to-t from-dark-900 via-dark-800/50 to-transparent" />
     <div class="absolute bottom-0 left-0 right-0 max-w-360 mx-auto px-4 lg:px-20 pb-8 flex items-end justify-between">
       <div>
@@ -112,7 +133,7 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {bar.galerie.map(img => (
                 <div class="rounded-lg overflow-hidden aspect-square">
-                  <PbImage record={bar} recordImage={img} class="w-full h-full object-cover" width={300} height={300} />
+                  <PbImage record={bar} recordImage={img} width={300} height={300} />
                 </div>
               ))}
             </div>
@@ -207,10 +228,8 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
       btn.disabled = true;
       btn.textContent = 'Enregistrement...';
 
-      const res = await fetch('/checkin', {
+      const res = await fetch(window.location.href, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barId })
       });
 
       if (res.ok) {

@@ -1,4 +1,4 @@
-const PB_URL = 'http://127.0.0.1:8090';
+const PB_URL = 'https://pbaegirhall.ines-sittler.fr';
 
 export async function getCollection(collection, options = {}) {
   const params = new URLSearchParams();
@@ -86,6 +86,78 @@ export function getPbImageUrl(record, filename, options = {}) {
   if (options.thumb) params.set('thumb', options.thumb);
   const query = params.toString();
   return `${PB_URL}/api/files/${record.collectionId}/${record.id}/${filename}${query ? '?' + query : ''}`;
+}
+
+export async function getImageUrl(record, filename) {
+  if (!record || !filename) return null;
+  return `${PB_URL}/api/files/${record.collectionId}/${record.id}/${filename}`;
+}
+
+export async function updateUser(userId, data, token) {
+  try {
+    const res = await fetch(`${PB_URL}/api/collections/users/records/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) return { error: json };
+    return json;
+  } catch {
+    return { error: { message: 'Erreur réseau' } };
+  }
+}
+
+export async function createSession(data, token) {
+  try {
+    const res = await fetch(`${PB_URL}/api/collections/session_barathon/records`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) return { error: json };
+    return json;
+  } catch {
+    return { error: { message: 'Erreur réseau' } };
+  }
+}
+
+export async function patchSession(id, data, token) {
+  try {
+    const res = await fetch(`${PB_URL}/api/collections/session_barathon/records/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) return { error: json };
+    return json;
+  } catch {
+    return { error: { message: 'Erreur réseau' } };
+  }
+}
+
+// Crée une visite pour un user+bar (nécessite règles PB permissives sur visites)
+export async function createVisite(barId, userId, token) {
+  const existing = await getCollection('visites', {
+    filter: `user="${userId}"&&bar="${barId}"&&valide=true`,
+    fields: 'id',
+    token,
+  });
+  if (existing.length > 0) return { ok: true };
+  try {
+    const res = await fetch(`${PB_URL}/api/collections/visites/records`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ user: userId, bar: barId, valide: true }),
+    });
+    const json = await res.json();
+    if (!res.ok) return { error: json };
+    return json;
+  } catch {
+    return { error: { message: 'Erreur réseau' } };
+  }
 }
 
 export const PB_BASE_URL = PB_URL;

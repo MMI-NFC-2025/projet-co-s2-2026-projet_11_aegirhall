@@ -18,7 +18,7 @@ if (!jeu) return Astro.redirect('/jeux');
   <section class="relative h-64 lg:h-80 overflow-hidden">
     {jeu.img ? (
       <>
-        <PbImage record={jeu} recordImage={jeu.img} class="w-full h-full object-cover" width={1440} height={320} />
+        <PbImage record={jeu} recordImage={jeu.img} width={1440} height={320} />
         <div class="absolute inset-0 bg-linear-to-t from-dark-900 via-dark-800/50 to-transparent" />
       </>
     ) : (

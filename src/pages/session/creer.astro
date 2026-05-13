@@ -1,0 +1,280 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PbImage from '../../components/PbImage.astro';
+import { getCollection, getRecord, updateUser, createSession } from '../../js/backend.js';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const nom             = form.get('nom')?.toString().trim() ?? '';
+  const description     = form.get('description')?.toString().trim() ?? '';
+  const dateDepart      = form.get('date_heur_depart')?.toString() ?? '';
+  const dateArrivee     = form.get('date_heur_arriver')?.toString() ?? '';
+  const selectedBars    = form.getAll('bars').map(v => v.toString());
+  const selectedMembers = form.getAll('members').map(v => v.toString());
+  const selectedJeux    = form.getAll('jeux').map(v => v.toString());
+
+  const allMembers = [...new Set([userId, ...selectedMembers])];
+
+  const session = await createSession({
+    nom,
+    description,
+    date_heur_depart:  dateDepart  || null,
+    date_heur_arriver: dateArrivee || null,
+    id_hote:      userId,
+    id_menbre:    allMembers,
+    id_bar:       selectedBars,
+    id_jeux:      selectedJeux,
+    etat_session: 'pas_commencer',
+  }, token);
+
+  if (session?.error) {
+    error = Object.values(session.error?.data ?? {}).map(v => v?.message).filter(Boolean).join(' ') || session.error?.message || 'Erreur de création.';
+  } else {
+    // Inviter les membres (ajouter session à leur demande_session)
+    const invited = selectedMembers.filter(id => id !== userId);
+    await Promise.all(invited.map(async memberId => {
+      const member = await getRecord('users', memberId, { token });
+      const existing = member?.demande_session ?? [];
+      if (!existing.includes(session.id)) {
+        await updateUser(memberId, { demande_session: [...existing, session.id] }, token);
+      }
+    }));
+    return Astro.redirect(`/session/${session.id}`);
+  }
+}
+
+const [bars, allUsers, jeux] = await Promise.all([
+  getCollection('bar', { sort: 'nom', token }),
+  getCollection('users', { token }),
+  getCollection('jeux', { sort: 'nom', token }),
+]);
+
+const otherUsers = allUsers.filter(u => u.id !== userId);
+---
+<Layout title="Créer une session">
+  <section class="min-h-[calc(100vh-92px)] py-12 px-4">
+    <div class="max-w-2xl mx-auto">
+
+      <!-- Titre -->
+      <div class="text-center mb-10">
+        <h1 class="font-display text-3xl lg:text-4xl text-neutral-100 tracking-widest mb-3">Forger une Session</h1>
+        <p class="font-body text-neutral-500">Organisez votre barathon en 4 étapes</p>
+      </div>
+
+      <!-- Indicateur d'étapes -->
+      <div class="flex items-center justify-center gap-0 mb-10" id="step-indicator">
+        {[
+          { n: 1, label: 'Infos' },
+          { n: 2, label: 'Bars' },
+          { n: 3, label: 'Amis' },
+          { n: 4, label: 'Jeux' },
+        ].map(({ n, label }, i) => (
+          <div class="flex items-center">
+            <div class="flex flex-col items-center gap-1">
+              <div class={`step-dot w-9 h-9 rounded-full border-2 flex items-center justify-center font-heading text-sm transition-all ${n === 1 ? 'border-primary-400 bg-primary-400/20 text-primary-400' : 'border-dark-600 text-neutral-600 bg-dark-700'}`} data-step={n}>
+                {n}
+              </div>
+              <span class="font-heading text-xs tracking-widest uppercase text-neutral-600">{label}</span>
+            </div>
+            {i < 3 && <div class="step-connector w-12 h-px bg-dark-600 mb-5 mx-1" />}
+          </div>
+        ))}
+      </div>
+
+      <!-- Erreur -->
+      {error && (
+        <div class="mb-6 p-4 rounded bg-accent-blood/20 border border-accent-blood/50 font-body text-sm text-neutral-300">
+          {error}
+        </div>
+      )}
+
+      <!-- Formulaire unique -->
+      <form method="POST" id="wizard-form">
+
+        <!-- ── ÉTAPE 1 : Infos de base ── -->
+        <div id="step-1" class="wizard-step">
+          <div class="card-parchment rounded-xl p-6 lg:p-8 flex flex-col gap-5">
+            <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase">Informations de base</h2>
+            <div>
+              <label class="label-viking" for="nom">Nom de la session *</label>
+              <input id="nom" name="nom" type="text" required placeholder="La Nuit des Jarls" class="input-viking" />
+            </div>
+            <div>
+              <label class="label-viking" for="description">Description</label>
+              <textarea id="description" name="description" rows="3" class="input-viking resize-none" placeholder="Décrivez votre barathon..."></textarea>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <label class="label-viking" for="date_heur_depart">Heure de départ</label>
+                <input id="date_heur_depart" name="date_heur_depart" type="datetime-local" class="input-viking" />
+              </div>
+              <div>
+                <label class="label-viking" for="date_heur_arriver">Heure d'arrivée prévue</label>
+                <input id="date_heur_arriver" name="date_heur_arriver" type="datetime-local" class="input-viking" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ÉTAPE 2 : Bars ── -->
+        <div id="step-2" class="wizard-step hidden">
+          <div class="card-parchment rounded-xl p-6 lg:p-8">
+            <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-2">Choisir les tavernes</h2>
+            <p class="font-body text-neutral-500 text-sm mb-5">Sélectionnez les bars pour votre route des Jarls.</p>
+            <div class="flex flex-col gap-2 max-h-110 overflow-y-auto pr-1">
+              {bars.map(bar => (
+                <label class="selection-card flex items-center gap-4 card-parchment rounded-lg p-4 cursor-pointer hover:border-primary-400/40 transition-colors">
+                  <input type="checkbox" name="bars" value={bar.id} class="selection-cb sr-only" />
+                  <div class="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-dark-700">
+                    {bar.img && <PbImage record={bar} recordImage={bar.img} width={48} height={48} />}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-heading text-sm text-neutral-200 tracking-wide">{bar.nom}</p>
+                    {bar.adresse && <p class="font-body text-xs text-neutral-500 truncate">{bar.adresse}</p>}
+                  </div>
+                  <div class="check-icon w-6 h-6 rounded border-2 border-dark-500 flex items-center justify-center shrink-0 transition-all">
+                    <span class="check-mark hidden text-primary-400 text-xs font-bold">✓</span>
+                  </div>
+                </label>
+              ))}
+              {bars.length === 0 && <p class="font-body text-neutral-500 text-center py-8">Aucune taverne disponible.</p>}
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ÉTAPE 3 : Membres ── -->
+        <div id="step-3" class="wizard-step hidden">
+          <div class="card-parchment rounded-xl p-6 lg:p-8">
+            <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-2">Inviter des guerriers</h2>
+            <p class="font-body text-neutral-500 text-sm mb-5">Vous êtes automatiquement l'hôte. Invitez vos compagnons.</p>
+            <div class="flex flex-col gap-2 max-h-110 overflow-y-auto pr-1">
+              {otherUsers.map(u => (
+                <label class="selection-card flex items-center gap-4 card-parchment rounded-lg p-4 cursor-pointer hover:border-primary-400/40 transition-colors">
+                  <input type="checkbox" name="members" value={u.id} class="selection-cb sr-only" />
+                  <div class="w-10 h-10 rounded-full bg-dark-600 border border-dark-500 overflow-hidden flex items-center justify-center shrink-0">
+                    {u.avatar
+                      ? <PbImage record={u} recordImage={u.avatar} width={40} height={40} />
+                      : <span class="font-heading text-sm text-primary-400">{(u.pseudo ?? u.nom)?.charAt(0)?.toUpperCase() ?? 'V'}</span>
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-heading text-sm text-neutral-200 tracking-wide">{u.pseudo ?? u.nom}</p>
+                    {u.titre && <p class="font-body text-xs text-neutral-500">{u.titre}</p>}
+                  </div>
+                  <div class="check-icon w-6 h-6 rounded border-2 border-dark-500 flex items-center justify-center shrink-0 transition-all">
+                    <span class="check-mark hidden text-primary-400 text-xs font-bold">✓</span>
+                  </div>
+                </label>
+              ))}
+              {otherUsers.length === 0 && <p class="font-body text-neutral-500 text-center py-8">Aucun autre guerrier inscrit.</p>}
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ÉTAPE 4 : Jeux ── -->
+        <div id="step-4" class="wizard-step hidden">
+          <div class="card-parchment rounded-xl p-6 lg:p-8">
+            <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-2">Choisir les jeux</h2>
+            <p class="font-body text-neutral-500 text-sm mb-5">Optionnel — Animez votre barathon avec des défis.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 max-h-110 overflow-y-auto pr-1">
+              {jeux.map(jeu => (
+                <label class="selection-card card-parchment rounded-lg overflow-hidden cursor-pointer hover:border-primary-400/40 transition-colors">
+                  <input type="checkbox" name="jeux" value={jeu.id} class="selection-cb sr-only" />
+                  {jeu.img && (
+                    <div class="h-24 overflow-hidden">
+                      <PbImage record={jeu} recordImage={jeu.img} width={300} height={96} />
+                    </div>
+                  )}
+                  <div class="p-3 flex items-center gap-3">
+                    <div class="flex-1 min-w-0">
+                      <p class="font-heading text-sm text-neutral-200 tracking-wide">{jeu.nom}</p>
+                      {jeu.difficulter != null && <p class="font-body text-xs text-neutral-500">Difficulté : {jeu.difficulter}/10</p>}
+                    </div>
+                    <div class="check-icon w-6 h-6 rounded border-2 border-dark-500 flex items-center justify-center shrink-0 transition-all">
+                      <span class="check-mark hidden text-primary-400 text-xs font-bold">✓</span>
+                    </div>
+                  </div>
+                </label>
+              ))}
+              {jeux.length === 0 && <p class="font-body text-neutral-500 text-center py-8 col-span-2">Aucun jeu disponible.</p>}
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center mt-6 gap-3">
+          <button type="button" id="btn-prev" class="btn-outline px-6 py-3" style="display:none">← Précédent</button>
+          <div class="flex-1" />
+          <button type="button" id="btn-next" class="btn-primary px-6 py-3">Suivant →</button>
+          <button type="submit" id="btn-submit" class="btn-primary px-8 py-3" style="display:none">⚔ Forger la session</button>
+        </div>
+
+      </form>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const steps    = Array.from(document.querySelectorAll('.wizard-step'));
+  const dots     = Array.from(document.querySelectorAll('.step-dot'));
+  const btnPrev  = document.getElementById('btn-prev');
+  const btnNext  = document.getElementById('btn-next');
+  const btnSub   = document.getElementById('btn-submit');
+  let cur = 0;
+
+  function goTo(n) {
+    steps.forEach((s, i) => s.classList.toggle('hidden', i !== n));
+    dots.forEach((d, i) => {
+      const active = i <= n;
+      d.classList.toggle('border-primary-400', active);
+      d.classList.toggle('bg-primary-400/20', active);
+      d.classList.toggle('text-primary-400', active);
+      d.classList.toggle('border-dark-600', !active);
+      d.classList.toggle('bg-dark-700', !active);
+      d.classList.toggle('text-neutral-600', !active);
+    });
+    btnPrev.style.display = n === 0 ? 'none' : '';
+    btnNext.style.display = n === steps.length - 1 ? 'none' : '';
+    btnSub.style.display  = n !== steps.length - 1 ? 'none' : '';
+    cur = n;
+  }
+
+  btnNext.addEventListener('click', () => {
+    if (cur === 0) {
+      const nom = document.getElementById('nom');
+      if (!nom.value.trim()) { nom.focus(); return; }
+    }
+    if (cur < steps.length - 1) goTo(cur + 1);
+  });
+
+  btnPrev.addEventListener('click', () => { if (cur > 0) goTo(cur - 1); });
+
+  // Toggle checkbox visuel
+  document.querySelectorAll('.selection-card').forEach(card => {
+    const cb   = card.querySelector('.selection-cb');
+    const icon = card.querySelector('.check-icon');
+    const mark = card.querySelector('.check-mark');
+
+    const sync = () => {
+      if (cb.checked) {
+        icon.classList.add('border-primary-400', 'bg-primary-400/20');
+        icon.classList.remove('border-dark-500');
+        mark.classList.remove('hidden');
+        card.classList.add('border-primary-400/60', 'bg-primary-400/5');
+      } else {
+        icon.classList.remove('border-primary-400', 'bg-primary-400/20');
+        icon.classList.add('border-dark-500');
+        mark.classList.add('hidden');
+        card.classList.remove('border-primary-400/60', 'bg-primary-400/5');
+      }
+    };
+
+    card.addEventListener('click', () => { cb.checked = !cb.checked; sync(); });
+  });
+</script>

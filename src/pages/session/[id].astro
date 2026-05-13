@@ -1,0 +1,557 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PbImage from '../../components/PbImage.astro';
+import { Image } from 'astro:assets';
+import {
+  getRecord, getCollection, getVisitesByUser, getMe,
+  patchSession, createVisite, updateUser
+} from '../../js/backend.js';
+import carteIcon  from '../../assets/icon/carte.svg';
+import bierreIcon from '../../assets/icon/bierre.svg';
+import personnesIcon from '../../assets/icon/personnes.svg';
+import voitureIcon from '../../assets/icon/voiture.svg';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+const { id } = Astro.params;
+
+// Chargement session (nécessaire avant POST pour vérif droits)
+let session = await getRecord('session_barathon', id, {
+  expand: 'id_bar,id_menbre,id_jeux,id_hote,id_sam',
+  token,
+});
+if (!session) return Astro.redirect('/session');
+
+const isHost   = session.id_hote === userId;
+const isMember = (session.id_menbre ?? []).includes(userId);
+const isPending = false; // géré via demande_session sur user
+
+let actionError = '';
+
+// ── GESTION DES ACTIONS POST ──────────────────────────────────────
+if (Astro.request.method === 'POST') {
+  const form   = await Astro.request.formData();
+  const action = form.get('action')?.toString();
+
+  // Accepter / Refuser invitation
+  if (action === 'accept_invitation') {
+    const currentMembers = session.id_menbre ?? [];
+    if (!currentMembers.includes(userId)) {
+      await patchSession(id, { id_menbre: [...currentMembers, userId] }, token);
+    }
+    const me = await getMe(userId, token);
+    const remaining = (me?.demande_session ?? []).filter(s => s !== id);
+    await updateUser(userId, { demande_session: remaining }, token);
+    return Astro.redirect(`/session/${id}`);
+  }
+
+  if (action === 'reject_invitation') {
+    const me = await getMe(userId, token);
+    const remaining = (me?.demande_session ?? []).filter(s => s !== id);
+    await updateUser(userId, { demande_session: remaining }, token);
+    return Astro.redirect('/session');
+  }
+
+  // Actions réservées à l'hôte
+  if (isHost) {
+    if (action === 'set_sam') {
+      const samId = form.get('samId')?.toString();
+      await patchSession(id, { id_sam: samId }, token);
+      return Astro.redirect(`/session/${id}`);
+    }
+
+    if (action === 'start') {
+      if (!session.id_sam) {
+        actionError = 'Désignez un SAM avant de démarrer la session.';
+      } else {
+        await patchSession(id, { etat_session: 'en_court' }, token);
+        return Astro.redirect(`/session/${id}`);
+      }
+    }
+
+    if (action === 'next_bar') {
+      const barId = form.get('barId')?.toString();
+      if (barId) await createVisite(barId, userId, token);
+      return Astro.redirect(`/session/${id}`);
+    }
+
+    if (action === 'finish') {
+      const allBarIds    = session.id_bar    ?? [];
+      const allMemberIds = session.id_menbre ?? [];
+      await Promise.all(
+        allMemberIds.flatMap(mId => allBarIds.map(bId => createVisite(bId, mId, token)))
+      );
+      await Promise.all(allMemberIds.map(async mId => {
+        const member = await getRecord('users', mId, { token });
+        const existing = member?.id_taverne_visiter ?? [];
+        const merged = [...new Set([...existing, ...allBarIds])];
+        await updateUser(mId, { id_taverne_visiter: merged }, token);
+      }));
+      await patchSession(id, { etat_session: 'fini' }, token);
+      return Astro.redirect(`/session/${id}`);
+    }
+
+    if (action === 'stop') {
+      const allBarIds    = session.id_bar    ?? [];
+      const allMemberIds = session.id_menbre ?? [];
+      // Créer les visites pour tous les membres (nécessite règles PB permissives)
+      await Promise.all(
+        allMemberIds.flatMap(mId => allBarIds.map(bId => createVisite(bId, mId, token)))
+      );
+      // Mettre à jour id_taverne_visiter sur chaque membre
+      await Promise.all(allMemberIds.map(async mId => {
+        const member = await getRecord('users', mId, { token });
+        const existing = member?.id_taverne_visiter ?? [];
+        const merged = [...new Set([...existing, ...allBarIds])];
+        await updateUser(mId, { id_taverne_visiter: merged }, token);
+      }));
+      await patchSession(id, { etat_session: 'fini' }, token);
+      return Astro.redirect(`/session/${id}`);
+    }
+
+    if (action === 'add_bar') {
+      const barId = form.get('barId')?.toString();
+      if (barId) {
+        const current = session.id_bar ?? [];
+        if (!current.includes(barId)) await patchSession(id, { id_bar: [...current, barId] }, token);
+      }
+      return Astro.redirect(`/session/${id}`);
+    }
+
+    if (action === 'add_member') {
+      const memberId = form.get('memberId')?.toString();
+      if (memberId) {
+        const current = session.id_menbre ?? [];
+        if (!current.includes(memberId)) await patchSession(id, { id_menbre: [...current, memberId] }, token);
+      }
+      return Astro.redirect(`/session/${id}`);
+    }
+
+    if (action === 'add_jeu') {
+      const jeuId = form.get('jeuId')?.toString();
+      if (jeuId) {
+        const current = session.id_jeux ?? [];
+        if (!current.includes(jeuId)) await patchSession(id, { id_jeux: [...current, jeuId] }, token);
+      }
+      return Astro.redirect(`/session/${id}`);
+    }
+
+    if (action === 'update_params') {
+      const nom             = form.get('nom')?.toString().trim();
+      const description     = form.get('description')?.toString().trim();
+      const dateDepart      = form.get('date_heur_depart')?.toString();
+      const dateArrivee     = form.get('date_heur_arriver')?.toString();
+      await patchSession(id, { nom, description, date_heur_depart: dateDepart || null, date_heur_arriver: dateArrivee || null }, token);
+      return Astro.redirect(`/session/${id}`);
+    }
+  }
+}
+
+// Rechargement session après modifications éventuelles
+session = await getRecord('session_barathon', id, {
+  expand: 'id_bar,id_menbre,id_jeux,id_hote,id_sam',
+  token,
+});
+
+const sessionBars    = session?.expand?.id_bar    ?? [];
+const sessionMembers = session?.expand?.id_menbre ?? [];
+const sessionGames   = session?.expand?.id_jeux   ?? [];
+const host           = session?.expand?.id_hote;
+const sam            = session?.expand?.id_sam;
+
+const etat        = session?.etat_session ?? 'pas_commencer';
+const isPlanifie  = etat === 'pas_commencer';
+const isEnCours   = etat === 'en_court';
+const isTermine   = etat === 'fini';
+
+// Progression des bars (basée sur les visites de l'hôte)
+let hostVisitedBarIds = [];
+let currentBarId = null;
+let currentBar   = null;
+let barsCompleted = 0;
+
+if (isEnCours && session?.id_bar?.length) {
+  const hostVisites = await getVisitesByUser(session.id_hote, token);
+  hostVisitedBarIds = hostVisites.map(v => v.bar);
+  const sessionBarIds = session.id_bar ?? [];
+  barsCompleted = sessionBarIds.filter(bId => hostVisitedBarIds.includes(bId)).length;
+  currentBarId  = sessionBarIds.find(bId => !hostVisitedBarIds.includes(bId)) ?? null;
+  currentBar    = sessionBars.find(b => b.id === currentBarId) ?? null;
+}
+
+const allBarsVisited = isEnCours && !currentBarId && (session?.id_bar?.length ?? 0) > 0;
+const isLastBar      = currentBar !== null && ((session?.id_bar?.length ?? 0) - barsCompleted) === 1;
+
+let availableBars = [], availableUsers = [], availableJeux = [];
+if (isHost && isPlanifie) {
+  const sessionBarIds    = session?.id_bar    ?? [];
+  const sessionMemberIds = session?.id_menbre ?? [];
+  const sessionJeuIds    = session?.id_jeux   ?? [];
+  const [allBars, allUsers, allJeux] = await Promise.all([
+    getCollection('bar',   { sort: 'nom', token }),
+    getCollection('users', { token }),
+    getCollection('jeux',  { sort: 'nom', token }),
+  ]);
+  availableBars  = allBars.filter(b => !sessionBarIds.includes(b.id));
+  availableUsers = allUsers.filter(u => !sessionMemberIds.includes(u.id) && u.id !== userId);
+  availableJeux  = allJeux.filter(j => !sessionJeuIds.includes(j.id));
+}
+
+// Carte : bars de la session
+const mapBars = sessionBars
+  .filter(b => b.localisation?.lat && b.localisation?.lon)
+  .map(b => ({
+    id: b.id, nom: b.nom,
+    lat: b.localisation.lat, lng: b.localisation.lon,
+    ordre: b.ordre ?? 0, adresse: b.adresse ?? ''
+  }));
+const mapVisited = isEnCours ? hostVisitedBarIds : (isTermine ? (session?.id_bar ?? []) : []);
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+---
+<Layout title={session?.nom ?? 'Session'}>
+
+  <!-- ── HERO SESSION ──────────────────────────────────────── -->
+  <section class="bg-dark-900 border-b border-dark-700 py-8 lg:py-10">
+    <div class="max-w-360 mx-auto px-4 lg:px-20 flex flex-col lg:flex-row lg:items-center gap-4">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-3 mb-2">
+          <span class={`text-xs font-heading tracking-widest uppercase px-2 py-1 rounded ${
+            isEnCours ? 'badge-visited' : isPlanifie ? 'badge-pending' : 'text-neutral-600 border border-dark-600 px-2 py-1 rounded'
+          }`}>
+            {isEnCours ? '⚔ En cours' : isPlanifie ? '○ Planifiée' : '✓ Terminée'}
+          </span>
+          {!isPlanifie && !isEnCours && !isTermine && (
+            <span class="badge-pending text-xs font-heading tracking-widest uppercase px-2 py-1 rounded">Planifiée</span>
+          )}
+        </div>
+        <h1 class="font-display text-2xl lg:text-4xl text-neutral-100 tracking-widest">{session?.nom ?? 'Session'}</h1>
+        <p class="font-body text-neutral-500 text-sm mt-1">
+          Hôte : {host?.pseudo ?? host?.nom ?? '—'}
+          {sam && <span class="ml-3 text-primary-500">SAM : {sam?.pseudo ?? sam?.nom}</span>}
+        </p>
+      </div>
+      <a href="/session" class="font-heading text-xs text-neutral-600 hover:text-neutral-400 tracking-widest uppercase transition-colors shrink-0">
+        ← Mes sessions
+      </a>
+    </div>
+  </section>
+
+  <!-- ── CORPS ─────────────────────────────────────────────── -->
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-8 lg:py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-10 gap-8">
+
+      <!-- ── GAUCHE 70% : CARTE ──────────────────────────────── -->
+      <div class="lg:col-span-7 flex flex-col gap-6">
+        <h2 class="font-heading text-base text-neutral-300 tracking-wide flex items-center gap-2">
+          <Image src={carteIcon} alt="" width={18} height={18} class="invert opacity-60" />
+          Carte du barathon
+        </h2>
+
+        {mapBars.length > 0 ? (
+          <>
+            <div id="map-data"
+              data-bars={JSON.stringify(mapBars)}
+              data-visited={JSON.stringify(mapVisited)}
+              hidden
+            />
+            <div class="rounded-xl overflow-hidden border border-primary-400/20" style="height:480px;">
+              <div id="map" class="w-full h-full" />
+            </div>
+          </>
+        ) : (
+          <div class="card-parchment rounded-xl flex items-center justify-center" style="height:320px;">
+            <p class="font-body text-neutral-600">Aucun bar avec localisation dans cette session.</p>
+          </div>
+        )}
+
+        <!-- Résumé session terminée -->
+        {isTermine && (
+          <div class="card-parchment rounded-xl p-6 text-center">
+            <p class="font-display text-3xl text-primary-400 mb-3">⚔</p>
+            <p class="font-heading text-xl text-neutral-200 tracking-wide mb-2">Session terminée !</p>
+            <p class="font-body text-neutral-400">
+              {sessionBars.length} taverne{sessionBars.length > 1 ? 's' : ''} conquise{sessionBars.length > 1 ? 's' : ''} •
+              {sessionMembers.length} guerrier{sessionMembers.length > 1 ? 's' : ''}
+            </p>
+            <p class="font-body text-sm text-neutral-600 mt-2">Les visites ont été ajoutées aux profils de chaque membre.</p>
+          </div>
+        )}
+      </div>
+
+      <!-- ── DROITE 30% : PANEL ──────────────────────────────── -->
+      <div class="lg:col-span-3 flex flex-col gap-5">
+
+        <!-- Action principale (en cours) -->
+        {isEnCours && isHost && (
+          <div class="card-parchment rounded-xl p-5">
+            {actionError && (
+              <p class="font-body text-sm text-accent-blood mb-3">{actionError}</p>
+            )}
+            {!allBarsVisited && currentBar ? (
+              <>
+                <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-1">Bar actuel</p>
+                <p class="font-heading text-base text-neutral-200 tracking-wide mb-1">{currentBar.nom}</p>
+                {currentBar.adresse && <p class="font-body text-xs text-neutral-500 mb-4">{currentBar.adresse}</p>}
+                <p class="font-body text-xs text-neutral-600 mb-4">{barsCompleted} / {session?.id_bar?.length ?? 0} bars visités</p>
+                <form method="POST">
+                  <input type="hidden" name="action" value={isLastBar ? 'finish' : 'next_bar'} />
+                  <input type="hidden" name="barId" value={currentBarId} />
+                  <button type="submit" class={isLastBar
+                    ? 'w-full py-3 text-sm font-heading tracking-widest uppercase rounded bg-accent-blood hover:opacity-90 text-neutral-100 transition-opacity'
+                    : 'btn-primary w-full py-3 text-sm'}>
+                    {isLastBar ? '⚔ Finir la session' : 'Bar visité → Suivant'}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <p class="font-heading text-sm text-accent-rune tracking-wide mb-3">Tous les bars ont été visités !</p>
+                <form method="POST">
+                  <input type="hidden" name="action" value="stop" />
+                  <button type="submit" class="btn-primary w-full py-3 text-sm">
+                    Arrêter la session
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        )}
+
+        <!-- Lancer la session (planifié) -->
+        {isPlanifie && isHost && (
+          <div class="card-parchment rounded-xl p-5">
+            {actionError && <p class="font-body text-sm text-accent-blood mb-3">{actionError}</p>}
+            {!session?.id_sam ? (
+              <p class="font-body text-sm text-neutral-500 mb-4">
+                Désignez un SAM dans l'onglet <strong class="text-neutral-300">Amis</strong> avant de lancer.
+              </p>
+            ) : null}
+            <form method="POST">
+              <input type="hidden" name="action" value="start" />
+              <button
+                type="submit"
+                disabled={!session?.id_sam}
+                class={`w-full py-3 text-sm font-heading tracking-widest uppercase rounded transition-colors ${session?.id_sam ? 'btn-primary' : 'bg-dark-600 text-neutral-600 cursor-not-allowed'}`}
+              >
+                ⚔ Lancer le barathon
+              </button>
+            </form>
+          </div>
+        )}
+
+        <!-- Tabs -->
+        <div class="card-parchment rounded-xl overflow-hidden flex-1">
+          <!-- Tab buttons -->
+          <div class="flex border-b border-dark-600">
+            {[
+              { id: 'bars',    label: 'Bars' },
+              { id: 'amis',    label: 'Amis' },
+              { id: 'jeux',    label: 'Jeux' },
+              ...(isHost && isPlanifie ? [{ id: 'params', label: 'Paramètres' }] : []),
+            ].map((tab, i) => (
+              <button
+                class={`tab-btn flex-1 font-heading text-xs tracking-widest uppercase py-3 border-b-2 transition-colors ${i === 0 ? 'border-primary-400 text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
+                data-tab={tab.id}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <!-- Tab : Bars -->
+          <div id="tab-bars" class="tab-content p-4 flex flex-col gap-2 max-h-80 overflow-y-auto">
+            {sessionBars.length > 0 ? sessionBars.map(bar => {
+              const visited = isTermine || (isEnCours && hostVisitedBarIds.includes(bar.id));
+              const isCurrent = bar.id === currentBarId;
+              return (
+                <div class={`flex items-center gap-3 p-2 rounded-lg ${isCurrent ? 'bg-primary-400/10 border border-primary-400/30' : ''}`}>
+                  {bar.ordre && (
+                    <span class={`w-6 h-6 rounded-full flex items-center justify-center font-heading text-xs shrink-0 ${visited ? 'bg-accent-rune/20 text-green-400' : 'bg-dark-600 text-neutral-500'}`}>
+                      {bar.ordre}
+                    </span>
+                  )}
+                  <span class={`font-heading text-xs tracking-wide flex-1 truncate ${isCurrent ? 'text-primary-300' : visited ? 'text-neutral-400' : 'text-neutral-300'}`}>
+                    {bar.nom}
+                  </span>
+                  {visited && <span class="text-accent-rune text-xs shrink-0">✓</span>}
+                  {isCurrent && <span class="text-primary-400 text-xs shrink-0">→</span>}
+                </div>
+              );
+            }) : (
+              <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun bar sélectionné.</p>
+            )}
+            {isHost && isPlanifie && availableBars.length > 0 && (
+              <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
+                <input type="hidden" name="action" value="add_bar" />
+                <select name="barId" class="input-viking flex-1 text-xs py-1.5">
+                  {availableBars.map(b => <option value={b.id}>{b.nom}</option>)}
+                </select>
+                <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Ajouter</button>
+              </form>
+            )}
+          </div>
+
+          <!-- Tab : Amis -->
+          <div id="tab-amis" class="tab-content hidden">
+          <div class="p-4 flex flex-col gap-3 max-h-80 overflow-y-auto">
+            {sessionMembers.map(member => {
+              const isSam = member.id === session?.id_sam;
+              const isThisHost = member.id === session?.id_hote;
+              return (
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-dark-600 border border-dark-500 overflow-hidden flex items-center justify-center shrink-0">
+                    {member.avatar
+                      ? <PbImage record={member} recordImage={member.avatar} width={32} height={32} />
+                      : <span class="font-heading text-xs text-primary-400">{(member.pseudo ?? member.nom)?.charAt(0)?.toUpperCase() ?? 'V'}</span>
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-heading text-xs text-neutral-200 tracking-wide truncate">{member.pseudo ?? member.nom}</p>
+                    <p class="font-body text-xs text-neutral-600">
+                      {isThisHost ? 'Hôte' : ''}{isSam ? ' · SAM 🚗' : ''}
+                    </p>
+                  </div>
+                  {isHost && isPlanifie && !isSam && !isThisHost && (
+                    <form method="POST">
+                      <input type="hidden" name="action" value="set_sam" />
+                      <input type="hidden" name="samId" value={member.id} />
+                      <button type="submit" class="font-heading text-xs text-neutral-600 hover:text-primary-400 tracking-widest uppercase transition-colors px-2 py-1 rounded border border-dark-600 hover:border-primary-400/40">
+                        SAM
+                      </button>
+                    </form>
+                  )}
+                </div>
+              );
+            })}
+            {sessionMembers.length === 0 && (
+              <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun membre.</p>
+            )}
+            {isHost && isPlanifie && availableUsers.length > 0 && (
+              <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
+                <input type="hidden" name="action" value="add_member" />
+                <select name="memberId" class="input-viking flex-1 text-xs py-1.5">
+                  {availableUsers.map(u => <option value={u.id}>{u.pseudo ?? u.nom}</option>)}
+                </select>
+                <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Inviter</button>
+              </form>
+            )}
+          </div>
+          </div>
+
+          <!-- Tab : Jeux -->
+          <div id="tab-jeux" class="tab-content hidden">
+          <div class="p-4 flex flex-col gap-2 max-h-80 overflow-y-auto">
+            {sessionGames.length > 0 ? sessionGames.map(jeu => (
+              <div class="flex items-center gap-3 p-2">
+                <div class="w-10 h-10 rounded-lg overflow-hidden bg-dark-700 shrink-0">
+                  {jeu.img && <PbImage record={jeu} recordImage={jeu.img} width={40} height={40} />}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-heading text-xs text-neutral-200 tracking-wide">{jeu.nom}</p>
+                  {jeu.difficulter != null && <p class="font-body text-xs text-neutral-600">Difficulté {jeu.difficulter}/10</p>}
+                </div>
+              </div>
+            )) : (
+              <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun jeu sélectionné.</p>
+            )}
+            {isHost && isPlanifie && availableJeux.length > 0 && (
+              <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
+                <input type="hidden" name="action" value="add_jeu" />
+                <select name="jeuId" class="input-viking flex-1 text-xs py-1.5">
+                  {availableJeux.map(j => <option value={j.id}>{j.nom}</option>)}
+                </select>
+                <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Ajouter</button>
+              </form>
+            )}
+          </div>
+          </div>
+
+          <!-- Tab : Paramètres (hôte uniquement, planifié) -->
+          {isHost && isPlanifie && (
+            <div id="tab-params" class="tab-content hidden p-4">
+              <form method="POST" class="flex flex-col gap-3">
+                <input type="hidden" name="action" value="update_params" />
+                <div>
+                  <label class="label-viking" for="p-nom">Nom</label>
+                  <input id="p-nom" name="nom" type="text" value={session?.nom ?? ''} class="input-viking" />
+                </div>
+                <div>
+                  <label class="label-viking" for="p-desc">Description</label>
+                  <textarea id="p-desc" name="description" rows="2" class="input-viking resize-none">{session?.description ?? ''}</textarea>
+                </div>
+                <div>
+                  <label class="label-viking" for="p-dep">Départ</label>
+                  <input id="p-dep" name="date_heur_depart" type="datetime-local"
+                    value={session?.date_heur_depart ? new Date(session.date_heur_depart).toISOString().slice(0,16) : ''}
+                    class="input-viking"
+                  />
+                </div>
+                <div>
+                  <label class="label-viking" for="p-arr">Arrivée prévue</label>
+                  <input id="p-arr" name="date_heur_arriver" type="datetime-local"
+                    value={session?.date_heur_arriver ? new Date(session.date_heur_arriver).toISOString().slice(0,16) : ''}
+                    class="input-viking"
+                  />
+                </div>
+                <button type="submit" class="btn-primary py-2 text-sm mt-1">Sauvegarder</button>
+              </form>
+            </div>
+          )}
+        </div>
+
+        <!-- Infos rapides -->
+        <div class="card-parchment rounded-xl p-4 flex flex-col gap-2">
+          <div class="flex justify-between text-xs">
+            <span class="font-heading text-neutral-600 tracking-widest uppercase">Départ</span>
+            <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_depart)}</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="font-heading text-neutral-600 tracking-widest uppercase">Arrivée</span>
+            <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_arriver)}</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="font-heading text-neutral-600 tracking-widest uppercase">Membres</span>
+            <span class="font-body text-neutral-400">{sessionMembers.length}</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="font-heading text-neutral-600 tracking-widest uppercase">Bars</span>
+            <span class="font-body text-neutral-400">{sessionBars.length}</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</Layout>
+
+<script>
+  // Tabs
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      tabBtns.forEach(b => {
+        b.classList.remove('border-primary-400', 'text-primary-400');
+        b.classList.add('border-transparent', 'text-neutral-500');
+      });
+      tabContents.forEach(c => c.classList.add('hidden'));
+      btn.classList.add('border-primary-400', 'text-primary-400');
+      btn.classList.remove('border-transparent', 'text-neutral-500');
+      document.getElementById(`tab-${target}`)?.classList.remove('hidden');
+    });
+  });
+</script>
+
+{mapBars.length > 0 && (
+  <script>
+    import '../../js/map.js';
+  </script>
+)}

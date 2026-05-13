@@ -31,7 +31,7 @@ const jeux = await getCollection('jeux', { sort: 'nom', token });
           <!-- Image -->
           {jeu.img && (
             <div class="h-48 relative overflow-hidden">
-              <PbImage record={jeu} recordImage={jeu.img} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" width={600} height={192} />
+              <PbImage record={jeu} recordImage={jeu.img} width={600} height={192} />
               <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent pointer-events-none" />
             </div>
           )}

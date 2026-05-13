@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { createUser, authWithPassword } from '../js/backend.js';
+import { createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
 
 const token = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
@@ -8,11 +8,21 @@ if (token && userId) return Astro.redirect('/');
 
 let error = '';
 
-const TITRES = [
-  'Écumeur des mers', 'Jarl des tavernes', 'Berserker assoiffé',
-  'Skald de la corne', 'Gardien du mead', 'Loup des fjords',
-  'Valkyrie de la nuit', 'Rune-buveur', 'Conquérant de tonneaux'
-];
+// Titres exactement comme définis dans PocketBase (select field values)
+const TITRES_FALLBACK = ['écumeur des mers', 'jarl des taverne'];
+
+let TITRES = TITRES_FALLBACK;
+try {
+  const schemaRes = await fetch(`${PB_BASE_URL}/api/collections/users`);
+  if (schemaRes.ok) {
+    const schema = await schemaRes.json();
+    const titreField = schema.fields?.find(f => f.name === 'titre');
+    const vals = titreField?.values ?? titreField?.options?.values;
+    if (vals?.length) TITRES = vals;
+  }
+} catch {
+  // schéma non accessible sans auth admin — fallback utilisé
+}
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -37,8 +47,8 @@ if (Astro.request.method === 'POST') {
     });
 
     if (result?.error) {
-      const msg = result.error?.data?.email?.message ?? result.error?.data?.pseudo?.message ?? result.error?.message ?? 'Erreur lors de l\'inscription.';
-      error = msg;
+      const fieldErrors = Object.values(result.error?.data ?? {}).map(v => v?.message).filter(Boolean).join(' ');
+      error = fieldErrors || result.error?.message || 'Erreur lors de l\'inscription.';
     } else {
       const auth = await authWithPassword(email, password);
       if (auth?.token) {

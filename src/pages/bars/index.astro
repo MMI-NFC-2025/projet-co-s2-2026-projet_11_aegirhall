@@ -12,7 +12,7 @@ const userId = Astro.cookies.get('pb_user_id')?.value;
 if (!token || !userId) return Astro.redirect('/connexion');
 
 const [bars, visites] = await Promise.all([
-  getCollection('bar', { sort: 'ordre' }),
+  getCollection('bar', { sort: 'nom', token }),
   getVisitesByUser(userId, token),
 ]);
 
@@ -99,7 +99,7 @@ const mapBars = bars
           >
             <!-- Image -->
             <div class="h-44 lg:h-auto lg:w-48 shrink-0 relative overflow-hidden">
-              <PbImage record={bar} recordImage={bar.img} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" width={192} height={176} />
+              <PbImage record={bar} recordImage={bar.img} width={192} height={176} />
               <div class="absolute inset-0 bg-linear-to-r from-transparent to-dark-800/40 pointer-events-none" />
             </div>
 

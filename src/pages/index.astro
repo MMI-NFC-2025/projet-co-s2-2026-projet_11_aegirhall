@@ -9,7 +9,7 @@ if (!token || !userId) return Astro.redirect('/LandingPage');
 
 const [user, bars, visites] = await Promise.all([
   getMe(userId, token),
-  getCollection('bars', { sort: 'ordre' }),
+  getCollection('bar', { sort: 'ordre' }),
   getVisitesByUser(userId, token),
 ]);
 
@@ -33,7 +33,7 @@ const lastVisit   = visites.sort((a, b) => new Date(b.created) - new Date(a.crea
             {user?.nom ?? 'Inconnu'}
           </h1>
           <p class="font-heading text-primary-400 text-sm tracking-wide">
-            {user?.titre_viking ?? 'Guerrier de la horde'}
+            {user?.titre ?? 'Guerrier de la horde'}
           </p>
         </div>
 
@@ -67,7 +67,7 @@ const lastVisit   = visites.sort((a, b) => new Date(b.created) - new Date(a.crea
         {nextBar ? (
           <a href={`/bars/${nextBar.id}`} class="card-parchment rounded-lg overflow-hidden flex flex-col lg:flex-row group hover:border-primary-400/40 transition-colors">
             <div class="h-48 lg:h-auto lg:w-56 bg-dark-700 shrink-0 relative">
-              <PbImage record={nextBar} recordImage={nextBar.image?.[0]} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" width={224} height={192} />
+              <PbImage record={nextBar} recordImage={nextBar.img} width={224} height={192} />
               <span class="absolute top-3 left-3 font-heading text-xs text-primary-400 tracking-widest bg-dark-900/80 px-2 py-1 rounded uppercase">
                 Étape {nextBar.ordre}
               </span>
@@ -80,8 +80,8 @@ const lastVisit   = visites.sort((a, b) => new Date(b.created) - new Date(a.crea
                 {nextBar.nom}
               </h3>
               <p class="font-body text-neutral-400 text-base mb-3">{nextBar.adresse}</p>
-              {nextBar.specialite && (
-                <p class="font-body text-sm text-primary-400">Spécialité : {nextBar.specialite}</p>
+              {nextBar.desciption && (
+                <p class="font-body text-sm text-neutral-400 line-clamp-2">{nextBar.desciption}</p>
               )}
             </div>
           </a>

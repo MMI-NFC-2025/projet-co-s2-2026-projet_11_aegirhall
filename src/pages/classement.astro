@@ -107,7 +107,7 @@ const medalIcons  = ['👑', '⚔', '🪓'];
             <div class="col-span-2 lg:col-span-5 flex items-center gap-3">
               <div class="w-9 h-9 rounded-full bg-dark-600 border border-dark-500 flex items-center justify-center overflow-hidden shrink-0">
                 {guerrier.avatar ? (
-                  <PbImage record={guerrier} recordImage={guerrier.avatar} class="w-full h-full object-cover" width={36} height={36} />
+                  <PbImage record={guerrier} recordImage={guerrier.avatar} width={36} height={36} />
                 ) : (
                   <span class="font-heading text-sm text-primary-400">
                     {guerrier.nom?.charAt(0)?.toUpperCase() ?? 'V'}
