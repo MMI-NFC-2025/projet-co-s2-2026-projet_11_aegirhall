@@ -9,6 +9,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/netlify": "^6.6.5",
     "@astrojs/node": "^9.5.5",
     "@fontsource/cinzel": "^5.2.8",
     "@fontsource/cinzel-decorative": "^5.2.8",

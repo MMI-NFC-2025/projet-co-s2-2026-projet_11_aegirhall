@@ -65,7 +65,7 @@ if (!jeu) return Astro.redirect('/jeux');
                   <span class="font-body text-neutral-400 text-base">Difficulté</span>
                   <span class="font-heading text-sm text-primary-400">{jeu.difficulter}/10</span>
                 </div>
-                <div class="flex gap-1">
+                <div class="flex gap-1" aria-hidden="true">
                   {Array.from({ length: 10 }, (_, i) => (
                     <span class={`flex-1 h-1.5 rounded-full ${i < jeu.difficulter ? 'bg-primary-400' : 'bg-dark-500'}`} />
                   ))}

@@ -52,7 +52,7 @@ const jeux = await getCollection('jeux', { sort: 'nom', token });
             {jeu.difficulter != null && (
               <div class="flex items-center gap-2">
                 <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Difficulté</span>
-                <div class="flex gap-1">
+                <div class="flex gap-1" aria-hidden="true">
                   {Array.from({ length: 10 }, (_, i) => (
                     <span class={`w-2 h-2 rounded-full ${i < jeu.difficulter ? 'bg-primary-400' : 'bg-dark-500'}`} />
                   ))}

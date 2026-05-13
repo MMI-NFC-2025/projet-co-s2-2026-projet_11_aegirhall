@@ -392,7 +392,7 @@ function fmtDate(d) {
             {isHost && isPlanifie && availableBars.length > 0 && (
               <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
                 <input type="hidden" name="action" value="add_bar" />
-                <select name="barId" class="input-viking flex-1 text-xs py-1.5">
+                <select name="barId" aria-label="Choisir un bar à ajouter" class="input-viking flex-1 text-xs py-1.5">
                   {availableBars.map(b => <option value={b.id}>{b.nom}</option>)}
                 </select>
                 <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Ajouter</button>
@@ -438,7 +438,7 @@ function fmtDate(d) {
             {isHost && isPlanifie && availableUsers.length > 0 && (
               <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
                 <input type="hidden" name="action" value="add_member" />
-                <select name="memberId" class="input-viking flex-1 text-xs py-1.5">
+                <select name="memberId" aria-label="Choisir un membre à inviter" class="input-viking flex-1 text-xs py-1.5">
                   {availableUsers.map(u => <option value={u.id}>{u.pseudo ?? u.nom}</option>)}
                 </select>
                 <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Inviter</button>
@@ -466,7 +466,7 @@ function fmtDate(d) {
             {isHost && isPlanifie && availableJeux.length > 0 && (
               <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
                 <input type="hidden" name="action" value="add_jeu" />
-                <select name="jeuId" class="input-viking flex-1 text-xs py-1.5">
+                <select name="jeuId" aria-label="Choisir un jeu à ajouter" class="input-viking flex-1 text-xs py-1.5">
                   {availableJeux.map(j => <option value={j.id}>{j.nom}</option>)}
                 </select>
                 <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Ajouter</button>
