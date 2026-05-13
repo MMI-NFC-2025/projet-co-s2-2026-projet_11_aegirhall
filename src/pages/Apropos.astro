@@ -1,0 +1,72 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeroSection from '../components/HeroSection.astro';
+---
+<Layout title="À Propos" description="Découvrez l'histoire et les règles de l'Ægirhall, le grand barathon viking.">
+
+  <HeroSection
+    title="À Propos"
+    subtitle="L'Histoire de l'Ægirhall"
+    descMobile="Le barathon des guerriers, entre légende et bière."
+  />
+
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-12 lg:py-20">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-16">
+
+      <!-- Histoire -->
+      <div>
+        <h2 class="font-heading text-2xl lg:text-3xl text-neutral-200 tracking-wide mb-6">
+          L'Origine
+        </h2>
+        <div class="rune-divider text-primary-700 text-sm mb-6 justify-start">ᚠ ᚢ ᚦ</div>
+        <div class="font-body text-lg text-neutral-400 leading-relaxed space-y-4">
+          <p>
+            Dans les temps anciens, Ægi — dieu de la mer et maître des festins — convoquait les dieux de l'Asgard dans sa halle sous les flots pour des banquets qui duraient des jours entiers.
+          </p>
+          <p>
+            L'Ægirhall s'en inspire : un parcours de tavernes, une route tracée entre les meilleurs établissements de la ville, que chaque guerrier doit conquérir pour graver son nom dans les runes du classement éternel.
+          </p>
+          <p>
+            Plus qu'un simple barathon, c'est un rite de passage. Une épopée liquide. Une légende que vous écrivez bière après bière.
+          </p>
+        </div>
+      </div>
+
+      <!-- Règles -->
+      <div>
+        <h2 class="font-heading text-2xl lg:text-3xl text-neutral-200 tracking-wide mb-6">
+          Le Code des Jarls
+        </h2>
+        <div class="rune-divider text-primary-700 text-sm mb-6 justify-start">ᚱ ᚲ ᚷ</div>
+        <ul class="flex flex-col gap-4">
+          {[
+            { num: '01', règle: 'Inscrivez-vous et rejoignez la horde — seuls les guerriers enregistrés peuvent participer.' },
+            { num: '02', règle: 'Parcourez les tavernes dans l\'ordre indiqué sur la route.' },
+            { num: '03', règle: 'Consommez au moins une boisson dans chaque taverne avant de valider votre passage.' },
+            { num: '04', règle: 'Restez honorable — la horde respecte les établissements et leurs habitants.' },
+            { num: '05', règle: 'Le classement final est établi sur le nombre de tavernes conquises.' },
+          ].map(r => (
+            <li class="flex gap-4">
+              <span class="font-heading text-primary-600 text-sm tracking-widest shrink-0 pt-0.5">{r.num}</span>
+              <p class="font-body text-base text-neutral-400 leading-relaxed">{r.règle}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="card-parchment rounded-xl p-8 lg:p-12 text-center">
+      <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-4">✦ Rejoindre la Horde ✦</p>
+      <h3 class="font-display text-2xl lg:text-4xl text-neutral-100 tracking-widest mb-4">Prêt pour l'aventure ?</h3>
+      <p class="font-body text-lg text-neutral-400 max-w-xl mx-auto mb-8 leading-relaxed">
+        La route vous attend. Les tavernes sont ouvertes. Votre corne de mead est vide.
+      </p>
+      <div class="flex flex-col lg:flex-row gap-4 justify-center">
+        <a href="/inscription" class="btn-primary px-8 py-4">Créer un compte</a>
+        <a href="/connexion"   class="btn-outline px-8 py-4">Se connecter</a>
+      </div>
+    </div>
+  </div>
+
+</Layout>

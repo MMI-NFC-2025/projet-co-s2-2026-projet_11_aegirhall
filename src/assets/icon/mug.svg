@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <path d="M4 3 h12 l-1.5 16 a1 1 0 0 1-1 0.9 H6.5 a1 1 0 0 1-1-0.9 Z"/>
+  <path d="M16 6 h3 a2 2 0 0 1 0 6 h-3"/>
+  <!-- Mousse -->
+  <ellipse cx="10" cy="3" rx="6" ry="1.5" fill="currentColor" opacity="0.5"/>
+</svg>

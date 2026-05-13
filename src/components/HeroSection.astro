@@ -1,0 +1,61 @@
+---
+import { Image } from 'astro:assets';
+import valknut from '../assets/icon/valknut.svg';
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  descMobile?: string;
+  overflow?: boolean;
+  rune?: string;
+}
+
+const { title, subtitle, descMobile, overflow = false, rune = 'ᚱ' } = Astro.props;
+---
+<section class={`relative bg-dark-900 py-20 lg:py-32 text-center overflow-hidden`}>
+
+  <!-- Texture losanges -->
+  <div class="absolute inset-0 bg-diamond pointer-events-none opacity-60" aria-hidden="true" />
+
+  <!-- Torchlight doux -->
+  <div
+    class="absolute inset-0 pointer-events-none"
+    style="background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(196,154,44,0.07) 0%, transparent 60%);"
+    aria-hidden="true"
+  />
+
+  <!-- Valknut décoratif en coin -->
+  <div class="absolute -right-8 -bottom-8 pointer-events-none select-none hidden lg:block" aria-hidden="true">
+    <Image src={valknut} alt="" width={240} height={240} class="opacity-[0.05]" style="color:#C49A2C;" />
+  </div>
+
+  <!-- Bordure or -->
+  <div class="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/50 to-transparent" aria-hidden="true" />
+
+  <div class="relative z-10 max-w-360 mx-auto px-4 lg:px-20">
+    <!-- Rune au-dessus -->
+    <p class="font-heading text-primary-700 text-lg tracking-widest mb-4" aria-hidden="true">
+      {rune}
+    </p>
+
+    <h1 class="font-display text-4xl lg:text-7xl text-neutral-200 leading-tight tracking-widest mb-4 lg:mb-6 title-torch">
+      {title}
+    </h1>
+
+    {subtitle && (
+      <p class="font-heading text-lg lg:text-2xl text-primary-400 tracking-wide mb-4">
+        {subtitle}
+      </p>
+    )}
+
+    <div class="divider-diamond max-w-48 mx-auto mt-4 mb-2"><span /></div>
+
+    {descMobile && (
+      <p class="font-body text-base text-neutral-500 max-w-xl mx-auto leading-relaxed mt-4 lg:hidden">
+        {descMobile}
+      </p>
+    )}
+
+    <slot />
+  </div>
+</section>

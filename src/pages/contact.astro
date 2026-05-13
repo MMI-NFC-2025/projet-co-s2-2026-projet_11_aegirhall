@@ -1,0 +1,52 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeroSection from '../components/HeroSection.astro';
+
+let sent = false;
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  // Ici : envoi email ou stockage PocketBase selon les besoins
+  sent = true;
+}
+---
+<Layout title="Contact">
+
+  <HeroSection title="Contact" subtitle="Envoyez un message aux Jarls" />
+
+  <section class="max-w-360 mx-auto px-4 lg:px-20 py-12 lg:py-20">
+    <div class="max-w-xl mx-auto">
+      {sent ? (
+        <div class="card-parchment rounded-xl p-8 text-center">
+          <p class="font-display text-3xl text-accent-rune mb-3">⚔</p>
+          <h2 class="font-heading text-xl text-neutral-200 tracking-wide mb-2">Message envoyé !</h2>
+          <p class="font-body text-neutral-400">Les Jarls ont reçu votre missive. Ils vous répondront dans les brumes du Nord.</p>
+          <a href="/" class="btn-primary mt-6 inline-block">Retour à l'accueil</a>
+        </div>
+      ) : (
+        <div class="card-parchment rounded-xl p-6 lg:p-8">
+          <form method="POST" class="flex flex-col gap-5">
+            <div>
+              <label class="label-viking" for="c-nom">Votre nom</label>
+              <input id="c-nom" name="nom" type="text" required placeholder="Ragnar" class="input-viking" />
+            </div>
+            <div>
+              <label class="label-viking" for="c-email">Votre email</label>
+              <input id="c-email" name="email" type="email" required placeholder="votre@email.com" class="input-viking" />
+            </div>
+            <div>
+              <label class="label-viking" for="c-sujet">Sujet</label>
+              <input id="c-sujet" name="sujet" type="text" required placeholder="Votre message concerne..." class="input-viking" />
+            </div>
+            <div>
+              <label class="label-viking" for="c-message">Message</label>
+              <textarea id="c-message" name="message" required rows="5" placeholder="Votre récit..." class="input-viking resize-none" />
+            </div>
+            <button type="submit" class="btn-primary w-full py-4">Envoyer la Missive</button>
+          </form>
+        </div>
+      )}
+    </div>
+  </section>
+
+</Layout>

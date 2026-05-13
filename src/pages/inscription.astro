@@ -1,0 +1,119 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { createUser, authWithPassword } from '../js/backend.js';
+
+const token = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (token && userId) return Astro.redirect('/');
+
+let error = '';
+
+const TITRES = [
+  'Écumeur des mers', 'Jarl des tavernes', 'Berserker assoiffé',
+  'Skald de la corne', 'Gardien du mead', 'Loup des fjords',
+  'Valkyrie de la nuit', 'Rune-buveur', 'Conquérant de tonneaux'
+];
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const pseudo   = form.get('pseudo')?.toString().trim() ?? '';
+  const email    = form.get('email')?.toString().trim() ?? '';
+  const password = form.get('password')?.toString() ?? '';
+  const confirm  = form.get('confirm')?.toString() ?? '';
+  const titre    = form.get('titre')?.toString() ?? TITRES[0];
+
+  if (password !== confirm) {
+    error = 'Les mots de passe ne correspondent pas.';
+  } else if (password.length < 8) {
+    error = 'Le mot de passe doit faire au moins 8 caractères.';
+  } else {
+    const result = await createUser({
+      pseudo,
+      nom: pseudo,
+      email,
+      password,
+      passwordConfirm: confirm,
+      titre,
+    });
+
+    if (result?.error) {
+      const msg = result.error?.data?.email?.message ?? result.error?.data?.pseudo?.message ?? result.error?.message ?? 'Erreur lors de l\'inscription.';
+      error = msg;
+    } else {
+      const auth = await authWithPassword(email, password);
+      if (auth?.token) {
+        Astro.cookies.set('pb_token',     auth.token,                              { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_user_id',   auth.record.id,                          { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_user_name', auth.record.pseudo ?? auth.record.nom ?? pseudo, { path: '/', httpOnly: true, maxAge: 604800 });
+        return Astro.redirect('/');
+      }
+      return Astro.redirect('/connexion');
+    }
+  }
+}
+---
+<Layout title="Inscription">
+  <section class="min-h-[calc(100vh-92px)] flex items-center justify-center px-4 py-16">
+    <div class="w-full max-w-md">
+
+      <div class="text-center mb-10">
+        <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-3">✦ Ægirhall ✦</p>
+        <h1 class="font-display text-3xl lg:text-4xl text-neutral-100 tracking-widest mb-3">Rejoindre la Horde</h1>
+        <p class="font-body text-neutral-500 text-base">Forgez votre légende. Choisissez votre titre.</p>
+      </div>
+
+      <div class="card-parchment rounded-lg p-6 lg:p-8">
+        {error && (
+          <div class="mb-6 p-3 rounded bg-accent-blood/20 border border-accent-blood/50 text-sm font-body text-neutral-300">
+            {error}
+          </div>
+        )}
+
+        <form method="POST" class="flex flex-col gap-5">
+          <div>
+            <label class="label-viking" for="pseudo">Nom de guerrier</label>
+            <input id="pseudo" name="pseudo" type="text" required placeholder="Ragnar Lodbrok" class="input-viking" autocomplete="nickname" />
+          </div>
+
+          <div>
+            <label class="label-viking" for="email">Email</label>
+            <input id="email" name="email" type="email" required placeholder="votre@email.com" class="input-viking" autocomplete="email" />
+          </div>
+
+          <div>
+            <label class="label-viking" for="titre">Titre Viking</label>
+            <select id="titre" name="titre" class="input-viking cursor-pointer">
+              {TITRES.map(t => (
+                <option value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label class="label-viking" for="password">Mot de passe</label>
+            <input id="password" name="password" type="password" required placeholder="8 caractères minimum" class="input-viking" autocomplete="new-password" />
+          </div>
+
+          <div>
+            <label class="label-viking" for="confirm">Confirmer le mot de passe</label>
+            <input id="confirm" name="confirm" type="password" required placeholder="••••••••" class="input-viking" autocomplete="new-password" />
+          </div>
+
+          <button type="submit" class="btn-primary w-full mt-2 py-4">
+            Forger Mon Compte
+          </button>
+        </form>
+
+        <div class="rune-divider mt-6 mb-5 text-dark-600 text-xs">ou</div>
+
+        <p class="text-center font-body text-neutral-500 text-base">
+          Déjà guerrier ?{' '}
+          <a href="/connexion" class="text-primary-400 hover:text-primary-300 transition-colors">
+            Se connecter
+          </a>
+        </p>
+      </div>
+
+    </div>
+  </section>
+</Layout>

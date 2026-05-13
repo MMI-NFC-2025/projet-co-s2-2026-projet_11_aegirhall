@@ -1,0 +1,168 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PbImage from '../components/PbImage.astro';
+import { Image } from 'astro:assets';
+import { getMe, getCollection, getVisitesByUser } from '../js/backend.js';
+import bouclierIcon from '../assets/icon/bouclier.svg';
+import tropheeIcon  from '../assets/icon/trophée.svg';
+import pingIcon     from '../assets/icon/ping.svg';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+const [user, bars, visites] = await Promise.all([
+  getMe(userId, token),
+  getCollection('bar', { sort: 'ordre' }),
+  getVisitesByUser(userId, token),
+]);
+
+if (!user) return Astro.redirect('/connexion');
+
+const visitedIds  = visites.map(v => v.bar);
+const progression = bars.length ? Math.round((visitedIds.length / bars.length) * 100) : 0;
+const visitedBars = bars.filter(b => visitedIds.includes(b.id));
+
+// Badges débloqués selon progression
+const badges = [
+  { label: 'Premier Pas',    icon: '🪓', seuil: 1,   desc: 'Première taverne visitée' },
+  { label: 'Écumeur',        icon: '⛵', seuil: 3,   desc: '3 tavernes conquises' },
+  { label: 'Guerrier',       icon: '⚔',  seuil: 5,   desc: '5 tavernes conquises' },
+  { label: 'Berserker',      icon: '🐺', seuil: 8,   desc: '8 tavernes conquises' },
+  { label: 'Jarl',           icon: '👑', seuil: bars.length, desc: 'Route complète' },
+].map(b => ({ ...b, unlocked: visitedIds.length >= b.seuil }));
+---
+<Layout title="Mon Profil">
+
+  <!-- ── HERO PROFIL ──────────────────────────────────────── -->
+  <section class="relative bg-dark-900 py-16 lg:py-24 overflow-hidden">
+    <div class="absolute inset-0 bg-linear-to-b from-dark-900 via-dark-800/60 to-dark-800 pointer-events-none" />
+    <div class="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/30 to-transparent" />
+
+    <div class="relative max-w-360 mx-auto px-4 lg:px-20 flex flex-col lg:flex-row items-center lg:items-start gap-8">
+      <!-- Avatar -->
+      <div class="w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-dark-600 border-2 border-primary-400/50 overflow-hidden shrink-0 flex items-center justify-center">
+        {user.avatar ? (
+          <PbImage record={user} recordImage={user.avatar} class="w-full h-full object-cover" width={128} height={128} />
+        ) : (
+          <span class="font-display text-4xl lg:text-5xl text-primary-400">
+            {user.nom?.charAt(0)?.toUpperCase() ?? 'V'}
+          </span>
+        )}
+      </div>
+
+      <!-- Infos -->
+      <div class="text-center lg:text-left">
+        <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-2">{user.titre ?? 'Guerrier'}</p>
+        <h1 class="font-display text-3xl lg:text-5xl text-neutral-100 tracking-widest mb-2">{user.pseudo ?? user.nom}</h1>
+        <p class="font-body text-neutral-500 text-base">{user.email}</p>
+      </div>
+
+      <!-- Progression compact -->
+      <div class="lg:ml-auto card-parchment rounded-lg p-5 min-w-56 text-center">
+        <p class="font-display text-4xl text-primary-400 mb-1">{progression}%</p>
+        <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase mb-3">Progression</p>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" style={`width:${progression}%`} />
+        </div>
+        <p class="font-body text-xs text-neutral-600 mt-2">{visitedIds.length} / {bars.length} tavernes</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CONTENU ───────────────────────────────────────────── -->
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Badges -->
+      <div class="lg:col-span-2">
+        <h2 class="font-heading text-xl text-neutral-200 tracking-wide mb-6 flex items-center gap-2">
+          <Image src={bouclierIcon} alt="" width={22} height={22} class="invert opacity-70" />
+          Titres & Badges
+        </h2>
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+          {badges.map(badge => (
+            <div class={`card-parchment rounded-lg p-4 text-center transition-opacity ${badge.unlocked ? '' : 'opacity-30'}`}>
+              <span class="text-3xl block mb-2">{badge.icon}</span>
+              <p class="font-heading text-sm text-neutral-200 tracking-wide mb-1">{badge.label}</p>
+              <p class="font-body text-xs text-neutral-500">{badge.desc}</p>
+              {badge.unlocked && (
+                <span class="mt-2 badge-visited text-xs font-heading tracking-widest uppercase px-2 py-0.5 rounded inline-block">Débloqué</span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <!-- Historique des visites -->
+        <h2 class="font-heading text-xl text-neutral-200 tracking-wide mb-6 flex items-center gap-2">
+          <Image src={pingIcon} alt="" width={20} height={20} class="invert opacity-70" />
+          Tavernes Conquises
+        </h2>
+        {visitedBars.length > 0 ? (
+          <div class="flex flex-col gap-3">
+            {visitedBars.map(bar => {
+              const visite = visites.find(v => v.bar === bar.id);
+              return (
+                <a
+                  href={`/bars/${bar.id}`}
+                  class="card-parchment rounded-lg p-4 flex items-center gap-4 hover:border-primary-400/40 transition-colors"
+                >
+                  <span class="w-8 h-8 rounded-full bg-accent-rune/20 border border-accent-rune/40 flex items-center justify-center font-heading text-sm text-green-400 shrink-0">
+                    {bar.ordre}
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-heading text-sm text-neutral-200 tracking-wide">{bar.nom}</p>
+                    {visite?.created && (
+                      <p class="font-body text-xs text-neutral-600 mt-0.5">
+                        {new Date(visite.created).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+                  <span class="badge-visited text-xs font-heading tracking-widest uppercase px-2 py-0.5 rounded shrink-0">⚔</span>
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <div class="card-parchment rounded-lg p-8 text-center">
+            <p class="font-body text-neutral-500">Votre légende commence maintenant. La première taverne vous attend.</p>
+            <a href="/bars" class="btn-primary mt-4 inline-block">Voir la route</a>
+          </div>
+        )}
+      </div>
+
+      <!-- Sidebar -->
+      <div class="flex flex-col gap-5">
+        <div class="card-parchment rounded-lg p-5">
+          <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4 flex items-center gap-1.5">
+            <Image src={tropheeIcon} alt="" width={14} height={14} class="invert opacity-60" />
+            Statistiques
+          </p>
+          <div class="flex flex-col gap-4">
+            {[
+              { label: 'Tavernes visitées',  val: visitedIds.length },
+              { label: 'Tavernes restantes', val: bars.length - visitedIds.length },
+              { label: 'Badges débloqués',   val: badges.filter(b => b.unlocked).length },
+            ].map(stat => (
+              <div class="flex justify-between">
+                <span class="font-body text-neutral-400 text-base">{stat.label}</span>
+                <span class="font-heading text-lg text-primary-400">{stat.val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <a href="/bars" class="btn-primary text-sm text-center py-3">Continuer la Route</a>
+        <a href="/classement" class="btn-outline text-sm text-center py-3">Voir le Classement</a>
+
+        <form action="/logout" method="POST" class="mt-2">
+          <button type="submit" class="w-full font-heading text-xs text-neutral-600 hover:text-accent-blood tracking-widest uppercase py-2 transition-colors">
+            Se déconnecter
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+</Layout>

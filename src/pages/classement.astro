@@ -1,0 +1,154 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeroSection from '../components/HeroSection.astro';
+import PbImage from '../components/PbImage.astro';
+import { Image } from 'astro:assets';
+import { getCollection } from '../js/backend.js';
+import tropheeIcon   from '../assets/icon/trophée.svg';
+import personnesIcon from '../assets/icon/personnes.svg';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+// Récupère tous les utilisateurs avec leur nombre de visites
+const [users, visites, bars] = await Promise.all([
+  getCollection('users', { token }),
+  getCollection('visites', { filter: 'valide=true', token }),
+  getCollection('bar', { fields: 'id', perPage: 200 }),
+]);
+
+const totalBars = bars.length;
+
+// Calcul du classement — pct et isTop3 précomputés pour éviter <= dans le template
+const ranking = users
+  .map(u => ({
+    ...u,
+    visitCount: visites.filter(v => v.user === u.id).length,
+  }))
+  .sort((a, b) => b.visitCount - a.visitCount)
+  .map((u, i) => ({
+    ...u,
+    rank:   i + 1,
+    isTop3: i < 3,
+    isMe:   u.id === userId,
+    pct:    totalBars ? Math.round((visites.filter(v => v.user === u.id).length / totalBars) * 100) : 0,
+  }));
+
+const myRank = ranking.find(u => u.id === userId);
+
+const medalColors = ['text-yellow-400', 'text-neutral-300', 'text-amber-600'];
+const medalIcons  = ['👑', '⚔', '🪓'];
+---
+<Layout title="Classement">
+
+  <HeroSection title="Classement" subtitle="Les légendes de la Route des Jarls" />
+
+  <!-- ── MON RANG ─────────────────────────────────────────── -->
+  {myRank && (
+    <section class="max-w-360 mx-auto px-4 lg:px-20 py-8">
+      <div class="card-parchment rounded-lg p-4 lg:p-5 flex items-center gap-4 border-primary-400/40">
+        <div class="w-10 h-10 rounded-full bg-primary-600/20 border border-primary-400/40 flex items-center justify-center font-display text-lg text-primary-400 shrink-0">
+          {myRank.rank}
+        </div>
+        <div class="flex-1">
+          <p class="font-heading text-sm text-neutral-200 tracking-wide">{myRank.nom} <span class="text-primary-500 text-xs">(vous)</span></p>
+          <p class="font-body text-xs text-neutral-500">{myRank.titre_viking}</p>
+        </div>
+        <div class="text-right">
+          <p class="font-display text-2xl text-primary-400">{myRank.visitCount}</p>
+          <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">tavernes</p>
+        </div>
+        <div class="hidden lg:block">
+          <div class="progress-bar-track w-32">
+            <div class="progress-bar-fill" style={`width:${totalBars ? Math.round((myRank.visitCount / totalBars) * 100) : 0}%`} />
+          </div>
+          <p class="font-body text-xs text-neutral-600 mt-1 text-right">{totalBars ? Math.round((myRank.visitCount / totalBars) * 100) : 0}%</p>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- ── CLASSEMENT COMPLET ────────────────────────────────── -->
+  <section class="max-w-360 mx-auto px-4 lg:px-20 pb-16">
+    <div class="card-parchment rounded-xl overflow-hidden">
+
+      <!-- Header tableau -->
+      <div class="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 bg-dark-700/50 border-b border-dark-600">
+        <div class="col-span-1 font-heading text-xs text-neutral-600 tracking-widest uppercase">Rang</div>
+        <div class="col-span-5 font-heading text-xs text-neutral-600 tracking-widest uppercase flex items-center gap-1.5">
+          <Image src={personnesIcon} alt="" width={13} height={13} class="invert opacity-40" />
+          Guerrier
+        </div>
+        <div class="col-span-3 font-heading text-xs text-neutral-600 tracking-widest uppercase">Titre</div>
+        <div class="col-span-2 font-heading text-xs text-neutral-600 tracking-widest uppercase text-center flex items-center justify-center gap-1.5">
+          <Image src={tropheeIcon} alt="" width={13} height={13} class="invert opacity-40" />
+          Tavernes
+        </div>
+        <div class="col-span-1 font-heading text-xs text-neutral-600 tracking-widest uppercase text-right">%</div>
+      </div>
+
+      {ranking.map(guerrier => {
+        const { pct, isMe, isTop3 } = guerrier;
+        return (
+          <div class={`grid grid-cols-3 lg:grid-cols-12 gap-4 items-center px-4 lg:px-6 py-4 border-b border-dark-700/50 last:border-0 transition-colors ${isMe ? 'bg-primary-400/5' : 'hover:bg-dark-700/30'}`}>
+            <!-- Rang -->
+            <div class="col-span-1">
+              {isTop3 ? (
+                <span class={`font-display text-xl ${medalColors[guerrier.rank - 1]}`}>
+                  {medalIcons[guerrier.rank - 1]}
+                </span>
+              ) : (
+                <span class="font-heading text-sm text-neutral-500 w-8 text-center block">{guerrier.rank}</span>
+              )}
+            </div>
+
+            <!-- Guerrier -->
+            <div class="col-span-2 lg:col-span-5 flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-dark-600 border border-dark-500 flex items-center justify-center overflow-hidden shrink-0">
+                {guerrier.avatar ? (
+                  <PbImage record={guerrier} recordImage={guerrier.avatar} class="w-full h-full object-cover" width={36} height={36} />
+                ) : (
+                  <span class="font-heading text-sm text-primary-400">
+                    {guerrier.nom?.charAt(0)?.toUpperCase() ?? 'V'}
+                  </span>
+                )}
+              </div>
+              <div>
+                <p class={`font-heading text-sm tracking-wide ${isMe ? 'text-primary-400' : 'text-neutral-200'}`}>
+                  {guerrier.nom}
+                  {isMe && <span class="text-primary-600 text-xs ml-1">(vous)</span>}
+                </p>
+              </div>
+            </div>
+
+            <!-- Titre (desktop) -->
+            <div class="hidden lg:block lg:col-span-3">
+              <p class="font-body text-sm text-neutral-500 truncate">{guerrier.titre ?? '—'}</p>
+            </div>
+
+            <!-- Tavernes -->
+            <div class="hidden lg:flex lg:col-span-2 justify-center">
+              <span class={`font-heading text-base ${guerrier.visitCount > 0 ? 'text-primary-400' : 'text-neutral-600'}`}>
+                {guerrier.visitCount} <span class="text-xs text-neutral-600">/ {totalBars}</span>
+              </span>
+            </div>
+
+            <!-- % -->
+            <div class="hidden lg:block lg:col-span-1 text-right">
+              <span class="font-heading text-sm text-neutral-400">{pct}%</span>
+            </div>
+          </div>
+        );
+      })}
+
+      {ranking.length === 0 && (
+        <div class="py-16 text-center">
+          <p class="font-heading text-xl text-neutral-500 tracking-wide">Aucun guerrier inscrit.</p>
+          <a href="/inscription" class="btn-primary mt-6 inline-block">Rejoindre la Horde</a>
+        </div>
+      )}
+    </div>
+  </section>
+
+</Layout>

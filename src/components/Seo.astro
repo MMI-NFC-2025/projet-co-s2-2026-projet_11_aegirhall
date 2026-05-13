@@ -1,0 +1,28 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+const {
+  title = 'Ægirhall',
+  description = 'Le grand barathon viking — parcourez la Route des Jarls et conquérez chaque taverne.',
+  image = '/og.jpg'
+} = Astro.props;
+
+const fullTitle = title === 'Ægirhall' ? title : `${title} — Ægirhall`;
+const canonical = Astro.url.href;
+---
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<meta name="robots" content="noindex, nofollow" />
+<link rel="canonical" href={canonical} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={image} />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={image} />

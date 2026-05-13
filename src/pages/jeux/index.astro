@@ -1,0 +1,80 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PbImage from '../../components/PbImage.astro';
+import HeroSection from '../../components/HeroSection.astro';
+import { getCollection } from '../../js/backend.js';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+const jeux = await getCollection('jeux', { sort: 'nom', token });
+---
+<Layout title="Les Jeux">
+
+  <HeroSection title="Les Jeux" subtitle="Défis et tournois pour les guerriers" />
+
+  <section class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
+
+    {jeux.length === 0 && (
+      <div class="card-parchment rounded-lg p-10 text-center">
+        <p class="font-body text-neutral-500 text-lg">Aucun jeu disponible pour l'instant.</p>
+      </div>
+    )}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {jeux.map(jeu => (
+        <a
+          href={`/jeux/${jeu.id}`}
+          class="card-parchment rounded-lg overflow-hidden flex flex-col group hover:border-primary-400/40 transition-colors"
+        >
+          <!-- Image -->
+          {jeu.img && (
+            <div class="h-48 relative overflow-hidden">
+              <PbImage record={jeu} recordImage={jeu.img} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" width={600} height={192} />
+              <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent pointer-events-none" />
+            </div>
+          )}
+
+          <!-- Contenu -->
+          <div class="p-5 lg:p-6 flex flex-col gap-3 flex-1">
+            <div class="flex items-start justify-between gap-3">
+              <h3 class="font-heading text-lg text-neutral-200 tracking-wide group-hover:text-primary-300 transition-colors">
+                {jeu.nom}
+              </h3>
+              {jeu.type_de_jeux && (
+                <span class="badge-pending text-xs font-heading tracking-widest uppercase px-2 py-1 rounded shrink-0">
+                  {jeu.type_de_jeux}
+                </span>
+              )}
+            </div>
+
+            {jeu.difficulter != null && (
+              <div class="flex items-center gap-2">
+                <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Difficulté</span>
+                <div class="flex gap-1">
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <span class={`w-2 h-2 rounded-full ${i < jeu.difficulter ? 'bg-primary-400' : 'bg-dark-500'}`} />
+                  ))}
+                </div>
+                <span class="font-heading text-xs text-primary-400">{jeu.difficulter}/10</span>
+              </div>
+            )}
+
+            {jeu.descrition && (
+              <p class="font-body text-neutral-400 text-base line-clamp-3">{jeu.descrition}</p>
+            )}
+
+            <div class="mt-auto pt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors">
+              <span class="font-heading text-xs tracking-widest uppercase">Voir le jeu</span>
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+
+</Layout>

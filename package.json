@@ -9,6 +9,13 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^5.17.3"
+    "@astrojs/node": "^9.5.5",
+    "@fontsource/cinzel": "^5.2.8",
+    "@fontsource/cinzel-decorative": "^5.2.8",
+    "@fontsource/eb-garamond": "^5.2.7",
+    "@tailwindcss/vite": "^4.2.4",
+    "astro": "^5.17.3",
+    "leaflet": "^1.9.4",
+    "tailwindcss": "^4.2.4"
   }
 }

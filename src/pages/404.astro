@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="404 — Page introuvable">
+  <section class="min-h-[calc(100vh-92px)] flex flex-col items-center justify-center text-center px-4 py-20">
+    <p class="font-display text-8xl lg:text-9xl text-primary-800 mb-4 select-none" aria-hidden="true">404</p>
+    <h1 class="font-display text-2xl lg:text-4xl text-neutral-200 tracking-widest mb-4">
+      Ces Terres Sont Inconnues
+    </h1>
+    <p class="font-body text-lg text-neutral-500 max-w-md mx-auto leading-relaxed mb-10">
+      Les runes ne parlent pas de cette contrée. Peut-être les Nornes ont-elles effacé ce chemin, ou peut-être n'a-t-il jamais existé.
+    </p>
+    <div class="flex flex-col lg:flex-row gap-4 justify-center">
+      <a href="/" class="btn-primary px-8 py-4">Retour à la Halle</a>
+      <a href="/bars" class="btn-outline px-8 py-4">Voir la Route</a>
+    </div>
+
+    <!-- Runes décoratives -->
+    <p class="font-heading text-4xl text-primary-900 mt-16 tracking-widest select-none" aria-hidden="true">
+      ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ ᚷ ᚹ ᚺ ᚾ ᛁ
+    </p>
+  </section>
+</Layout>

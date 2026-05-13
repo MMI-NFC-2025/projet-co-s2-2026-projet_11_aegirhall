@@ -1,0 +1,24 @@
+---
+---
+<div
+  id="cookie-banner"
+  class="hidden fixed bottom-0 left-0 right-0 z-50 p-4 lg:p-6"
+>
+  <div class="max-w-360 mx-auto">
+    <div class="card-parchment rounded-lg p-4 lg:p-6 flex flex-col lg:flex-row items-start lg:items-center gap-4 shadow-2xl">
+      <p class="font-body text-base text-neutral-300 flex-1">
+        <span class="font-heading text-primary-400 text-sm tracking-widest uppercase block mb-1">Cookies</span>
+        Cette taverne utilise des cookies pour améliorer votre expérience. En continuant, vous acceptez leur utilisation conformément à nos
+        <a href="/mention_legal" class="text-primary-400 underline hover:text-primary-300">mentions légales</a>.
+      </p>
+      <div class="flex gap-3 shrink-0">
+        <button id="cookie-reject" class="btn-outline text-sm px-4 py-2">Refuser</button>
+        <button id="cookie-accept" class="btn-primary text-sm px-4 py-2">Accepter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import '../js/cookie-banner.js';
+</script>

@@ -1,11 +1,148 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
+import PbImage from '../components/PbImage.astro';
+import { getCollection, getVisitesByUser, getMe } from '../js/backend.js';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/LandingPage');
+
+const [user, bars, visites] = await Promise.all([
+  getMe(userId, token),
+  getCollection('bars', { sort: 'ordre' }),
+  getVisitesByUser(userId, token),
+]);
+
+const visitedIds  = visites.map(v => v.bar);
+const progression = bars.length ? Math.round((visitedIds.length / bars.length) * 100) : 0;
+const nextBar     = bars.find(b => !visitedIds.includes(b.id));
+const lastVisit   = visites.sort((a, b) => new Date(b.created) - new Date(a.created))[0];
 ---
+<Layout title="Accueil">
 
-<Layout>
-	<Welcome />
+  <!-- ── HEADER DASHBOARD ────────────────────────────────── -->
+  <section class="relative bg-dark-900 py-14 lg:py-20 overflow-hidden">
+    <div class="absolute inset-0 bg-linear-to-b from-dark-900 to-dark-800 pointer-events-none" aria-hidden="true" />
+    <div class="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/40 to-transparent" aria-hidden="true" />
+
+    <div class="relative max-w-360 mx-auto px-4 lg:px-20">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div>
+          <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-2">Bienvenue, guerrier</p>
+          <h1 class="font-display text-3xl lg:text-5xl text-neutral-100 tracking-widest mb-2">
+            {user?.nom ?? 'Inconnu'}
+          </h1>
+          <p class="font-heading text-primary-400 text-sm tracking-wide">
+            {user?.titre_viking ?? 'Guerrier de la horde'}
+          </p>
+        </div>
+
+        <!-- Progression -->
+        <div class="card-parchment rounded-lg p-5 lg:p-6 min-w-65">
+          <div class="flex justify-between items-center mb-3">
+            <span class="font-heading text-xs text-neutral-400 tracking-widest uppercase">Progression</span>
+            <span class="font-display text-2xl text-primary-400">{progression}%</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" style={`width:${progression}%`} />
+          </div>
+          <p class="font-body text-sm text-neutral-500 mt-2">
+            {visitedIds.length} / {bars.length} tavernes conquises
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CONTENU ───────────────────────────────────────────── -->
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-16">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Prochaine taverne -->
+      <div class="lg:col-span-2">
+        <h2 class="font-heading text-xl text-neutral-200 tracking-wide mb-6">
+          {nextBar ? 'Prochaine Étape' : 'Route Conquise !'}
+        </h2>
+
+        {nextBar ? (
+          <a href={`/bars/${nextBar.id}`} class="card-parchment rounded-lg overflow-hidden flex flex-col lg:flex-row group hover:border-primary-400/40 transition-colors">
+            <div class="h-48 lg:h-auto lg:w-56 bg-dark-700 shrink-0 relative">
+              <PbImage record={nextBar} recordImage={nextBar.image?.[0]} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" width={224} height={192} />
+              <span class="absolute top-3 left-3 font-heading text-xs text-primary-400 tracking-widest bg-dark-900/80 px-2 py-1 rounded uppercase">
+                Étape {nextBar.ordre}
+              </span>
+            </div>
+            <div class="p-5 lg:p-6 flex flex-col justify-center">
+              <p class="badge-pending inline-flex self-start text-xs font-heading tracking-widest uppercase px-2 py-1 rounded mb-3">
+                À conquérir
+              </p>
+              <h3 class="font-heading text-xl text-neutral-200 tracking-wide mb-2 group-hover:text-primary-300 transition-colors">
+                {nextBar.nom}
+              </h3>
+              <p class="font-body text-neutral-400 text-base mb-3">{nextBar.adresse}</p>
+              {nextBar.specialite && (
+                <p class="font-body text-sm text-primary-400">Spécialité : {nextBar.specialite}</p>
+              )}
+            </div>
+          </a>
+        ) : (
+          <div class="card-parchment rounded-lg p-8 text-center">
+            <p class="font-display text-3xl text-primary-400 mb-3">⚔</p>
+            <p class="font-heading text-xl text-neutral-200 tracking-wide mb-2">Légende accomplie !</p>
+            <p class="font-body text-neutral-400">Vous avez conquis toutes les tavernes. Votre nom est gravé dans les runes.</p>
+          </div>
+        )}
+
+        <!-- Liste des bars visitées -->
+        {visitedIds.length > 0 && (
+          <div class="mt-8">
+            <h3 class="font-heading text-base text-neutral-400 tracking-widest uppercase mb-4">Tavernes Conquises</h3>
+            <div class="flex flex-col gap-2">
+              {bars.filter(b => visitedIds.includes(b.id)).slice(0, 4).map(bar => (
+                <a href={`/bars/${bar.id}`} class="flex items-center gap-4 p-3 rounded-lg bg-dark-700/50 hover:bg-dark-700 transition-colors">
+                  <span class="w-8 h-8 rounded-full bg-accent-rune/20 border border-accent-rune/40 flex items-center justify-center font-heading text-sm text-accent-rune shrink-0">
+                    {bar.ordre}
+                  </span>
+                  <span class="font-heading text-sm text-neutral-300">{bar.nom}</span>
+                  <span class="ml-auto badge-visited text-xs font-heading tracking-widest uppercase px-2 py-0.5 rounded">
+                    Visité
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <!-- Sidebar stats -->
+      <div class="flex flex-col gap-6">
+        <div class="card-parchment rounded-lg p-5">
+          <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Vos Stats</p>
+          <div class="flex flex-col gap-4">
+            {[
+              { label: 'Tavernes visitées', val: visitedIds.length },
+              { label: 'Tavernes restantes', val: bars.length - visitedIds.length },
+              { label: 'Rang actuel',         val: '—' },
+            ].map(stat => (
+              <div class="flex justify-between items-center">
+                <span class="font-body text-neutral-400 text-base">{stat.label}</span>
+                <span class="font-heading text-lg text-primary-400">{stat.val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="card-parchment rounded-lg p-5">
+          <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Actions Rapides</p>
+          <div class="flex flex-col gap-3">
+            <a href="/bars" class="btn-primary text-sm text-center py-3">Voir la carte</a>
+            <a href="/classement" class="btn-outline text-sm text-center py-3">Classement</a>
+            <a href="/profil" class="font-heading text-xs text-neutral-500 hover:text-neutral-300 tracking-widest uppercase text-center py-2 transition-colors">Mon Profil</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </Layout>
