@@ -1,16 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { Image } from 'astro:assets';
 import { createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
+import cascade from '../assets/img/cascade.avif';
 
-const token = Astro.cookies.get('pb_token')?.value;
+const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
 if (token && userId) return Astro.redirect('/');
 
 let error = '';
 
-// Titres exactement comme définis dans PocketBase (select field values)
 const TITRES_FALLBACK = ['écumeur des mers', 'jarl des taverne'];
-
 let TITRES = TITRES_FALLBACK;
 try {
   const schemaRes = await fetch(`${PB_BASE_URL}/api/collections/users`);
@@ -20,40 +20,31 @@ try {
     const vals = titreField?.values ?? titreField?.options?.values;
     if (vals?.length) TITRES = vals;
   }
-} catch {
-  // schéma non accessible sans auth admin — fallback utilisé
-}
+} catch { /* fallback utilisé */ }
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
-  const pseudo   = form.get('pseudo')?.toString().trim() ?? '';
-  const email    = form.get('email')?.toString().trim() ?? '';
-  const password = form.get('password')?.toString() ?? '';
-  const confirm  = form.get('confirm')?.toString() ?? '';
-  const titre    = form.get('titre')?.toString() ?? TITRES[0];
+  const pseudo   = form.get('pseudo')?.toString().trim()  ?? '';
+  const email    = form.get('email')?.toString().trim()   ?? '';
+  const password = form.get('password')?.toString()       ?? '';
+  const confirm  = form.get('confirm')?.toString()        ?? '';
+  const titre    = form.get('titre')?.toString()          ?? TITRES[0];
 
   if (password !== confirm) {
     error = 'Les mots de passe ne correspondent pas.';
   } else if (password.length < 8) {
     error = 'Le mot de passe doit faire au moins 8 caractères.';
   } else {
-    const result = await createUser({
-      pseudo,
-      nom: pseudo,
-      email,
-      password,
-      passwordConfirm: confirm,
-      titre,
-    });
+    const result = await createUser({ pseudo, nom: pseudo, email, password, passwordConfirm: confirm, titre });
 
     if (result?.error) {
       const fieldErrors = Object.values(result.error?.data ?? {}).map(v => v?.message).filter(Boolean).join(' ');
-      error = fieldErrors || result.error?.message || 'Erreur lors de l\'inscription.';
+      error = fieldErrors || result.error?.message || "Erreur lors de l'inscription.";
     } else {
       const auth = await authWithPassword(email, password);
       if (auth?.token) {
-        Astro.cookies.set('pb_token',     auth.token,                              { path: '/', httpOnly: true, maxAge: 604800 });
-        Astro.cookies.set('pb_user_id',   auth.record.id,                          { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_token',     auth.token,     { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_user_id',   auth.record.id, { path: '/', httpOnly: true, maxAge: 604800 });
         Astro.cookies.set('pb_user_name', auth.record.pseudo ?? auth.record.nom ?? pseudo, { path: '/', httpOnly: true, maxAge: 604800 });
         return Astro.redirect('/');
       }
@@ -62,68 +53,156 @@ if (Astro.request.method === 'POST') {
   }
 }
 ---
-<Layout title="Inscription">
-  <section class="min-h-[calc(100vh-92px)] flex items-center justify-center px-4 py-16">
-    <div class="w-full max-w-md">
+<Layout title="Inscription — Ægirhall">
 
-      <div class="text-center mb-10">
-        <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-3">✦ Ægirhall ✦</p>
-        <h1 class="font-display text-3xl lg:text-4xl text-neutral-100 tracking-widest mb-3">Rejoindre la Horde</h1>
-        <p class="font-body text-neutral-500 text-base">Forgez votre légende. Choisissez votre titre.</p>
-      </div>
+  <div class="min-h-[calc(100vh-92px)] flex">
 
-      <div class="card-parchment rounded-lg p-6 lg:p-8">
-        {error && (
-          <div class="mb-6 p-3 rounded bg-accent-blood/20 border border-accent-blood/50 text-sm font-body text-neutral-300" role="alert">
-            {error}
-          </div>
-        )}
+    <!-- ── Panneau image (desktop seulement) ─────────────── -->
+    <div class="hidden lg:block relative w-1/2 xl:w-2/5 overflow-hidden">
+      <Image
+        src={cascade}
+        alt=""
+        width={800}
+        height={1100}
+        class="absolute inset-0 w-full h-full object-cover animate-ken-burns"
+      />
+      <div class="absolute inset-0 bg-linear-to-r from-dark-900/10 via-dark-900/20 to-dark-900/90" />
+      <div class="absolute inset-0 bg-linear-to-t from-dark-900/70 via-transparent to-dark-900/30" />
 
-        <form method="POST" class="flex flex-col gap-5">
-          <div>
-            <label class="label-viking" for="pseudo">Nom de guerrier</label>
-            <input id="pseudo" name="pseudo" type="text" required placeholder="Ragnar Lodbrok" class="input-viking" autocomplete="nickname" />
-          </div>
-
-          <div>
-            <label class="label-viking" for="email">Email</label>
-            <input id="email" name="email" type="email" required placeholder="votre@email.com" class="input-viking" autocomplete="email" />
-          </div>
-
-          <div>
-            <label class="label-viking" for="titre">Titre Viking</label>
-            <select id="titre" name="titre" class="input-viking cursor-pointer">
-              {TITRES.map(t => (
-                <option value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label class="label-viking" for="password">Mot de passe</label>
-            <input id="password" name="password" type="password" required placeholder="8 caractères minimum" class="input-viking" autocomplete="new-password" />
-          </div>
-
-          <div>
-            <label class="label-viking" for="confirm">Confirmer le mot de passe</label>
-            <input id="confirm" name="confirm" type="password" required placeholder="••••••••" class="input-viking" autocomplete="new-password" />
-          </div>
-
-          <button type="submit" class="btn-primary w-full mt-2 py-4">
-            Forger Mon Compte
-          </button>
-        </form>
-
-        <div class="rune-divider mt-6 mb-5 text-dark-600 text-xs">ou</div>
-
-        <p class="text-center font-body text-neutral-500 text-base">
-          Déjà guerrier ?{' '}
-          <a href="/connexion" class="text-primary-400 hover:text-primary-300 transition-colors">
-            Se connecter
+      <div class="absolute inset-0 flex flex-col justify-between p-10 xl:p-14">
+        <div>
+          <a href="/" class="font-display text-xl text-primary-400 tracking-widest hover:text-primary-300 transition-colors">
+            Ægirhall
           </a>
-        </p>
+        </div>
+        <div>
+          <div class="divider-diamond max-w-32 mb-6"><span /></div>
+          <p class="font-heading text-xs text-primary-600 tracking-rune uppercase mb-3">Pourquoi nous rejoindre ?</p>
+          <ul class="font-body text-neutral-300 text-lg space-y-3">
+            <li class="flex items-center gap-3">
+              <span class="text-primary-500 text-sm">✦</span>
+              Explorez les tavernes de la région
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="text-primary-500 text-sm">✦</span>
+              Forger votre légende avec vos alliés
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="text-primary-500 text-sm">✦</span>
+              Gravissez le classement des Jarls
+            </li>
+          </ul>
+        </div>
       </div>
-
     </div>
-  </section>
+
+    <!-- ── Panneau formulaire ────────────────────────────── -->
+    <div class="flex-1 flex items-center justify-center px-6 py-14 bg-dark-800 relative overflow-hidden overflow-y-auto">
+
+      <div class="absolute inset-0 bg-diamond opacity-30 pointer-events-none" aria-hidden="true" />
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="background: radial-gradient(ellipse 70% 55% at 50% 100%, rgba(196,154,44,0.06) 0%, transparent 60%);"
+        aria-hidden="true"
+      />
+
+      <div class="relative z-10 w-full max-w-sm py-4">
+
+        <!-- En-tête -->
+        <div class="text-center mb-8">
+          <p class="font-heading text-primary-600 text-xs tracking-rune-wide uppercase mb-4">✦ Ægirhall ✦</p>
+          <h1 class="font-display text-3xl lg:text-4xl text-neutral-100 tracking-widest mb-3">
+            Rejoindre la Horde
+          </h1>
+          <p class="font-body text-neutral-500 text-base leading-relaxed">
+            Forgez votre légende.<br class="hidden sm:block" /> Choisissez votre titre.
+          </p>
+        </div>
+
+        <!-- Carte formulaire -->
+        <div class="card-parchment rounded-xl p-7 lg:p-8">
+
+          {error && (
+            <div
+              class="mb-6 p-3 rounded-lg bg-accent-blood/15 border border-accent-blood/40 text-sm font-body text-neutral-300 flex items-start gap-2"
+              role="alert"
+            >
+              <span class="text-accent-blood mt-0.5 shrink-0">⚠</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form method="POST" class="flex flex-col gap-4" novalidate>
+
+            <div>
+              <label class="label-viking" for="pseudo">Nom de guerrier</label>
+              <input
+                id="pseudo" name="pseudo" type="text" required
+                placeholder="Ragnar Lodbrok"
+                class="input-viking" autocomplete="nickname"
+              />
+            </div>
+
+            <div>
+              <label class="label-viking" for="email">Adresse e-mail</label>
+              <input
+                id="email" name="email" type="email" required
+                placeholder="votre@email.com"
+                class="input-viking" autocomplete="email"
+              />
+            </div>
+
+            <div>
+              <label class="label-viking" for="titre">Titre Viking</label>
+              <select id="titre" name="titre" class="input-viking cursor-pointer">
+                {TITRES.map(t => (
+                  <option value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label class="label-viking" for="password">Mot de passe</label>
+              <input
+                id="password" name="password" type="password" required
+                placeholder="8 caractères minimum"
+                class="input-viking" autocomplete="new-password"
+              />
+            </div>
+
+            <div>
+              <label class="label-viking" for="confirm">Confirmer le mot de passe</label>
+              <input
+                id="confirm" name="confirm" type="password" required
+                placeholder="••••••••"
+                class="input-viking" autocomplete="new-password"
+              />
+            </div>
+
+            <button type="submit" class="btn-primary w-full mt-2 py-4 text-sm">
+              Forger Mon Compte
+            </button>
+
+          </form>
+
+          <div class="rune-divider my-6 text-dark-500 text-xs font-heading tracking-widest">ou</div>
+
+          <p class="text-center font-body text-neutral-500 text-base">
+            Déjà guerrier ?{' '}
+            <a href="/connexion" class="text-primary-400 hover:text-primary-300 transition-colors underline underline-offset-2 decoration-primary-700">
+              Se connecter
+            </a>
+          </p>
+
+        </div>
+
+        <p class="text-center mt-6 font-body text-neutral-600 text-sm">
+          <a href="/" class="hover:text-neutral-400 transition-colors">← Retour à l'accueil</a>
+        </p>
+
+      </div>
+    </div>
+
+  </div>
+
 </Layout>

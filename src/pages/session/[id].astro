@@ -3,13 +3,27 @@ import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import { Image } from 'astro:assets';
 import {
-  getRecord, getCollection, getVisitesByUser, getMe,
-  patchSession, createVisite, updateUser
+  getRecord, getCollection, getMe,
+  patchSession, updateUser, PB_BASE_URL, getLevelFromXp,
 } from '../../js/backend.js';
-import carteIcon  from '../../assets/icon/carte.svg';
-import bierreIcon from '../../assets/icon/bierre.svg';
+import carteIcon    from '../../assets/icon/carte.svg';
+import bierreIcon   from '../../assets/icon/bierre.svg';
 import personnesIcon from '../../assets/icon/personnes.svg';
-import voitureIcon from '../../assets/icon/voiture.svg';
+import voitureIcon  from '../../assets/icon/voiture.svg';
+import ProgressBar  from '../../components/ProgressBar.astro';
+import StatusBadge  from '../../components/StatusBadge.astro';
+import tempsIcon    from '../../assets/icon/Temps.svg';
+import bouclierIcon from '../../assets/icon/bouclier.svg';
+import medailIcon   from '../../assets/icon/medail.svg';
+import partagerIcon from '../../assets/icon/partager.svg';
+import homeIcon     from '../../assets/icon/home.svg';
+import etoileVide   from '../../assets/icon/etoile_vide.svg';
+import etoileFill   from '../../assets/icon/etoile_fill.svg';
+import couroneIcon  from '../../assets/icon/courone.svg';
+import taverne_nuit    from '../../assets/img/taverne_nuit.avif';
+import jeuIcon         from '../../assets/icon/jeux.svg';
+import navigationIcon  from '../../assets/icon/navigation.svg';
+import waringIcon      from '../../assets/icon/waring.svg';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
@@ -24,9 +38,16 @@ let session = await getRecord('session_barathon', id, {
 });
 if (!session) return Astro.redirect('/session');
 
-const isHost   = session.id_hote === userId;
-const isMember = (session.id_menbre ?? []).includes(userId);
-const isPending = false; // géré via demande_session sur user
+// Normalise une relation PocketBase (string | string[] | object | null) → string ID
+const toIdEarly = (v: any): string | null => {
+  if (!v) return null;
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return (typeof v[0] === 'string' ? v[0] : v[0]?.id) ?? null;
+  return v?.id ?? null;
+};
+
+const hostId = toIdEarly(session?.id_hote);
+const isHost = hostId === userId;
 
 let actionError = '';
 
@@ -62,8 +83,17 @@ if (Astro.request.method === 'POST') {
       return Astro.redirect(`/session/${id}`);
     }
 
+    if (action === 'unset_sam') {
+      await patchSession(id, { id_sam: '' }, token);
+      return Astro.redirect(`/session/${id}`);
+    }
+
     if (action === 'start') {
-      if (!session.id_sam) {
+      const rawSam = session?.id_sam;
+      const currentSamId = Array.isArray(rawSam) ? rawSam[0]
+        : typeof rawSam === 'string' ? rawSam
+        : (rawSam?.id ?? null);
+      if (!currentSamId) {
         actionError = 'Désignez un SAM avant de démarrer la session.';
       } else {
         await patchSession(id, { etat_session: 'en_court' }, token);
@@ -72,41 +102,22 @@ if (Astro.request.method === 'POST') {
     }
 
     if (action === 'next_bar') {
-      const barId = form.get('barId')?.toString();
-      if (barId) await createVisite(barId, userId, token);
+      const currentIndex = Number(session.bar_courant_index ?? 0);
+      await patchSession(id, { bar_courant_index: currentIndex + 1 }, token);
       return Astro.redirect(`/session/${id}`);
     }
 
-    if (action === 'finish') {
-      const allBarIds    = session.id_bar    ?? [];
-      const allMemberIds = session.id_menbre ?? [];
-      await Promise.all(
-        allMemberIds.flatMap(mId => allBarIds.map(bId => createVisite(bId, mId, token)))
-      );
-      await Promise.all(allMemberIds.map(async mId => {
-        const member = await getRecord('users', mId, { token });
-        const existing = member?.id_taverne_visiter ?? [];
-        const merged = [...new Set([...existing, ...allBarIds])];
-        await updateUser(mId, { id_taverne_visiter: merged }, token);
-      }));
-      await patchSession(id, { etat_session: 'fini' }, token);
-      return Astro.redirect(`/session/${id}`);
-    }
-
-    if (action === 'stop') {
-      const allBarIds    = session.id_bar    ?? [];
-      const allMemberIds = session.id_menbre ?? [];
-      // Créer les visites pour tous les membres (nécessite règles PB permissives)
-      await Promise.all(
-        allMemberIds.flatMap(mId => allBarIds.map(bId => createVisite(bId, mId, token)))
-      );
-      // Mettre à jour id_taverne_visiter sur chaque membre
-      await Promise.all(allMemberIds.map(async mId => {
-        const member = await getRecord('users', mId, { token });
-        const existing = member?.id_taverne_visiter ?? [];
-        const merged = [...new Set([...existing, ...allBarIds])];
-        await updateUser(mId, { id_taverne_visiter: merged }, token);
-      }));
+    if (action === 'finish' || action === 'stop') {
+      const allBarIds    = (session.id_bar ?? []).map(toIdEarly).filter(Boolean);
+      const finishHostId = toIdEarly(session.id_hote);
+      if (finishHostId) {
+        const hostRecord = await getRecord('users', finishHostId, { token });
+        if (hostRecord) {
+          const existing = hostRecord?.id_taverne_visiter ?? [];
+          const merged   = [...new Set([...existing, ...allBarIds])];
+          await updateUser(finishHostId, { id_taverne_visiter: merged }, token);
+        }
+      }
       await patchSession(id, { etat_session: 'fini' }, token);
       return Astro.redirect(`/session/${id}`);
     }
@@ -143,23 +154,49 @@ if (Astro.request.method === 'POST') {
       const description     = form.get('description')?.toString().trim();
       const dateDepart      = form.get('date_heur_depart')?.toString();
       const dateArrivee     = form.get('date_heur_arriver')?.toString();
-      await patchSession(id, { nom, description, date_heur_depart: dateDepart || null, date_heur_arriver: dateArrivee || null }, token);
+      const toIso = (val) => { if (!val) return null; const d = new Date(val); return isNaN(d.getTime()) ? null : d.toISOString(); };
+      await patchSession(id, { nom, description, date_heur_depart: toIso(dateDepart), date_heur_arriver: toIso(dateArrivee) }, token);
       return Astro.redirect(`/session/${id}`);
     }
   }
 }
 
 // Rechargement session après modifications éventuelles
+// On n'expand PAS les users ici — on lit les IDs bruts depuis PocketBase
+// puis on fetch via getCollection (endpoint List) qui ne dépend pas de la règle View
 session = await getRecord('session_barathon', id, {
-  expand: 'id_bar,id_menbre,id_jeux,id_hote,id_sam',
+  expand: 'id_bar,id_jeux',
   token,
 });
 
-const sessionBars    = session?.expand?.id_bar    ?? [];
-const sessionMembers = session?.expand?.id_menbre ?? [];
-const sessionGames   = session?.expand?.id_jeux   ?? [];
-const host           = session?.expand?.id_hote;
-const sam            = session?.expand?.id_sam;
+const sessionBars  = session?.expand?.id_bar   ?? [];
+const sessionGames = session?.expand?.id_jeux  ?? [];
+
+// IDs bruts depuis PocketBase (source de vérité) — même logique que toIdEarly
+const toId = toIdEarly;
+const memberIds:  string[] = (session?.id_menbre ?? []).map(toId).filter(Boolean) as string[];
+const samRawId:   string | null = toId(session?.id_sam) || null;
+const hostRawId:  string | null = toId(session?.id_hote) || null;
+const hasSam = !!samRawId;
+
+
+// Fetch batch de tous les users en un appel (List endpoint, sans contrainte View)
+const allUserIds = [...new Set([...memberIds, ...(samRawId ? [samRawId] : []), ...(hostRawId ? [hostRawId] : [])])];
+let allUsers: any[] = [];
+if (allUserIds.length > 0) {
+  allUsers = await getCollection('users', {
+    filter: allUserIds.map((id: string) => `id = "${id}"`).join(' || '),
+    fields: 'id,pseudo,nom,email,avatar,collectionId',
+    token,
+  });
+}
+
+
+const sessionMembers = memberIds.map((id: string) => allUsers.find(u => u.id === id)).filter(Boolean);
+const host           = allUsers.find(u => u.id === hostRawId) ?? null;
+const sam            = samRawId ? (allUsers.find(u => u.id === samRawId) ?? null) : null;
+const samMemberId    = samRawId;
+
 
 const etat        = session?.etat_session ?? 'pas_commencer';
 const isPlanifie  = etat === 'pas_commencer';
@@ -173,12 +210,12 @@ let currentBar   = null;
 let barsCompleted = 0;
 
 if (isEnCours && session?.id_bar?.length) {
-  const hostVisites = await getVisitesByUser(session.id_hote, token);
-  hostVisitedBarIds = hostVisites.map(v => v.bar);
-  const sessionBarIds = session.id_bar ?? [];
-  barsCompleted = sessionBarIds.filter(bId => hostVisitedBarIds.includes(bId)).length;
-  currentBarId  = sessionBarIds.find(bId => !hostVisitedBarIds.includes(bId)) ?? null;
-  currentBar    = sessionBars.find(b => b.id === currentBarId) ?? null;
+  const sessionBarIds = (session.id_bar ?? []).map(toId).filter(Boolean) as string[];
+  const currentIndex  = Number(session.bar_courant_index ?? 0);
+  barsCompleted     = currentIndex;
+  hostVisitedBarIds = sessionBarIds.slice(0, currentIndex);
+  currentBarId      = sessionBarIds[currentIndex] ?? null;
+  currentBar        = sessionBars.find((b: any) => b.id === currentBarId) ?? null;
 }
 
 const allBarsVisited = isEnCours && !currentBarId && (session?.id_bar?.length ?? 0) > 0;
@@ -186,16 +223,17 @@ const isLastBar      = currentBar !== null && ((session?.id_bar?.length ?? 0) - 
 
 let availableBars = [], availableUsers = [], availableJeux = [];
 if (isHost && isPlanifie) {
-  const sessionBarIds    = session?.id_bar    ?? [];
-  const sessionMemberIds = session?.id_menbre ?? [];
-  const sessionJeuIds    = session?.id_jeux   ?? [];
-  const [allBars, allUsers, allJeux] = await Promise.all([
-    getCollection('bar',   { sort: 'nom', token }),
-    getCollection('users', { token }),
-    getCollection('jeux',  { sort: 'nom', token }),
+  const sessionBarIds    = (session?.id_bar  ?? []).map(toId).filter(Boolean) as string[];
+  const sessionMemberIds = memberIds;
+  const sessionJeuIds    = (session?.id_jeux ?? []).map(toId).filter(Boolean) as string[];
+  const [allBars, allJeux, hostRecord] = await Promise.all([
+    getCollection('bar',  { sort: 'nom', token }),
+    getCollection('jeux', { sort: 'nom', token }),
+    getRecord('users', userId, { expand: 'amies', token }),
   ]);
+  const myFriends = hostRecord?.expand?.amies ?? [];
   availableBars  = allBars.filter(b => !sessionBarIds.includes(b.id));
-  availableUsers = allUsers.filter(u => !sessionMemberIds.includes(u.id) && u.id !== userId);
+  availableUsers = myFriends.filter(u => !sessionMemberIds.includes(u.id) && u.id !== userId);
   availableJeux  = allJeux.filter(j => !sessionJeuIds.includes(j.id));
 }
 
@@ -213,322 +251,1015 @@ function fmtDate(d) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
+
+// Résumé — valeurs calculées côté serveur
+let durationStr = '—';
+if (isTermine && session?.date_heur_depart && session?.date_heur_arriver) {
+  const depMs  = new Date(session.date_heur_depart).getTime();
+  const arrMs  = new Date(session.date_heur_arriver).getTime();
+  const diffMs = Math.max(0, arrMs - depMs);
+  const h = Math.floor(diffMs / 3600000);
+  const m = Math.floor((diffMs % 3600000) / 60000);
+  durationStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+const xpGained      = sessionBars.length * 50 + sessionMembers.length * 10;
+const securityScore = hasSam ? 96 : 72;
 ---
 <Layout title={session?.nom ?? 'Session'}>
 
-  <!-- ── HERO SESSION ──────────────────────────────────────── -->
-  <section class="bg-dark-900 border-b border-dark-700 py-8 lg:py-10">
-    <div class="max-w-360 mx-auto px-4 lg:px-20 flex flex-col lg:flex-row lg:items-center gap-4">
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-3 mb-2">
-          <span class={`text-xs font-heading tracking-widest uppercase px-2 py-1 rounded ${
-            isEnCours ? 'badge-visited' : isPlanifie ? 'badge-pending' : 'text-neutral-600 border border-dark-600 px-2 py-1 rounded'
-          }`}>
-            {isEnCours ? '⚔ En cours' : isPlanifie ? '○ Planifiée' : '✓ Terminée'}
-          </span>
-          {!isPlanifie && !isEnCours && !isTermine && (
-            <span class="badge-pending text-xs font-heading tracking-widest uppercase px-2 py-1 rounded">Planifiée</span>
-          )}
-        </div>
-        <h1 class="font-display text-2xl lg:text-4xl text-neutral-100 tracking-widest">{session?.nom ?? 'Session'}</h1>
-        <p class="font-body text-neutral-500 text-sm mt-1">
-          Hôte : {host?.pseudo ?? host?.nom ?? '—'}
-          {sam && <span class="ml-3 text-primary-500">SAM : {sam?.pseudo ?? sam?.nom}</span>}
-        </p>
-      </div>
-      <a href="/session" class="font-heading text-xs text-neutral-600 hover:text-neutral-400 tracking-widest uppercase transition-colors shrink-0">
-        ← Mes sessions
+  <!-- ── COMPACT HEADER ───────────────────────────────────── -->
+  <section class="bg-dark-900 border-b border-dark-700 py-5">
+    <div class="max-w-360 mx-auto px-4 lg:px-20 flex items-center gap-4">
+      <a href="/session"
+         class="font-heading text-xs text-neutral-600 hover:text-neutral-400 tracking-widest uppercase transition-colors shrink-0">
+        ← Retour
       </a>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-1">
+          <StatusBadge
+            variant={isEnCours ? 'visited' : isPlanifie ? 'pending' : 'neutral'}
+            class="px-2 py-1 rounded"
+          >
+            {isEnCours ? '⚔ En cours' : isPlanifie ? '○ Planifiée' : '✓ Terminée'}
+          </StatusBadge>
+        </div>
+        <h1 class="font-display text-xl lg:text-3xl text-neutral-100 tracking-widest truncate">{session?.nom ?? 'Session'}</h1>
+        <p class="font-body text-neutral-500 text-xs mt-0.5">Hôte : {host?.pseudo ?? host?.nom ?? '—'}</p>
+      </div>
     </div>
   </section>
 
-  <!-- ── CORPS ─────────────────────────────────────────────── -->
-  <div class="max-w-360 mx-auto px-4 lg:px-20 py-8 lg:py-12">
-    <div class="grid grid-cols-1 lg:grid-cols-10 gap-8">
+  <!-- ── CORPS ────────────────────────────────────────────── -->
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-6">
+    <div class="flex flex-col gap-5">
 
-      <!-- ── GAUCHE 70% : CARTE ──────────────────────────────── -->
-      <div class="lg:col-span-7 flex flex-col gap-6">
-        <h2 class="font-heading text-base text-neutral-300 tracking-wide flex items-center gap-2">
-          <Image src={carteIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
-          Carte du barathon
-        </h2>
 
-        {mapBars.length > 0 ? (
-          <>
-            <div id="map-data"
-              data-bars={JSON.stringify(mapBars)}
-              data-visited={JSON.stringify(mapVisited)}
-              hidden
-            />
-            <div class="rounded-xl overflow-hidden border border-primary-400/20" style="height:480px;">
-              <div id="map" class="w-full h-full" />
+      <!-- ── GARDIEN CARD ──────────────────────────────────── -->
+      {hasSam && sam && (
+        <div class="rounded-xl p-5 border border-primary-400/30"
+             style="background:linear-gradient(135deg,rgba(196,154,44,0.12) 0%,rgba(196,154,44,0.04) 100%);">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-primary-400/15 border border-primary-400/30 flex items-center justify-center shrink-0">
+              <Image src={voitureIcon} alt="" width={22} height={22} class="invert opacity-80" aria-hidden="true" />
             </div>
-          </>
-        ) : (
-          <div class="card-parchment rounded-xl flex items-center justify-center" style="height:320px;">
-            <p class="font-body text-neutral-600">Aucun bar avec localisation dans cette session.</p>
-          </div>
-        )}
-
-        <!-- Résumé session terminée -->
-        {isTermine && (
-          <div class="card-parchment rounded-xl p-6 text-center">
-            <p class="font-display text-3xl text-primary-400 mb-3">⚔</p>
-            <p class="font-heading text-xl text-neutral-200 tracking-wide mb-2">Session terminée !</p>
-            <p class="font-body text-neutral-400">
-              {sessionBars.length} taverne{sessionBars.length > 1 ? 's' : ''} conquise{sessionBars.length > 1 ? 's' : ''} •
-              {sessionMembers.length} guerrier{sessionMembers.length > 1 ? 's' : ''}
-            </p>
-            <p class="font-body text-sm text-neutral-600 mt-2">Les visites ont été ajoutées aux profils de chaque membre.</p>
-          </div>
-        )}
-      </div>
-
-      <!-- ── DROITE 30% : PANEL ──────────────────────────────── -->
-      <div class="lg:col-span-3 flex flex-col gap-5">
-
-        <!-- Action principale (en cours) -->
-        {isEnCours && isHost && (
-          <div class="card-parchment rounded-xl p-5">
-            {actionError && (
-              <p class="font-body text-sm text-accent-blood mb-3">{actionError}</p>
-            )}
-            {!allBarsVisited && currentBar ? (
-              <>
-                <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-1">Bar actuel</p>
-                <p class="font-heading text-base text-neutral-200 tracking-wide mb-1">{currentBar.nom}</p>
-                {currentBar.adresse && <p class="font-body text-xs text-neutral-500 mb-4">{currentBar.adresse}</p>}
-                <p class="font-body text-xs text-neutral-600 mb-4">{barsCompleted} / {session?.id_bar?.length ?? 0} bars visités</p>
-                <form method="POST">
-                  <input type="hidden" name="action" value={isLastBar ? 'finish' : 'next_bar'} />
-                  <input type="hidden" name="barId" value={currentBarId} />
-                  <button type="submit" class={isLastBar
-                    ? 'w-full py-3 text-sm font-heading tracking-widest uppercase rounded bg-accent-blood hover:opacity-90 text-neutral-100 transition-opacity'
-                    : 'btn-primary w-full py-3 text-sm'}>
-                    {isLastBar ? '⚔ Finir la session' : 'Bar visité → Suivant'}
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <p class="font-heading text-sm text-accent-rune tracking-wide mb-3">Tous les bars ont été visités !</p>
-                <form method="POST">
-                  <input type="hidden" name="action" value="stop" />
-                  <button type="submit" class="btn-primary w-full py-3 text-sm">
-                    Arrêter la session
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        )}
-
-        <!-- Lancer la session (planifié) -->
-        {isPlanifie && isHost && (
-          <div class="card-parchment rounded-xl p-5">
-            {actionError && <p class="font-body text-sm text-accent-blood mb-3">{actionError}</p>}
-            {!session?.id_sam ? (
-              <p class="font-body text-sm text-neutral-500 mb-4">
-                Désignez un SAM dans l'onglet <strong class="text-neutral-300">Amis</strong> avant de lancer.
+            <div class="flex-1 min-w-0">
+              <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-0.5">Gardien SAM</p>
+              <p class="font-display text-lg text-primary-300 tracking-wide">{sam.pseudo ?? sam.nom ?? '—'}</p>
+              <p class="font-body text-xs text-neutral-500">
+                {sessionMembers.length} membre{sessionMembers.length > 1 ? 's' : ''} sous sa garde
               </p>
-            ) : null}
-            <form method="POST">
-              <input type="hidden" name="action" value="start" />
-              <button
-                type="submit"
-                disabled={!session?.id_sam}
-                class={`w-full py-3 text-sm font-heading tracking-widest uppercase rounded transition-colors ${session?.id_sam ? 'btn-primary' : 'bg-dark-600 text-neutral-600 cursor-not-allowed'}`}
-              >
-                ⚔ Lancer le barathon
-              </button>
-            </form>
-          </div>
-        )}
-
-        <!-- Tabs -->
-        <div class="card-parchment rounded-xl overflow-hidden flex-1">
-          <!-- Tab buttons -->
-          <div class="flex border-b border-dark-600" role="tablist">
-            {[
-              { id: 'bars',    label: 'Bars' },
-              { id: 'amis',    label: 'Amis' },
-              { id: 'jeux',    label: 'Jeux' },
-              ...(isHost && isPlanifie ? [{ id: 'params', label: 'Paramètres' }] : []),
-            ].map((tab, i) => (
-              <button
-                class={`tab-btn flex-1 font-heading text-xs tracking-widest uppercase py-3 border-b-2 transition-colors ${i === 0 ? 'border-primary-400 text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
-                data-tab={tab.id}
-                role="tab"
-                aria-selected={i === 0 ? 'true' : 'false'}
-                aria-controls={`tab-${tab.id}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <!-- Tab : Bars -->
-          <div id="tab-bars" class="tab-content p-4 flex flex-col gap-2 max-h-80 overflow-y-auto" role="tabpanel" aria-label="Bars de la session">
-            {sessionBars.length > 0 ? sessionBars.map(bar => {
-              const visited = isTermine || (isEnCours && hostVisitedBarIds.includes(bar.id));
-              const isCurrent = bar.id === currentBarId;
-              return (
-                <div class={`flex items-center gap-3 p-2 rounded-lg ${isCurrent ? 'bg-primary-400/10 border border-primary-400/30' : ''}`}>
-                  {bar.ordre && (
-                    <span class={`w-6 h-6 rounded-full flex items-center justify-center font-heading text-xs shrink-0 ${visited ? 'bg-accent-rune/20 text-green-400' : 'bg-dark-600 text-neutral-500'}`}>
-                      {bar.ordre}
-                    </span>
-                  )}
-                  <span class={`font-heading text-xs tracking-wide flex-1 truncate ${isCurrent ? 'text-primary-300' : visited ? 'text-neutral-400' : 'text-neutral-300'}`}>
-                    {bar.nom}
-                  </span>
-                  {visited && <span class="text-accent-rune text-xs shrink-0">✓</span>}
-                  {isCurrent && <span class="text-primary-400 text-xs shrink-0">→</span>}
-                </div>
-              );
-            }) : (
-              <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun bar sélectionné.</p>
-            )}
-            {isHost && isPlanifie && availableBars.length > 0 && (
-              <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
-                <input type="hidden" name="action" value="add_bar" />
-                <select name="barId" aria-label="Choisir un bar à ajouter" class="input-viking flex-1 text-xs py-1.5">
-                  {availableBars.map(b => <option value={b.id}>{b.nom}</option>)}
-                </select>
-                <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Ajouter</button>
-              </form>
-            )}
-          </div>
-
-          <!-- Tab : Amis -->
-          <div id="tab-amis" class="tab-content hidden" role="tabpanel" aria-label="Membres de la session">
-          <div class="p-4 flex flex-col gap-3 max-h-80 overflow-y-auto">
-            {sessionMembers.map(member => {
-              const isSam = member.id === session?.id_sam;
-              const isThisHost = member.id === session?.id_hote;
-              return (
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full bg-dark-600 border border-dark-500 overflow-hidden flex items-center justify-center shrink-0">
-                    {member.avatar
-                      ? <PbImage record={member} recordImage={member.avatar} width={32} height={32} />
-                      : <span class="font-heading text-xs text-primary-400">{(member.pseudo ?? member.nom)?.charAt(0)?.toUpperCase() ?? 'V'}</span>
-                    }
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="font-heading text-xs text-neutral-200 tracking-wide truncate">{member.pseudo ?? member.nom}</p>
-                    <p class="font-body text-xs text-neutral-600">
-                      {isThisHost ? 'Hôte' : ''}{isSam ? ' · SAM 🚗' : ''}
-                    </p>
-                  </div>
-                  {isHost && isPlanifie && !isSam && !isThisHost && (
-                    <form method="POST">
-                      <input type="hidden" name="action" value="set_sam" />
-                      <input type="hidden" name="samId" value={member.id} />
-                      <button type="submit" class="font-heading text-xs text-neutral-600 hover:text-primary-400 tracking-widest uppercase transition-colors px-2 py-1 rounded border border-dark-600 hover:border-primary-400/40">
-                        SAM
-                      </button>
-                    </form>
-                  )}
-                </div>
-              );
-            })}
-            {sessionMembers.length === 0 && (
-              <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun membre.</p>
-            )}
-            {isHost && isPlanifie && availableUsers.length > 0 && (
-              <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
-                <input type="hidden" name="action" value="add_member" />
-                <select name="memberId" aria-label="Choisir un membre à inviter" class="input-viking flex-1 text-xs py-1.5">
-                  {availableUsers.map(u => <option value={u.id}>{u.pseudo ?? u.nom}</option>)}
-                </select>
-                <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Inviter</button>
-              </form>
-            )}
-          </div>
-          </div>
-
-          <!-- Tab : Jeux -->
-          <div id="tab-jeux" class="tab-content hidden" role="tabpanel" aria-label="Jeux de la session">
-          <div class="p-4 flex flex-col gap-2 max-h-80 overflow-y-auto">
-            {sessionGames.length > 0 ? sessionGames.map(jeu => (
-              <div class="flex items-center gap-3 p-2">
-                <div class="w-10 h-10 rounded-lg overflow-hidden bg-dark-700 shrink-0">
-                  {jeu.img && <PbImage record={jeu} recordImage={jeu.img} width={40} height={40} />}
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="font-heading text-xs text-neutral-200 tracking-wide">{jeu.nom}</p>
-                  {jeu.difficulter != null && <p class="font-body text-xs text-neutral-600">Difficulté {jeu.difficulter}/10</p>}
-                </div>
+            </div>
+            {isEnCours && (
+              <div class="shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-accent-blood/10 border border-accent-blood/30">
+                <Image src={waringIcon} alt="" width={18} height={18} class="invert opacity-80" aria-hidden="true" />
+                <span class="font-heading text-xs text-accent-blood tracking-widest uppercase">SOS</span>
               </div>
-            )) : (
-              <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun jeu sélectionné.</p>
-            )}
-            {isHost && isPlanifie && availableJeux.length > 0 && (
-              <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
-                <input type="hidden" name="action" value="add_jeu" />
-                <select name="jeuId" aria-label="Choisir un jeu à ajouter" class="input-viking flex-1 text-xs py-1.5">
-                  {availableJeux.map(j => <option value={j.id}>{j.nom}</option>)}
-                </select>
-                <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Ajouter</button>
-              </form>
             )}
           </div>
+        </div>
+      )}
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!-- ── EN COURS ──────────────────────────────────────── -->
+      {isEnCours && (
+        <div class="flex flex-col gap-5">
+
+          <!-- Grille d'actions rapides : Localiser · Jeux · Alerte · Partager -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+
+            <button type="button" id="btn-localiser"
+              class={`card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer ${mapBars.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div class="w-10 h-10 rounded-lg bg-primary-400/10 flex items-center justify-center">
+                <Image src={navigationIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+              </div>
+              <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Localiser</span>
+            </button>
+
+            <button type="button" id="btn-open-jeux"
+              class={`card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer ${sessionGames.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div class="w-10 h-10 rounded-lg bg-primary-400/10 flex items-center justify-center">
+                <Image src={jeuIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+              </div>
+              <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Jeux</span>
+            </button>
+
+            <button type="button" id="btn-alerte"
+              class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer">
+              <div class="w-10 h-10 rounded-lg bg-accent-blood/10 flex items-center justify-center">
+                <Image src={waringIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+              </div>
+              <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Alerte</span>
+            </button>
+
+            <button type="button" id="btn-share-session"
+              class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer">
+              <div class="w-10 h-10 rounded-lg bg-primary-400/10 flex items-center justify-center">
+                <Image src={partagerIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+              </div>
+              <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Partager</span>
+            </button>
+
           </div>
 
-          <!-- Tab : Paramètres (hôte uniquement, planifié) -->
-          {isHost && isPlanifie && (
-            <div id="tab-params" class="tab-content hidden p-4" role="tabpanel" aria-label="Paramètres de la session">
-              <form method="POST" class="flex flex-col gap-3">
-                <input type="hidden" name="action" value="update_params" />
-                <div>
-                  <label class="label-viking" for="p-nom">Nom</label>
-                  <input id="p-nom" name="nom" type="text" value={session?.nom ?? ''} class="input-viking" />
-                </div>
-                <div>
-                  <label class="label-viking" for="p-desc">Description</label>
-                  <textarea id="p-desc" name="description" rows="2" class="input-viking resize-none">{session?.description ?? ''}</textarea>
-                </div>
-                <div>
-                  <label class="label-viking" for="p-dep">Départ</label>
-                  <input id="p-dep" name="date_heur_depart" type="datetime-local"
-                    value={session?.date_heur_depart ? new Date(session.date_heur_depart).toISOString().slice(0,16) : ''}
-                    class="input-viking"
+          <!-- Bar actuel + progression (hôte uniquement) -->
+          {isHost && (
+            <div class="card-parchment rounded-xl p-5">
+              {actionError && <p class="font-body text-sm text-accent-blood mb-3">{actionError}</p>}
+              {!allBarsVisited && currentBar ? (
+                <>
+                  <div class="flex items-start justify-between gap-4 mb-3">
+                    <div>
+                      <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-1">Bar actuel</p>
+                      <p class="font-heading text-base text-neutral-200 tracking-wide">{currentBar.nom}</p>
+                      {currentBar.adresse && (
+                        <p class="font-body text-xs text-neutral-500 mt-0.5">{currentBar.adresse}</p>
+                      )}
+                    </div>
+                    <span class="font-heading text-xs text-neutral-600 tracking-widest shrink-0">
+                      {barsCompleted}/{session?.id_bar?.length ?? 0}
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={Math.round((barsCompleted / Math.max(1, session?.id_bar?.length ?? 1)) * 100)}
+                    label={`Tavernes visitées : ${barsCompleted} sur ${session?.id_bar?.length ?? 0}`}
+                    class="mb-4"
                   />
-                </div>
-                <div>
-                  <label class="label-viking" for="p-arr">Arrivée prévue</label>
-                  <input id="p-arr" name="date_heur_arriver" type="datetime-local"
-                    value={session?.date_heur_arriver ? new Date(session.date_heur_arriver).toISOString().slice(0,16) : ''}
-                    class="input-viking"
-                  />
-                </div>
-                <button type="submit" class="btn-primary py-2 text-sm mt-1">Sauvegarder</button>
+                  <form method="POST">
+                    <input type="hidden" name="action" value={isLastBar ? 'finish' : 'next_bar'} />
+                    <button type="submit" class={isLastBar
+                      ? 'w-full py-3 text-sm font-heading tracking-widest uppercase rounded bg-accent-blood hover:opacity-90 text-neutral-100 transition-opacity'
+                      : 'btn-primary w-full py-3 text-sm'}>
+                      {isLastBar ? '⚔ Finir la session' : 'Bar visité → Suivant'}
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <p class="font-heading text-sm text-accent-rune tracking-wide mb-3">
+                    Tous les bars ont été visités !
+                  </p>
+                  <form method="POST">
+                    <input type="hidden" name="action" value="stop" />
+                    <button type="submit" class="btn-primary w-full py-3 text-sm">
+                      Arrêter la session
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+          )}
+
+          <!-- Carte pleine largeur -->
+          {mapBars.length > 0 ? (
+            <>
+              <div id="map-data"
+                data-bars={JSON.stringify(mapBars)}
+                data-visited={JSON.stringify(mapVisited)}
+                hidden
+              />
+              <div class="rounded-xl overflow-hidden border border-primary-400/20 map-session-container">
+                <div id="map" class="w-full h-full" />
+              </div>
+            </>
+          ) : (
+            <div class="card-parchment rounded-xl flex items-center justify-center" style="height:220px;">
+              <p class="font-body text-neutral-600">Aucun bar avec localisation.</p>
+            </div>
+          )}
+
+          <!-- Membres / guerriers de la soirée -->
+          <div class="card-parchment rounded-xl p-5">
+            <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase mb-4 flex items-center gap-2">
+              <Image src={personnesIcon} alt="" width={14} height={14} class="invert opacity-40" aria-hidden="true" />
+              Guerriers ce soir
+            </p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+              {sessionMembers.map(member => {
+                const isSam      = member.id === samMemberId;
+                const isThisHost = member.id === hostId;
+                return (
+                  <div class={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${isSam ? 'bg-accent-rune/10 border border-accent-rune/30' : 'bg-dark-700/40'}`}>
+                    <div class="relative shrink-0">
+                      <div class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-dark-600 border border-dark-500">
+                        {member.avatar
+                          ? <PbImage record={member} recordImage={member.avatar} width={32} height={32} />
+                          : <span class="font-heading text-xs text-primary-400">
+                              {(member.pseudo ?? member.nom)?.charAt(0)?.toUpperCase() ?? 'V'}
+                            </span>
+                        }
+                      </div>
+                      <span class={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-dark-700 ${isSam ? 'bg-accent-rune' : 'bg-primary-400'}`} />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class={`font-heading text-xs tracking-wide truncate ${isSam ? 'text-green-300' : 'text-neutral-200'}`}>
+                        {member.pseudo ?? member.nom}
+                      </p>
+                      <p class="font-body text-xs text-neutral-600">
+                        {isThisHost ? 'Hôte' : isSam ? '🚗 SAM' : 'Membre'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {sessionMembers.length === 0 && (
+                <p class="font-body text-neutral-600 text-sm col-span-2 text-center py-2">Aucun membre.</p>
+              )}
+            </div>
+          </div>
+
+          <!-- Terminer la soirée (danger) — hôte, si bars restants -->
+          {isHost && !allBarsVisited && !isLastBar && (
+            <div class="card-parchment rounded-xl p-5 border border-accent-blood/20">
+              <p class="font-heading text-xs text-accent-blood tracking-widest uppercase mb-2">Zone dangereuse</p>
+              <p class="font-body text-sm text-neutral-500 mb-4">
+                Terminer la soirée maintenant et attribuer les récompenses.
+              </p>
+              <form method="POST">
+                <input type="hidden" name="action" value="stop" />
+                <button type="submit"
+                  class="w-full py-3 text-sm font-heading tracking-widest uppercase rounded bg-accent-blood/10 border border-accent-blood/40 text-accent-blood hover:bg-accent-blood/20 transition-colors">
+                  Terminer la soirée
+                </button>
               </form>
             </div>
           )}
-        </div>
 
-        <!-- Infos rapides -->
-        <div class="card-parchment rounded-xl p-4 flex flex-col gap-2">
-          <div class="flex justify-between text-xs">
-            <span class="font-heading text-neutral-600 tracking-widest uppercase">Départ</span>
-            <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_depart)}</span>
-          </div>
-          <div class="flex justify-between text-xs">
-            <span class="font-heading text-neutral-600 tracking-widest uppercase">Arrivée</span>
-            <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_arriver)}</span>
-          </div>
-          <div class="flex justify-between text-xs">
-            <span class="font-heading text-neutral-600 tracking-widest uppercase">Membres</span>
-            <span class="font-body text-neutral-400">{sessionMembers.length}</span>
-          </div>
-          <div class="flex justify-between text-xs">
-            <span class="font-heading text-neutral-600 tracking-widest uppercase">Bars</span>
-            <span class="font-body text-neutral-400">{sessionBars.length}</span>
-          </div>
-        </div>
+          <!-- ── MODALS ──────────────────────────────────────── -->
 
-      </div>
+          <!-- Modal détail jeu -->
+          <div id="game-modal-backdrop" class="hidden fixed inset-0 z-50 bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
+          <div id="game-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="gm-nom">
+            <div class="relative w-full max-w-sm bg-dark-700 border border-primary-400/20 rounded-2xl overflow-hidden shadow-xl">
+              <div id="gm-img" class="w-full h-44 bg-dark-800 overflow-hidden" />
+              <div class="p-6 flex flex-col gap-4">
+                <div>
+                  <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-1">Jeu lancé</p>
+                  <h3 id="gm-nom" class="font-display text-2xl text-neutral-100 tracking-wide" />
+                  <p id="gm-type" class="font-body text-sm text-neutral-500 mt-0.5" />
+                </div>
+                <p id="gm-desc" class="font-body text-base text-neutral-300 leading-relaxed hidden" />
+                <div id="gm-diff-wrap" class="hidden flex-col gap-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Difficulté</span>
+                    <span id="gm-diff-label" class="font-heading text-xs text-primary-400" />
+                  </div>
+                  <div id="gm-diff-bar" class="flex gap-1" aria-hidden="true" />
+                </div>
+                <div class="flex gap-3 mt-2">
+                  <button id="gm-btn-win" type="button"
+                    class="flex-1 py-3 rounded-xl font-heading text-sm tracking-widest uppercase border border-accent-rune/60 bg-accent-rune/10 text-accent-rune hover:bg-accent-rune/20 transition-colors">Réussi</button>
+                  <button id="gm-btn-lose" type="button"
+                    class="flex-1 py-3 rounded-xl font-heading text-sm tracking-widest uppercase border border-accent-blood/60 bg-accent-blood/10 text-accent-blood hover:bg-accent-blood/20 transition-colors">Perdu</button>
+                </div>
+              </div>
+              <button id="gm-close" type="button"
+                class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-dark-800/70 text-neutral-400 hover:text-neutral-100 transition-colors"
+                aria-label="Fermer">
+                <span class="relative w-4 h-4 flex items-center justify-center" aria-hidden="true">
+                  <span class="absolute block h-px w-4 bg-current rounded-full rotate-45" />
+                  <span class="absolute block h-px w-4 bg-current rounded-full -rotate-45" />
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal liste des jeux -->
+          <div id="jeux-list-backdrop" class="hidden fixed inset-0 z-50 bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
+          <div id="jeux-list-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Choisir un jeu">
+            <div class="relative w-full max-w-sm bg-dark-700 border border-primary-400/20 rounded-2xl overflow-hidden shadow-xl flex flex-col" style="max-height:80vh;">
+              <div class="px-5 pt-5 pb-4 border-b border-dark-600 flex items-center justify-between shrink-0">
+                <div>
+                  <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-0.5">Session</p>
+                  <h3 class="font-display text-xl text-neutral-100 tracking-wide">Choisir un jeu</h3>
+                </div>
+                <button id="jeux-list-close" type="button"
+                  class="w-8 h-8 flex items-center justify-center rounded-full bg-dark-800/70 text-neutral-400 hover:text-neutral-100 transition-colors"
+                  aria-label="Fermer">
+                  <span class="relative w-4 h-4 flex items-center justify-center" aria-hidden="true">
+                    <span class="absolute block h-px w-4 bg-current rounded-full rotate-45" />
+                    <span class="absolute block h-px w-4 bg-current rounded-full -rotate-45" />
+                  </span>
+                </button>
+              </div>
+              <div class="overflow-y-auto flex-1 p-4 flex flex-col gap-2">
+                {sessionGames.map((jeu: any) => (
+                  <button type="button"
+                    class="jeu-pick-btn flex items-center gap-3 p-3 rounded-xl bg-dark-600 border border-dark-500 hover:border-primary-400/40 transition-colors text-left w-full"
+                    data-jeu-id={jeu.id}>
+                    <div class="w-10 h-10 rounded-lg overflow-hidden bg-dark-700 shrink-0 flex items-center justify-center">
+                      {jeu.img
+                        ? <PbImage record={jeu} recordImage={jeu.img} width={40} height={40} />
+                        : <Image src={jeuIcon} alt="" width={20} height={20} class="invert opacity-40" />
+                      }
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="font-heading text-sm text-neutral-200 tracking-wide truncate">{jeu.nom}</p>
+                      {jeu.difficulter != null && (
+                        <p class="font-body text-xs text-neutral-500">Difficulté {jeu.difficulter}/10</p>
+                      )}
+                    </div>
+                    <span class="font-heading text-xs text-primary-500 tracking-widest uppercase shrink-0">Lancer</span>
+                  </button>
+                ))}
+              </div>
+              <div class="p-4 border-t border-dark-600 shrink-0">
+                <button type="button" id="btn-random-game" class="btn-primary w-full py-3 text-sm">
+                  Jeu aléatoire
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal alerte / urgences -->
+          <div id="alerte-backdrop" class="hidden fixed inset-0 z-50 bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
+          <div id="alerte-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Numéros d'urgence">
+            <div class="relative w-full max-w-sm bg-dark-700 border border-accent-blood/30 rounded-2xl overflow-hidden shadow-xl">
+              <div class="px-6 pt-6 pb-3 border-b border-dark-600">
+                <p class="font-heading text-xs text-accent-blood tracking-widest uppercase mb-1">SOS</p>
+                <h3 class="font-display text-xl text-neutral-100 tracking-wide">Numéros d'urgence</h3>
+              </div>
+              <div class="p-5 flex flex-col gap-2">
+                {([
+                  { num: '15',  label: 'SAMU',        desc: 'Urgence médicale' },
+                  { num: '17',  label: 'Police',       desc: 'Urgence sécurité' },
+                  { num: '18',  label: 'Pompiers',     desc: 'Incendie / accident' },
+                  { num: '112', label: 'Urgences EU',  desc: 'Numéro européen' },
+                ] as const).map(({ num, label, desc }) => (
+                  <a href={`tel:${num}`}
+                    class="flex items-center gap-4 p-3 rounded-xl bg-dark-600 border border-dark-500 hover:border-accent-blood/40 transition-colors">
+                    <span class="font-display text-2xl text-accent-blood w-14 shrink-0 text-center">{num}</span>
+                    <div>
+                      <p class="font-heading text-sm text-neutral-200 tracking-wide">{label}</p>
+                      <p class="font-body text-xs text-neutral-500">{desc}</p>
+                    </div>
+                  </a>
+                ))}
+                <div class="mt-1 pt-3 border-t border-dark-600">
+                  <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase mb-2">Premiers secours</p>
+                  <ul class="flex flex-col gap-1.5">
+                    {[
+                      'Inconscient qui respire : position latérale de sécurité (PLS)',
+                      'Arrêt cardiaque : 30 compressions + 2 insufflations, répéter',
+                      'Étouffement : 5 tapes dans le dos + 5 compressions abdominales',
+                      'Saignement : comprimer la plaie avec un tissu propre',
+                    ].map(tip => (
+                      <li class="flex items-start gap-2">
+                        <span class="text-accent-blood text-xs mt-0.5 shrink-0">▸</span>
+                        <span class="font-body text-xs text-neutral-400">{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <button id="alerte-close" type="button"
+                class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-dark-800/70 text-neutral-400 hover:text-neutral-100 transition-colors"
+                aria-label="Fermer">
+                <span class="relative w-4 h-4 flex items-center justify-center" aria-hidden="true">
+                  <span class="absolute block h-px w-4 bg-current rounded-full rotate-45" />
+                  <span class="absolute block h-px w-4 bg-current rounded-full -rotate-45" />
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <script define:vars={{
+            _games: sessionGames.map((j: any) => ({
+              id:           j.id,
+              nom:          j.nom ?? '',
+              descrition:   j.descrition ?? '',
+              difficulter:  j.difficulter ?? null,
+              type_de_jeux: j.type_de_jeux ?? '',
+              xp:           Number(j.xp ?? 0),
+              img:          j.img ? `${PB_BASE_URL}/api/files/${j.collectionId}/${j.id}/${j.img}` : null,
+            })),
+            _sessionId:    id,
+            _token:        token,
+            _userId:       userId,
+            _pbUrl:        PB_BASE_URL,
+            _xpJeux:       Number(session?.xp_jeux ?? 0),
+            _jeuReussiIds: (session?.id_jeux_reussi ?? []),
+          }} is:inline>
+            (function() {
+              var games        = _games;
+              var mapEl        = document.getElementById('map');
+              var xpJeux       = _xpJeux;
+              var jeuReussiIds = _jeuReussiIds.slice();
+              var currentGame  = null;
+
+              /* ── Modal détail jeu ── */
+              var gameModal    = document.getElementById('game-modal');
+              var gameBackdrop = document.getElementById('game-modal-backdrop');
+              var btnWin       = document.getElementById('gm-btn-win');
+              var btnLose      = document.getElementById('gm-btn-lose');
+              var btnGmClose   = document.getElementById('gm-close');
+
+              function closeGameModal() {
+                gameModal.classList.add('hidden');
+                gameModal.classList.remove('flex');
+                gameBackdrop.classList.add('hidden');
+                if (mapEl) mapEl.style.visibility = '';
+              }
+              function openGameModal(game) {
+                currentGame = game;
+                var imgEl    = document.getElementById('gm-img');
+                var nomEl    = document.getElementById('gm-nom');
+                var typeEl   = document.getElementById('gm-type');
+                var descEl   = document.getElementById('gm-desc');
+                var diffWrap = document.getElementById('gm-diff-wrap');
+                var diffLbl  = document.getElementById('gm-diff-label');
+                var diffBar  = document.getElementById('gm-diff-bar');
+                if (imgEl)  imgEl.innerHTML = game.img ? '<img src="' + game.img + '" alt="' + (game.nom || '') + '" class="w-full h-full object-cover" />' : '';
+                if (nomEl)  nomEl.textContent = game.nom || 'Jeu inconnu';
+                if (typeEl) { typeEl.textContent = game.type_de_jeux || ''; typeEl.classList.toggle('hidden', !game.type_de_jeux); }
+                if (descEl) { descEl.textContent = game.descrition || ''; descEl.classList.toggle('hidden', !game.descrition); }
+                if (diffWrap && diffLbl && diffBar) {
+                  var d = game.difficulter;
+                  if (d != null) {
+                    diffLbl.textContent = d + '/10';
+                    diffBar.innerHTML = Array.from({ length: 10 }, function(_, i) {
+                      return '<span class="flex-1 h-2 rounded-full ' + (i < d ? 'bg-primary-400' : 'bg-dark-500') + '"></span>';
+                    }).join('');
+                    diffWrap.classList.remove('hidden'); diffWrap.classList.add('flex');
+                  } else {
+                    diffWrap.classList.add('hidden'); diffWrap.classList.remove('flex');
+                  }
+                }
+                if (btnWin) {
+                  var alreadyWon = jeuReussiIds.indexOf(game.id) !== -1;
+                  btnWin.textContent = alreadyWon ? 'Réussi (XP déjà obtenu)' : (game.xp > 0 ? 'Réussi  +' + game.xp + ' XP' : 'Réussi');
+                }
+                if (mapEl) mapEl.style.visibility = 'hidden';
+                gameBackdrop.classList.remove('hidden');
+                gameModal.classList.remove('hidden');
+                gameModal.classList.add('flex');
+                btnGmClose && btnGmClose.focus();
+              }
+
+              btnWin && btnWin.addEventListener('click', function() {
+                if (!currentGame) { closeGameModal(); return; }
+                var alreadyDone = jeuReussiIds.indexOf(currentGame.id) !== -1;
+                if (!alreadyDone) {
+                  jeuReussiIds.push(currentGame.id);
+                  var patch = { id_jeux_reussi: jeuReussiIds };
+                  if (currentGame.xp > 0) { xpJeux += currentGame.xp; patch.xp_jeux = xpJeux; }
+                  fetch(_pbUrl + '/api/collections/session_barathon/records/' + _sessionId, {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+                    body: JSON.stringify(patch),
+                  }).catch(function() {});
+                  if (currentGame.xp > 0) {
+                    fetch(_pbUrl + '/api/collections/users/records/' + _userId, { headers: { 'Authorization': 'Bearer ' + _token } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(u) {
+                      return fetch(_pbUrl + '/api/collections/users/records/' + _userId, {
+                        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+                        body: JSON.stringify({ xp: Number(u.xp || 0) + currentGame.xp }),
+                      });
+                    }).catch(function() {});
+                  }
+                }
+                closeGameModal();
+              });
+              btnLose    && btnLose.addEventListener('click', closeGameModal);
+              btnGmClose && btnGmClose.addEventListener('click', closeGameModal);
+              gameBackdrop.addEventListener('click', closeGameModal);
+
+              /* ── Modal liste jeux ── */
+              var jeuxListModal    = document.getElementById('jeux-list-modal');
+              var jeuxListBackdrop = document.getElementById('jeux-list-backdrop');
+              var btnOpenJeux      = document.getElementById('btn-open-jeux');
+              var btnJeuxClose     = document.getElementById('jeux-list-close');
+              var btnRandom        = document.getElementById('btn-random-game');
+
+              function openJeuxList()  { jeuxListBackdrop.classList.remove('hidden'); jeuxListModal.classList.remove('hidden'); jeuxListModal.classList.add('flex'); }
+              function closeJeuxList() { jeuxListModal.classList.add('hidden'); jeuxListModal.classList.remove('flex'); jeuxListBackdrop.classList.add('hidden'); }
+
+              btnOpenJeux      && btnOpenJeux.addEventListener('click', openJeuxList);
+              btnJeuxClose     && btnJeuxClose.addEventListener('click', closeJeuxList);
+              jeuxListBackdrop && jeuxListBackdrop.addEventListener('click', closeJeuxList);
+
+              document.querySelectorAll('.jeu-pick-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                  var jeuId = btn.getAttribute('data-jeu-id');
+                  var game  = games.find(function(g) { return g.id === jeuId; });
+                  if (game) { closeJeuxList(); openGameModal(game); }
+                });
+              });
+
+              btnRandom && btnRandom.addEventListener('click', function() {
+                if (!games.length) return;
+                closeJeuxList();
+                openGameModal(games[Math.floor(Math.random() * games.length)]);
+              });
+
+              /* ── Modal alerte ── */
+              var alerteModal    = document.getElementById('alerte-modal');
+              var alerteBackdrop = document.getElementById('alerte-backdrop');
+              var btnAlerte      = document.getElementById('btn-alerte');
+              var btnAlerteClose = document.getElementById('alerte-close');
+
+              function openAlerte()  { alerteBackdrop.classList.remove('hidden'); alerteModal.classList.remove('hidden'); alerteModal.classList.add('flex'); }
+              function closeAlerte() { alerteModal.classList.add('hidden'); alerteModal.classList.remove('flex'); alerteBackdrop.classList.add('hidden'); }
+
+              btnAlerte      && btnAlerte.addEventListener('click', openAlerte);
+              btnAlerteClose && btnAlerteClose.addEventListener('click', closeAlerte);
+              alerteBackdrop && alerteBackdrop.addEventListener('click', closeAlerte);
+
+              /* ── Localiser → scroll vers la carte ── */
+              var btnLocaliser = document.getElementById('btn-localiser');
+              btnLocaliser && btnLocaliser.addEventListener('click', function() {
+                var mapContainer = document.getElementById('map');
+                if (mapContainer) mapContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              });
+
+              /* ── Escape global ── */
+              document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') { closeGameModal(); closeJeuxList(); closeAlerte(); }
+              });
+            })();
+          </script>
+
+        </div>
+      )}
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!-- ── PLANIFIÉ ──────────────────────────────────────── -->
+      {isPlanifie && (
+        <div class="flex flex-col gap-5">
+
+          <!-- Lancer la session (hôte) -->
+          {isHost && (
+            <div class="card-parchment rounded-xl p-5">
+              {actionError && <p class="font-body text-sm text-accent-blood mb-3">{actionError}</p>}
+              {!hasSam && (
+                <p class="font-body text-sm text-neutral-500 mb-4">
+                  Désignez un SAM dans l'onglet <strong class="text-neutral-300">Amis</strong> avant de lancer.
+                </p>
+              )}
+              <form method="POST">
+                <input type="hidden" name="action" value="start" />
+                <button
+                  type="submit"
+                  disabled={!hasSam}
+                  class={`w-full py-3 text-sm font-heading tracking-widest uppercase rounded transition-colors ${hasSam ? 'btn-primary' : 'bg-dark-600 text-neutral-600 cursor-not-allowed'}`}
+                >
+                  ⚔ Lancer le barathon
+                </button>
+              </form>
+            </div>
+          )}
+
+          <!-- Tabs -->
+          <div class="card-parchment rounded-xl overflow-hidden">
+            <div class="flex border-b border-dark-600" role="tablist">
+              {[
+                { id: 'bars',    label: 'Bars' },
+                { id: 'amis',    label: 'Amis' },
+                { id: 'jeux',    label: 'Jeux' },
+                ...(isHost ? [{ id: 'params', label: 'Gérer' }] : []),
+              ].map((tab, i) => (
+                <button
+                  class={`tab-btn flex-1 font-heading text-xs tracking-widest uppercase py-3 border-b-2 transition-colors ${i === 0 ? 'border-primary-400 text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
+                  data-tab={tab.id}
+                  role="tab"
+                  aria-selected={i === 0 ? 'true' : 'false'}
+                  aria-controls={`tab-${tab.id}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <!-- Tab : Bars -->
+            <div id="tab-bars" class="tab-content p-4 flex flex-col gap-2" role="tabpanel" aria-label="Bars de la session">
+              {sessionBars.length > 0 ? sessionBars.map((bar: any) => (
+                <div class="flex items-center gap-3 p-2 rounded-lg">
+                  {bar.ordre && (
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center font-heading text-xs shrink-0 bg-dark-600 text-neutral-500">
+                      {bar.ordre}
+                    </span>
+                  )}
+                  <span class="font-heading text-xs tracking-wide flex-1 truncate text-neutral-300">{bar.nom}</span>
+                </div>
+              )) : (
+                <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun bar sélectionné.</p>
+              )}
+              {isHost && availableBars.length > 0 && (
+                <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
+                  <input type="hidden" name="action" value="add_bar" />
+                  <select name="barId" aria-label="Choisir un bar à ajouter" class="input-viking flex-1 text-xs py-1.5">
+                    {availableBars.map(b => <option value={b.id}>{b.nom}</option>)}
+                  </select>
+                  <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Ajouter</button>
+                </form>
+              )}
+            </div>
+
+            <!-- Tab : Amis -->
+            <div id="tab-amis" class="tab-content hidden" role="tabpanel" aria-label="Membres de la session">
+            <div class="p-4 flex flex-col gap-3">
+              {sessionMembers.map(member => {
+                const isSam      = member.id === samMemberId;
+                const isThisHost = member.id === hostId;
+                return (
+                  <div class={`flex items-center gap-3 px-2 py-2 rounded-xl transition-colors ${isSam ? 'bg-accent-rune/10 border border-accent-rune/30' : ''}`}>
+                    <div class={`relative w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shrink-0 ${isSam ? 'ring-2 ring-accent-rune ring-offset-1 ring-offset-dark-700' : 'bg-dark-600 border border-dark-500'}`}>
+                      {member.avatar
+                        ? <PbImage record={member} recordImage={member.avatar} width={32} height={32} />
+                        : <span class="font-heading text-xs text-primary-400">{(member.pseudo ?? member.nom)?.charAt(0)?.toUpperCase() ?? 'V'}</span>
+                      }
+                      {isSam && (
+                        <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-accent-rune border border-dark-700 flex items-center justify-center">
+                          <Image src={voitureIcon} alt="SAM" width={9} height={9} class="invert" />
+                        </div>
+                      )}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class={`font-heading text-xs tracking-wide truncate ${isSam ? 'text-green-300' : 'text-neutral-200'}`}>
+                        {member.pseudo ?? member.nom}
+                      </p>
+                      <p class="font-body text-xs text-neutral-600">
+                        {isThisHost ? 'Hôte' : isSam ? '🚗 Gardien SAM' : 'Membre'}
+                    </p>
+                    </div>
+                    {isHost && (
+                      isSam ? (
+                        <form method="POST">
+                          <input type="hidden" name="action" value="unset_sam" />
+                          <button type="submit" title="Retirer le SAM" class="font-heading text-xs text-neutral-600 hover:text-accent-blood tracking-widest uppercase transition-colors px-2 py-1 rounded border border-dark-600 hover:border-accent-blood/40">
+                            ×
+                          </button>
+                        </form>
+                      ) : (!hasSam && !isThisHost) ? (
+                        <form method="POST">
+                          <input type="hidden" name="action" value="set_sam" />
+                          <input type="hidden" name="samId" value={member.id} />
+                          <button type="submit" class="font-heading text-xs text-neutral-500 hover:text-accent-rune tracking-widest uppercase transition-colors px-2 py-1 rounded border border-dark-600 hover:border-accent-rune/40">
+                            SAM
+                          </button>
+                        </form>
+                      ) : null
+                    )}
+                  </div>
+                );
+              })}
+              {sessionMembers.length === 0 && (
+                <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun membre.</p>
+              )}
+              {isHost && availableUsers.length > 0 && (
+                <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
+                  <input type="hidden" name="action" value="add_member" />
+                  <select name="memberId" aria-label="Choisir un membre à inviter" class="input-viking flex-1 text-xs py-1.5">
+                    {availableUsers.map(u => <option value={u.id}>{u.pseudo ?? u.nom}</option>)}
+                  </select>
+                  <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Inviter</button>
+                </form>
+              )}
+            </div>
+            </div>
+
+            <!-- Tab : Jeux -->
+            <div id="tab-jeux" class="tab-content hidden" role="tabpanel" aria-label="Jeux de la session">
+            <div class="p-4 flex flex-col gap-2">
+              {sessionGames.length > 0 ? sessionGames.map((jeu: any) => (
+                <div class="flex items-center gap-3 p-2">
+                  <div class="w-10 h-10 rounded-lg overflow-hidden bg-dark-700 shrink-0">
+                    {jeu.img && <PbImage record={jeu} recordImage={jeu.img} width={40} height={40} />}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-heading text-xs text-neutral-200 tracking-wide">{jeu.nom}</p>
+                    {jeu.difficulter != null && <p class="font-body text-xs text-neutral-600">Difficulté {jeu.difficulter}/10</p>}
+                  </div>
+                </div>
+              )) : (
+                <p class="font-body text-neutral-600 text-sm text-center py-4">Aucun jeu sélectionné.</p>
+              )}
+              {isHost && availableJeux.length > 0 && (
+                <form method="POST" class="flex gap-2 pt-3 mt-1 border-t border-dark-600">
+                  <input type="hidden" name="action" value="add_jeu" />
+                  <select name="jeuId" aria-label="Choisir un jeu à ajouter" class="input-viking flex-1 text-xs py-1.5">
+                    {availableJeux.map((j: any) => <option value={j.id}>{j.nom}</option>)}
+                  </select>
+                  <button type="submit" class="btn-primary text-xs px-3 py-1.5 shrink-0">+ Ajouter</button>
+                </form>
+              )}
+            </div>
+            </div>
+
+            <!-- Tab : Paramètres (hôte uniquement) -->
+            {isHost && (
+              <div id="tab-params" class="tab-content hidden p-4" role="tabpanel" aria-label="Paramètres de la session">
+                <form method="POST" class="flex flex-col gap-3">
+                  <input type="hidden" name="action" value="update_params" />
+                  <div>
+                    <label class="label-viking" for="p-nom">Nom</label>
+                    <input id="p-nom" name="nom" type="text" value={session?.nom ?? ''} class="input-viking" />
+                  </div>
+                  <div>
+                    <label class="label-viking" for="p-desc">Description</label>
+                    <textarea id="p-desc" name="description" rows="2" class="input-viking resize-none">{session?.description ?? ''}</textarea>
+                  </div>
+                  <div>
+                    <label class="label-viking" for="p-dep">Départ</label>
+                    <input id="p-dep" name="date_heur_depart" type="datetime-local"
+                      value={session?.date_heur_depart ? new Date(session.date_heur_depart).toISOString().slice(0,16) : ''}
+                      class="input-viking"
+                    />
+                  </div>
+                  <div>
+                    <label class="label-viking" for="p-arr">Arrivée prévue</label>
+                    <input id="p-arr" name="date_heur_arriver" type="datetime-local"
+                      value={session?.date_heur_arriver ? new Date(session.date_heur_arriver).toISOString().slice(0,16) : ''}
+                      class="input-viking"
+                    />
+                  </div>
+                  <button type="submit" class="btn-primary py-2 text-sm mt-1">Sauvegarder</button>
+                </form>
+              </div>
+            )}
+          </div>
+
+          <!-- Infos rapides -->
+          <div class="card-parchment rounded-xl p-4 flex flex-col gap-2">
+            <div class="flex justify-between text-xs">
+              <span class="font-heading text-neutral-600 tracking-widest uppercase">Départ</span>
+              <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_depart)}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="font-heading text-neutral-600 tracking-widest uppercase">Arrivée</span>
+              <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_arriver)}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="font-heading text-neutral-600 tracking-widest uppercase">Membres</span>
+              <span class="font-body text-neutral-400">{sessionMembers.length}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="font-heading text-neutral-600 tracking-widest uppercase">Bars</span>
+              <span class="font-body text-neutral-400">{sessionBars.length}</span>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!-- ── TERMINÉ ───────────────────────────────────────── -->
+      {isTermine && (
+        <div class="flex flex-col gap-5">
+
+          <script define:vars={{
+            _sxpSessionId: id,
+            _sxpToken:     token,
+            _sxpUserId:    userId,
+            _sxpIsHost:    isHost,
+            _sxpIsSam:     samRawId === userId,
+            _sxpPbUrl:     PB_BASE_URL,
+          }} is:inline>
+            (function() {
+              var key = 'aegirhall_sxp_' + _sxpSessionId;
+              if (localStorage.getItem(key)) return;
+              var roleXp = _sxpIsHost ? 150 : (_sxpIsSam ? 250 : 50);
+              fetch(_sxpPbUrl + '/api/collections/users/records/' + _sxpUserId, {
+                headers: { 'Authorization': 'Bearer ' + _sxpToken },
+              })
+              .then(function(r) { return r.json(); })
+              .then(function(user) {
+                return fetch(_sxpPbUrl + '/api/collections/users/records/' + _sxpUserId, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _sxpToken },
+                  body: JSON.stringify({ xp: Number(user.xp || 0) + roleXp }),
+                });
+              })
+              .then(function(r) { if (r.ok) localStorage.setItem(key, '1'); })
+              .catch(function() {});
+            })();
+          </script>
+
+          <!-- Carte -->
+          {mapBars.length > 0 ? (
+            <>
+              <div id="map-data"
+                data-bars={JSON.stringify(mapBars)}
+                data-visited={JSON.stringify(mapVisited)}
+                hidden
+              />
+              <div class="rounded-xl overflow-hidden border border-primary-400/20 map-session-container">
+                <div id="map" class="w-full h-full" />
+              </div>
+            </>
+          ) : (
+            <div class="card-parchment rounded-xl flex items-center justify-center" style="height:180px;">
+              <p class="font-body text-neutral-600">Aucun bar avec localisation.</p>
+            </div>
+          )}
+
+          <!-- Banner -->
+          <div class="relative rounded-xl overflow-hidden h-48 lg:h-60">
+            <Image src={taverne_nuit} alt="" width={900} height={240} class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-linear-to-t from-dark-900/95 via-dark-900/50 to-dark-900/20" />
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+              <p class="font-display text-3xl lg:text-5xl text-neutral-100 tracking-widest mb-2 title-torch">
+                Soirée terminée !
+              </p>
+              <p class="font-body text-base text-neutral-400">
+                {sessionMembers.length} guerrier{sessionMembers.length > 1 ? 's' : ''} rentrés sains et saufs
+              </p>
+            </div>
+          </div>
+
+          <!-- 4 stats -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center">
+              <div class="w-9 h-9 rounded-lg bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
+                <Image src={tempsIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+              </div>
+              <p class="font-display text-2xl text-primary-400 leading-none">{durationStr}</p>
+              <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">Durée</p>
+            </div>
+            <div class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center">
+              <div class="w-9 h-9 rounded-lg bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
+                <Image src={bierreIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+              </div>
+              <p class="font-display text-2xl text-primary-400 leading-none">{sessionBars.length}</p>
+              <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">Bars</p>
+            </div>
+            <div class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center">
+              <div class="w-9 h-9 rounded-lg bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
+                <Image src={personnesIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+              </div>
+              <p class="font-display text-2xl text-primary-400 leading-none">{sessionMembers.length}</p>
+              <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">Membres</p>
+            </div>
+            <div class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center">
+              <div class="w-9 h-9 rounded-lg bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
+                <Image src={medailIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+              </div>
+              <p class="font-display text-2xl text-primary-400 leading-none">{xpGained}</p>
+              <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">XP gagnés</p>
+            </div>
+          </div>
+
+          <!-- Score de sécurité -->
+          <div class="card-parchment rounded-xl p-5 border-accent-rune/25"
+               style="background:linear-gradient(135deg,rgba(45,106,79,0.12) 0%,rgba(45,106,79,0.04) 100%);">
+            <div class="flex items-center gap-4 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-accent-rune/20 border border-accent-rune/40 flex items-center justify-center shrink-0">
+                <Image src={bouclierIcon} alt="" width={18} height={18} class="invert opacity-80" aria-hidden="true" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-heading text-sm text-neutral-200 tracking-wide">Score de sécurité</p>
+                <p class="font-body text-xs text-neutral-500">{hasSam ? 'SAM désigné · Retour sécurisé' : 'Pas de SAM désigné'}</p>
+              </div>
+              <p class="font-display text-2xl shrink-0" style={`color:${securityScore>=90?'#05df72':'#E8BE50'}`}>{securityScore}%</p>
+            </div>
+            <ProgressBar value={securityScore} label={`Score de sécurité : ${securityScore}%`} variant="green" />
+            <p class="font-body text-xs text-neutral-500 mt-2">
+              {securityScore >= 90 ? 'Excellent ! Le gardien a parfaitement géré la soirée.' : 'Pensez à désigner un SAM pour la prochaine soirée.'}
+            </p>
+          </div>
+
+          <!-- Évaluation SAM — hôte uniquement -->
+          {sam && isHost && (
+            <div class="card-parchment rounded-xl p-5">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-xl bg-primary-400/15 border border-primary-400/25 flex items-center justify-center shrink-0">
+                  <Image src={couroneIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+                </div>
+                <div>
+                  <p class="font-heading text-sm text-neutral-200 tracking-wide">Évaluer le gardien</p>
+                  <p class="font-body text-xs text-neutral-500">Comment {sam.pseudo ?? sam.nom} a géré la soirée ?</p>
+                </div>
+              </div>
+              <div id="star-rating" class="flex justify-center gap-2" role="group" aria-label="Note du gardien">
+                {[1,2,3,4,5].map(n => (
+                  <button type="button" data-star={n}
+                    class="star-btn w-10 h-10 flex items-center justify-center rounded-lg hover:bg-primary-400/10 transition-colors"
+                    aria-label={`${n} étoile${n > 1 ? 's' : ''}`}>
+                    <Image src={etoileFill} alt="" width={26} height={26} class="star-fill invert hidden pointer-events-none" />
+                    <Image src={etoileVide} alt="" width={26} height={26} class="star-empty invert opacity-40 pointer-events-none" />
+                  </button>
+                ))}
+              </div>
+              <p id="star-feedback" class="font-body text-xs text-primary-400 text-center mt-3 hidden">Note enregistrée ✓</p>
+              <script define:vars={{
+                _starSessionId: id,
+                _starToken:     token,
+                _starPbUrl:     PB_BASE_URL,
+                _starNote:      Number(session?.note_sam ?? 0),
+              }} is:inline>
+                (function() {
+                  var starBtns = document.querySelectorAll('.star-btn');
+                  var feedback = document.getElementById('star-feedback');
+                  function setStars(n) {
+                    starBtns.forEach(function(btn, j) {
+                      var fill  = btn.querySelector('.star-fill');
+                      var empty = btn.querySelector('.star-empty');
+                      if (j < n) {
+                        fill  && fill.classList.remove('hidden');
+                        empty && empty.classList.add('hidden');
+                      } else {
+                        fill  && fill.classList.add('hidden');
+                        empty && empty.classList.remove('hidden');
+                      }
+                    });
+                  }
+                  if (_starNote > 0) setStars(_starNote);
+                  starBtns.forEach(function(btn, i) {
+                    btn.addEventListener('click', function() {
+                      setStars(i + 1);
+                      fetch(_starPbUrl + '/api/collections/session_barathon/records/' + _starSessionId, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _starToken },
+                        body: JSON.stringify({ note_sam: i + 1 }),
+                      })
+                      .then(function(r) { if (r.ok && feedback) feedback.classList.remove('hidden'); })
+                      .catch(function() {});
+                    });
+                  });
+                })();
+              </script>
+            </div>
+          )}
+
+          <!-- Bars conquis -->
+          {sessionBars.length > 0 && (
+            <div class="card-parchment rounded-xl p-5">
+              <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase mb-3">Tavernes conquises</p>
+              <div class="flex flex-wrap gap-2">
+                {sessionBars.map(bar => (
+                  <span class="flex items-center gap-1.5 bg-dark-700 border border-accent-rune/25 rounded-lg px-3 py-1.5">
+                    <span class="text-green-400 text-xs">✓</span>
+                    <span class="font-heading text-xs text-neutral-300 tracking-wide">{bar.nom}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <!-- CTAs -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button type="button" id="btn-share-resume"
+              class="btn-primary flex-1 py-3 flex items-center justify-center gap-2 text-sm">
+              <Image src={partagerIcon} alt="" width={16} height={16} class="invert" aria-hidden="true" />
+              <span>Partager le résumé</span>
+            </button>
+            <a href="/" class="btn-outline flex-1 py-3 flex items-center justify-center gap-2 text-sm">
+              <Image src={homeIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+              <span>Retour à l'accueil</span>
+            </a>
+          </div>
+
+          <!-- Infos rapides -->
+          <div class="card-parchment rounded-xl p-4 flex flex-col gap-2">
+            <div class="flex justify-between text-xs">
+              <span class="font-heading text-neutral-600 tracking-widest uppercase">Départ</span>
+              <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_depart)}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="font-heading text-neutral-600 tracking-widest uppercase">Arrivée</span>
+              <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_arriver)}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="font-heading text-neutral-600 tracking-widest uppercase">Durée</span>
+              <span class="font-body text-neutral-400">{durationStr}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="font-heading text-neutral-600 tracking-widest uppercase">Membres</span>
+              <span class="font-body text-neutral-400">{sessionMembers.length}</span>
+            </div>
+          </div>
+
+          <!-- Récompenses du clan -->
+          {sessionMembers.length > 0 && (
+            <div class="card-parchment rounded-xl p-5">
+              <h3 class="font-heading text-xs text-neutral-400 tracking-widest uppercase mb-4 flex items-center gap-2">
+                <Image src={medailIcon} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+                Récompenses du clan
+              </h3>
+              <div class="flex flex-col gap-1">
+                {sessionMembers.slice(0, 6).map((member, i) => {
+                  const mXp = Math.max(20, Math.round(xpGained * Math.max(0.2, 1 - i * 0.15)));
+                  const isThisHost = member.id === session?.id_hote;
+                  const isSamM = member.id === samMemberId;
+                  return (
+                    <div class="flex items-center gap-3 py-2 border-b border-dark-700 last:border-0">
+                      <div class="w-7 h-7 rounded-full bg-dark-700 border border-dark-600 flex items-center justify-center shrink-0 font-heading text-xs text-primary-500">
+                        {(member.pseudo ?? member.nom ?? 'V').charAt(0).toUpperCase()}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="font-heading text-xs text-neutral-200 tracking-wide truncate">{member.pseudo ?? member.nom}</p>
+                        <p class="font-body text-xs text-neutral-600">{isThisHost ? 'Hôte' : isSamM ? 'SAM' : 'Membre'}</p>
+                      </div>
+                      <span class="font-heading text-xs text-primary-400 shrink-0">+{mXp} XP</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+        </div>
+      )}
+
     </div>
   </div>
 
@@ -543,3 +1274,36 @@ function fmtDate(d) {
     import '../../js/map.js';
   </script>
 )}
+
+<style>
+  .map-session-container { height: 260px; }
+  @media (min-width: 1024px) { .map-session-container { height: 400px; } }
+</style>
+
+<script>
+  // Partager le résumé (terminée)
+  const shareResumeBtn = document.getElementById('btn-share-resume');
+  if (shareResumeBtn) {
+    shareResumeBtn.addEventListener('click', () => {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Résumé Ægirhall',
+          text: 'Notre soirée viking est terminée. Retrouvez le résumé sur Ægirhall !',
+        }).catch(() => {});
+      }
+    });
+  }
+
+  // Partager la session (en cours)
+  const shareSessionBtn = document.getElementById('btn-share-session');
+  if (shareSessionBtn) {
+    shareSessionBtn.addEventListener('click', () => {
+      const url = window.location.href;
+      if (navigator.share) {
+        navigator.share({ title: 'Session Ægirhall', url }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).catch(() => {});
+      }
+    });
+  }
+</script>

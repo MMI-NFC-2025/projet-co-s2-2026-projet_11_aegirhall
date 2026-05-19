@@ -3,20 +3,22 @@ import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import HeroSection from '../../components/HeroSection.astro';
 import { Image } from 'astro:assets';
-import { getCollection, getVisitesByUser } from '../../js/backend.js';
+import { getCollection, getRecord } from '../../js/backend.js';
 import carteIcon  from '../../assets/icon/carte.svg';
 import bierreIcon from '../../assets/icon/bierre.svg';
+import ProgressBar  from '../../components/ProgressBar.astro';
+import StatusBadge  from '../../components/StatusBadge.astro';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
 if (!token || !userId) return Astro.redirect('/connexion');
 
-const [bars, visites] = await Promise.all([
+const [bars, me] = await Promise.all([
   getCollection('bar', { sort: 'nom', token }),
-  getVisitesByUser(userId, token),
+  getRecord('users', userId, { fields: 'id,id_taverne_visiter', token }),
 ]);
 
-const visitedIds  = visites.map(v => v.bar);
+const visitedIds  = me?.id_taverne_visiter ?? [];
 const progression = bars.length ? Math.round((visitedIds.length / bars.length) * 100) : 0;
 
 const mapBars = bars
@@ -45,7 +47,7 @@ const mapBars = bars
       data-visited={JSON.stringify(visitedIds)}
       hidden
     />
-    <div class="relative rounded-xl overflow-hidden border border-primary-400/20" style="height:520px;">
+    <div class="relative rounded-xl overflow-hidden border border-primary-400/20 map-bars-container">
       <div id="map" class="w-full h-full" />
     </div>
     <div class="flex flex-wrap gap-4 mt-4 justify-end">
@@ -68,9 +70,7 @@ const mapBars = bars
           <span class="font-heading text-xs text-neutral-400 tracking-widest uppercase">Progression globale</span>
           <span class="font-heading text-sm text-primary-400">{progression}%</span>
         </div>
-        <div class="progress-bar-track" role="progressbar" aria-valuenow={progression} aria-valuemin={0} aria-valuemax={100} aria-label={`Progression globale : ${progression}%`}>
-          <div class="progress-bar-fill" style={`width:${progression}%`} />
-        </div>
+        <ProgressBar value={progression} label={`Progression globale : ${progression}%`} />
       </div>
       <a href="/classement" class="btn-outline text-xs px-5 py-2 shrink-0">Classement</a>
     </div>
@@ -116,9 +116,9 @@ const mapBars = bars
                     {bar.nom}
                   </h3>
                 </div>
-                <span class={`text-xs font-heading tracking-widest uppercase px-2 py-1 rounded shrink-0 ${visited ? 'badge-visited' : 'badge-pending'}`}>
+                <StatusBadge variant={visited ? 'visited' : 'pending'} class="px-2 py-1 rounded shrink-0">
                   {visited ? 'Conquise' : 'À conquérir'}
-                </span>
+                </StatusBadge>
               </div>
               {bar.adresse && (
                 <p class="font-body text-neutral-500 text-sm mb-2">{bar.adresse}</p>
@@ -145,3 +145,8 @@ const mapBars = bars
 <script>
   import '../../js/map.js';
 </script>
+
+<style>
+  .map-bars-container { height: 300px; }
+  @media (min-width: 1024px) { .map-bars-container { height: 520px; } }
+</style>

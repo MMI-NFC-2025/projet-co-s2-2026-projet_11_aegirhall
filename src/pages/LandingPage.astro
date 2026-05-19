@@ -2,273 +2,462 @@
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import vegvisir from '../assets/icon/vegvisir.svg';
-import valknut  from '../assets/icon/valknut.svg';
-import { getCollection } from '../js/backend.js';
+import darkar   from '../assets/img/darkar_neige.avif';
+import trone    from '../assets/img/trone.avif';
+import hut      from '../assets/img/hut.avif';
+import nuit     from '../assets/img/taverne_nuit.avif';
+import { getCollection, createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
 
-const token = Astro.cookies.get('pb_token')?.value;
+const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
 if (token && userId) return Astro.redirect('/');
 
-const bars       = await getCollection('bars', { sort: 'ordre', perPage: 3 });
-const totalBars  = bars.length;
-const totalUsers = (await getCollection('users', { perPage: 200, fields: 'id' })).length || 0;
+/* ── Inscription ──────────────────────────────────────── */
+let signupError = '';
+if (Astro.request.method === 'POST') {
+  const form     = await Astro.request.formData();
+  const pseudo   = form.get('pseudo')?.toString().trim() ?? '';
+  const email    = form.get('email')?.toString().trim() ?? '';
+  const password = form.get('password')?.toString() ?? '';
+  const confirm  = form.get('confirm')?.toString() ?? '';
+
+  if (password !== confirm) {
+    signupError = 'Les mots de passe ne correspondent pas.';
+  } else if (password.length < 8) {
+    signupError = 'Le mot de passe doit faire au moins 8 caractères.';
+  } else {
+    const result = await createUser({ pseudo, nom: pseudo, email, password, passwordConfirm: confirm });
+    if (result?.error) {
+      const msg = Object.values(result.error?.data ?? {}).map((v: any) => v?.message).filter(Boolean).join(' ');
+      signupError = msg || result.error?.message || "Erreur lors de l'inscription.";
+    } else {
+      const auth = await authWithPassword(email, password);
+      if (auth?.token) {
+        Astro.cookies.set('pb_token',     auth.token,       { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_user_id',   auth.record.id,   { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_user_name', auth.record.pseudo ?? auth.record.nom ?? pseudo, { path: '/', httpOnly: true, maxAge: 604800 });
+      }
+      return Astro.redirect('/');
+    }
+  }
+}
+
+/* ── Données ──────────────────────────────────────────── */
+const [allBars, allUsers] = await Promise.all([
+  getCollection('bar',   { sort: 'ordre', perPage: 200, fields: 'id,nom,img,adresse,desciption,ordre,collectionId' }),
+  getCollection('users', { perPage: 200,  fields: 'id' }),
+]);
+const totalBars  = allBars.length;
+const totalUsers = allUsers.length;
+
+const barsForClient = allBars.map((bar: any) => ({
+  id:       bar.id,
+  nom:      bar.nom ?? '',
+  adresse:  bar.adresse ?? '',
+  desc:     bar.desciption
+    ? bar.desciption.trim().split(/\s+/).slice(0, 15).join(' ') + (bar.desciption.trim().split(/\s+/).length > 15 ? '…' : '')
+    : '',
+  photoUrl: bar.img
+    ? `${PB_BASE_URL}/api/files/${bar.collectionId}/${bar.id}/${bar.img}`
+    : '',
+}));
+
+const voie = [
+  { num: 'I',   titre: 'Rejoindre la Horde',    desc: "Créez votre compte, choisissez votre titre et rejoignez les guerriers qui arpentent la route.", img: hut,   alt: 'Grande halle viking' },
+  { num: 'II',  titre: 'Parcourir les Tavernes', desc: "Suivez la Route des Jarls, visitez chaque taverne dans l'ordre et marquez votre passage.",       img: nuit,  alt: 'Taverne la nuit' },
+  { num: 'III', titre: 'Gravez Votre Légende',   desc: "Montez dans le classement éternel, débloquez titres et badges de guerre.",                        img: trone, alt: 'Trône des Jarls' },
+];
 ---
+
 <Layout title="La Route des Jarls" description="Le grand barathon viking — parcourez la Route des Jarls et conquérez chaque taverne.">
 
   <!-- ══════════════════════════════════════════════════════
-       HERO — PLEIN ÉCRAN ATMOSPHÉRIQUE
+       HERO
        ══════════════════════════════════════════════════════ -->
   <section class="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden bg-dark-900">
 
-    <!-- Couche 1 — texture losanges -->
-    <div class="absolute inset-0 bg-diamond pointer-events-none" aria-hidden="true" />
-
-    <!-- Couche 2 — torchlight radial gold -->
-    <div
-      class="absolute inset-0 pointer-events-none"
-      style="background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(196,154,44,0.10) 0%, rgba(160,120,32,0.05) 40%, transparent 70%);"
-      aria-hidden="true"
-    />
-
-    <!-- Couche 3 — vignette noire sur les bords -->
-    <div
-      class="absolute inset-0 pointer-events-none"
-      style="background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(4,12,22,0.8) 100%);"
-      aria-hidden="true"
-    />
-
-    <!-- Vegvísir décoratif — arrière-plan, très grande taille -->
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none" aria-hidden="true">
-      <Image
-        src={vegvisir}
-        alt=""
-        width={700}
-        height={700}
-        class="opacity-[0.04]"
-        style="color:#C49A2C;"
-      />
+    <div class="absolute inset-0" aria-hidden="true">
+      <Image src={darkar} alt="" width={1920} height={1080} class="w-full h-full object-cover opacity-50" />
+      <div class="absolute inset-0 bg-linear-to-b from-dark-900/40 via-dark-900/10 to-dark-900" />
     </div>
 
-    <!-- Runes verticales — côtés (desktop uniquement) -->
-    <div class="absolute left-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-4 pointer-events-none select-none" aria-hidden="true">
-      {'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ'.split('').map(r => (
-        <span class="font-heading text-xs text-primary-800 tracking-widest">{r}</span>
-      ))}
-    </div>
-    <div class="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-4 pointer-events-none select-none" aria-hidden="true">
-      {'ᛟᛞᛜᛚᛗᛖᛒᛏᛊᛉᛈᛇᛃᛁᚾᚺᚹᚷᚲᚱᚨᚦᚢᚠ'.split('').map(r => (
-        <span class="font-heading text-xs text-primary-800 tracking-widest">{r}</span>
-      ))}
-    </div>
-
-    <!-- Contenu principal -->
-    <div class="relative z-10 px-4 lg:px-20 max-w-360 mx-auto w-full">
-
-      <!-- Eyebrow -->
-      <p class="font-heading text-primary-500 text-xs tracking-[0.35em] uppercase mb-6 lg:mb-8">
+    <div class="relative z-10 px-4 lg:px-20 max-w-360 mx-auto w-full pb-36">
+      <p class="font-heading text-primary-400 text-xs lg:text-sm tracking-widest uppercase mb-6 opacity-0 animate-rise eyebrow-d">
         ✦ &nbsp; Barathon Viking &nbsp; ✦
       </p>
-
-      <!-- Titre principal avec shimmer -->
-      <h1 class="title-shimmer font-display text-6xl lg:text-[120px] leading-none tracking-widest mb-3 lg:mb-5">
-        Ægirhall
+      <h1 class="title-hero font-display leading-none tracking-widest text-neutral-100 mb-6 opacity-0 animate-rise title-d">
+        ÆGIRHALL
       </h1>
-
-      <!-- Sous-titre -->
-      <p class="font-heading text-xl lg:text-3xl text-primary-300 tracking-[0.15em] mb-6 lg:mb-8">
+      <p class="font-heading text-xl lg:text-3xl text-primary-300 tracking-wide mb-5 opacity-0 animate-rise sub-d">
         La Route des Jarls
       </p>
-
-      <!-- Divider runique -->
-      <div class="divider-diamond max-w-xs mx-auto mb-6 lg:mb-8">
-        <span />
-      </div>
-
-      <!-- Description -->
-      <p class="font-body text-lg lg:text-xl text-neutral-400 max-w-xl mx-auto leading-relaxed mb-10 lg:mb-14">
+      <p class="font-body text-lg lg:text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed mb-12 opacity-0 animate-rise desc-d">
         Parcourez les tavernes de la horde, levez votre corne de miel et gravez votre nom dans les runes du classement éternel.
       </p>
-
-      <!-- CTA -->
-      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16 lg:mb-20">
-        <a href="/inscription" class="btn-primary text-sm lg:text-base px-10 py-5">
-          Rejoindre la Horde
-        </a>
-        <a href="/connexion" class="btn-outline text-sm lg:text-base px-10 py-5">
-          Se Connecter
-        </a>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center opacity-0 animate-rise cta-d">
+        <a href="#inscription" class="btn-primary text-sm lg:text-base px-12 py-5">Rejoindre la Horde</a>
+        <a href="/connexion"   class="btn-outline  text-sm lg:text-base px-12 py-5">Se Connecter</a>
       </div>
+    </div>
 
-      <!-- Stats — cadres runiques -->
-      <div class="flex flex-col sm:flex-row gap-6 lg:gap-20 justify-center items-center">
+    <!-- Bande de stats fixée en bas -->
+    <div class="absolute bottom-0 left-0 right-0 z-20 bg-dark-900/95 border-t border-primary-400/20 opacity-0 animate-rise stats-d">
+      <div class="max-w-360 mx-auto px-4 lg:px-20 flex divide-x divide-primary-400/15">
         {[
-          { value: totalBars  || '?', label: 'Tavernes', rune: 'ᚦ' },
-          { value: totalUsers || '?', label: 'Guerriers', rune: 'ᚢ' },
-          { value: '1',               label: 'Route Légendaire', rune: 'ᚱ' },
-        ].map(stat => (
-          <div class="frame-rune text-center min-w-28">
-            <p class="font-heading text-primary-700 text-base mb-1 tracking-widest">{stat.rune}</p>
-            <p class="font-display text-4xl lg:text-5xl text-primary-400 mb-1 text-glow">{stat.value}</p>
-            <p class="font-heading text-xs text-neutral-600 tracking-[0.2em] uppercase">{stat.label}</p>
+          { value: totalBars,  label: 'Tavernes à conquérir' },
+          { value: totalUsers, label: 'Guerriers dans la horde' },
+          { value: '1',        label: 'Route Légendaire' },
+        ].map(s => (
+          <div class="flex-1 text-center py-5 px-2">
+            <p class="font-display text-3xl lg:text-5xl text-primary-400">{s.value || '—'}</p>
+            <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase mt-1">{s.label}</p>
           </div>
         ))}
       </div>
     </div>
-
-    <!-- Bordure basse dorée -->
-    <div class="absolute bottom-0 left-0 right-0">
-      <div class="h-px bg-linear-to-r from-transparent via-primary-400/50 to-transparent" />
-      <div class="h-px bg-linear-to-r from-transparent via-primary-600/20 to-transparent mt-1" />
-    </div>
-
-    <!-- Indicateur de scroll -->
-    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40" aria-hidden="true">
-      <span class="font-heading text-xs text-neutral-500 tracking-[0.3em] uppercase">Découvrir</span>
-      <svg class="w-4 h-4 text-primary-600 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-      </svg>
-    </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════
-       LE RITUEL — COMMENT ÇA MARCHE
+       CE QUE PROPOSE ÆGIRHALL — split text / image
        ══════════════════════════════════════════════════════ -->
-  <section class="relative py-24 lg:py-36 bg-dark-800 bg-mesh-gold overflow-hidden">
-    <!-- Valknut décoratif en coin -->
-    <div class="absolute -right-16 top-1/2 -translate-y-1/2 pointer-events-none select-none hidden lg:block" aria-hidden="true">
-      <Image src={valknut} alt="" width={320} height={320} class="opacity-[0.04]" style="color:#C49A2C;" />
-    </div>
+  <section class="relative bg-dark-800 overflow-hidden">
+    <div class="max-w-360 mx-auto flex flex-col lg:flex-row items-stretch">
 
-    <div class="max-w-360 mx-auto px-4 lg:px-20 relative z-10">
-      <!-- En-tête section -->
-      <div class="text-center mb-14 lg:mb-20">
-        <p class="font-heading text-primary-600 text-xs tracking-[0.35em] uppercase mb-4">
-          ᚦ &nbsp; Le Rituel &nbsp; ᚦ
-        </p>
-        <h2 class="font-heading text-3xl lg:text-5xl text-neutral-200 tracking-wide mb-5">
-          Comment ça marche
+      <!-- Texte gauche -->
+      <div class="flex-1 px-4 lg:px-20 py-20 lg:py-32 reveal">
+        <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-6">ᚦ &nbsp; La Horde vous attend &nbsp; ᚦ</p>
+        <h2 class="font-heading text-3xl lg:text-5xl text-neutral-200 tracking-wide mb-5 leading-snug">
+          Ce que propose<br />Ægirhall
         </h2>
-        <div class="divider-diamond max-w-48 mx-auto"><span /></div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
-        {[
-          {
-            num: 'I', rune: 'ᚠ',
-            titre: 'Rejoindre la Horde',
-            desc: 'Créez votre compte, choisissez votre titre viking et rejoignez les guerriers qui arpentent déjà la route.'
-          },
-          {
-            num: 'II', rune: 'ᚢ',
-            titre: 'Parcourir les Tavernes',
-            desc: 'Suivez la Route des Jarls, visitez chaque taverne dans l\'ordre et marquez votre passage dans les runes.'
-          },
-          {
-            num: 'III', rune: 'ᚱ',
-            titre: 'Gravez Votre Légende',
-            desc: 'Montez dans le classement éternel, débloquez vos titres de guerre et devenez un Jarl de la Horde.'
-          },
-        ].map((step, i) => (
-          <div class={`card-parchment card-hover rounded-lg p-8 text-center relative overflow-hidden ${i === 1 ? 'lg:mt-6' : ''}`}>
-            <!-- Rune de fond -->
-            <span class="absolute top-3 right-4 font-heading text-5xl text-primary-900 pointer-events-none select-none" aria-hidden="true">
-              {step.rune}
-            </span>
-            <!-- Numéro romain -->
-            <div class="w-16 h-16 rounded-full border border-primary-400/30 flex items-center justify-center mx-auto mb-5 relative">
-              <span class="font-display text-2xl text-primary-400">{step.num}</span>
-              <!-- Cercle animé -->
-              <div class="absolute inset-0 rounded-full border border-primary-400/10 scale-110 animate-pulse" />
-            </div>
-            <h3 class="font-heading text-base text-neutral-200 tracking-wide mb-3">{step.titre}</h3>
-            <p class="font-body text-base text-neutral-500 leading-relaxed">{step.desc}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════════════════════════════
-       APERÇU DES TAVERNES
-       ══════════════════════════════════════════════════════ -->
-  {bars.length > 0 && (
-    <section class="relative py-24 lg:py-36 bg-dark-900 overflow-hidden">
-      <!-- Vegvísir en fond à gauche -->
-      <div class="absolute -left-20 top-1/2 -translate-y-1/2 pointer-events-none select-none hidden lg:block" aria-hidden="true">
-        <Image src={vegvisir} alt="" width={400} height={400} class="opacity-[0.035]" style="color:#C49A2C;" />
-      </div>
-
-      <div class="max-w-360 mx-auto px-4 lg:px-20 relative z-10">
-        <div class="text-center mb-14 lg:mb-18">
-          <p class="font-heading text-primary-600 text-xs tracking-[0.35em] uppercase mb-4">
-            ᚲ &nbsp; Le Parcours &nbsp; ᚲ
-          </p>
-          <h2 class="font-heading text-3xl lg:text-5xl text-neutral-200 tracking-wide mb-5">
-            Les Premières Tavernes
-          </h2>
-          <div class="divider-diamond max-w-48 mx-auto"><span /></div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-12">
-          {bars.map((bar, i) => (
-            <div class="card-parchment card-hover rounded-lg overflow-hidden group relative">
-              <!-- Image placeholder avec numéro d'étape -->
-              <div class="h-52 bg-linear-to-b from-dark-700 to-dark-800 relative overflow-hidden flex items-center justify-center">
-                <span class="font-display text-6xl text-primary-900 select-none">{i + 1}</span>
-                <div class="absolute inset-0 bg-linear-to-t from-dark-900/90 to-transparent" />
-                <span class="absolute top-3 left-3 font-heading text-xs text-primary-400 tracking-widest uppercase bg-dark-900/80 px-3 py-1 rounded border border-primary-400/20">
-                  Étape {bar.ordre}
-                </span>
-              </div>
-              <div class="p-6">
-                <h3 class="font-heading text-lg text-neutral-200 tracking-wide mb-2 group-hover:text-primary-300 transition-colors">
-                  {bar.nom}
-                </h3>
-                <p class="font-body text-sm text-neutral-600 mb-3">{bar.adresse}</p>
-                {bar.specialite && (
-                  <p class="font-heading text-xs text-primary-500 tracking-wide uppercase">{bar.specialite}</p>
-                )}
-              </div>
+        <div class="divider-diamond max-w-48 mb-12"><span /></div>
+        <div class="flex flex-col gap-10">
+          {[
+            { titre: 'La Route des Jarls',      desc: "Parcourez l'itinéraire officiel des tavernes dans l'ordre. Chaque étape cochée vous rapproche du titre de Jarl Suprême." },
+            { titre: 'Classement des guerriers', desc: "Votre avancement est public. Les meilleurs guerriers trônent en haut du classement éternel, visible de toute la horde." },
+            { titre: 'Sessions en groupe',       desc: "Planifiez une sortie avec votre équipe, désignez votre SAM et partez à l'assaut des tavernes ensemble." },
+            { titre: 'Badges de conquête',       desc: "Chaque milestone débloque un badge. Des trophées numériques qui prouvent vos exploits et votre dévotion à la horde." },
+          ].map(feat => (
+            <div>
+              <h3 class="font-heading text-lg text-neutral-200 tracking-wide mb-2">{feat.titre}</h3>
+              <p class="font-body text-base lg:text-lg text-neutral-500 leading-relaxed">{feat.desc}</p>
             </div>
           ))}
         </div>
-
-        <div class="text-center">
-          <p class="font-body text-neutral-500 mb-6">Inscrivez-vous pour voir la route complète</p>
-          <a href="/inscription" class="btn-primary px-10 py-4">Voir toute la route</a>
+        <div class="mt-14">
+          <a href="#inscription" class="btn-primary px-10 py-4">Commencer l'aventure</a>
         </div>
       </div>
+
+      <!-- Image droite pleine hauteur -->
+      <div class="features-img-col lg:w-96 xl:w-md shrink-0 overflow-hidden reveal">
+        <Image src={trone} alt="Trône des Jarls" width={600} height={900} class="w-full h-full object-cover" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       NOS TAVERNES — bannière typographique
+       ══════════════════════════════════════════════════════ -->
+  <section class="relative bg-dark-900 py-16 lg:py-28 overflow-hidden">
+    <div class="absolute right-10 lg:right-20 top-1/2 -translate-y-1/2 pointer-events-none select-none" aria-hidden="true">
+      <Image src={vegvisir} alt="" width={300} height={300} class="opacity-5" style="color:#C49A2C;" />
+    </div>
+    <div class="max-w-360 mx-auto px-4 lg:px-20 relative z-10 reveal">
+      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 lg:gap-24">
+        <h2 class="title-tavernes font-display text-neutral-100 tracking-widest uppercase leading-none">
+          NOS<br />TAVERNES
+        </h2>
+        <div class="lg:pb-4 max-w-sm">
+          <div class="divider-diamond max-w-24 mb-6 lg:hidden"><span /></div>
+          <p class="font-body text-base lg:text-lg text-neutral-400 leading-relaxed">
+            Explorez les tavernes d'Ægirhall et découvrez les étapes de votre prochaine odyssée viking. Chaque bar vous attend avec ses propres épreuves.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       CAROUSEL DOUBLE PANNEAU (inspiré Bargo)
+       ══════════════════════════════════════════════════════ -->
+  {barsForClient.length > 0 && (
+    <section class="relative bg-dark-900 overflow-hidden bars-carousel-section">
+
+      <!-- ── Desktop ── -->
+      <div class="hidden lg:block absolute top-0 left-1/2 -translate-x-1/2 h-full w-full max-w-360">
+
+        <!-- Panneau photo gauche -->
+        <div id="bg-wrap" class="absolute left-0 top-0 w-1/2 h-full overflow-hidden">
+          <div id="bg-a" class="absolute inset-0">
+            <div id="prlx-a" class="absolute inset-0 bg-cover bg-center" style={`background-image:url('${barsForClient[0]?.photoUrl}');`} />
+            <div class="absolute inset-0 bg-linear-to-t from-dark-900/80 via-dark-900/20 to-transparent" />
+            <div class="absolute inset-0 bg-linear-to-b from-dark-900/35 to-transparent" />
+            <p id="num-a" class="absolute left-10 top-10 font-display text-5xl text-primary-400 opacity-60">
+              {String(1).padStart(2, '0')}
+            </p>
+            <h3 id="nom-a" class="absolute left-10 bottom-10 font-heading text-3xl text-neutral-100 tracking-wide w-72">
+              {barsForClient[0]?.nom}
+            </h3>
+          </div>
+          <div id="bg-b" class="absolute inset-0" style="transform:translateY(100%);">
+            <div id="prlx-b" class="absolute inset-0 bg-cover bg-center" />
+            <div class="absolute inset-0 bg-linear-to-t from-dark-900/80 via-dark-900/20 to-transparent" />
+            <div class="absolute inset-0 bg-linear-to-b from-dark-900/35 to-transparent" />
+            <p id="num-b" class="absolute left-10 top-10 font-display text-5xl text-primary-400 opacity-60">02</p>
+            <h3 id="nom-b" class="absolute left-10 bottom-10 font-heading text-3xl text-neutral-100 tracking-wide w-72"></h3>
+          </div>
+        </div>
+
+        <!-- Panneau carte droite -->
+        <div id="card-wrap" class="absolute left-1/2 top-0 right-0 h-full overflow-hidden">
+          <div id="card-a" class="absolute inset-0 flex items-center justify-center px-16">
+            <div class="card-parchment rounded-2xl p-8 w-full max-w-xs">
+              <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Taverne</p>
+              <h3 id="cnom-a" class="font-heading text-2xl text-neutral-200 tracking-wide mb-3 leading-snug">
+                {barsForClient[0]?.nom}
+              </h3>
+              <p id="cadr-a" class="font-body text-sm text-neutral-400 mb-3 leading-relaxed">
+                {barsForClient[0]?.adresse}
+              </p>
+              <p id="cdesc-a" class="font-body text-sm text-neutral-500 leading-relaxed mb-6">
+                {barsForClient[0]?.desc}
+              </p>
+              <a href="/inscription" class="btn-primary block text-center py-3.5 text-sm">
+                Rejoindre pour voir
+              </a>
+            </div>
+          </div>
+          <div id="card-b" class="absolute inset-0 flex items-center justify-center px-16" style="transform:translateX(-100%);">
+            <div class="card-parchment rounded-2xl p-8 w-full max-w-xs">
+              <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Taverne</p>
+              <h3 id="cnom-b" class="font-heading text-2xl text-neutral-200 tracking-wide mb-3 leading-snug"></h3>
+              <p id="cadr-b" class="font-body text-sm text-neutral-400 mb-3 leading-relaxed"></p>
+              <p id="cdesc-b" class="font-body text-sm text-neutral-500 leading-relaxed mb-6"></p>
+              <a href="/inscription" class="btn-primary block text-center py-3.5 text-sm">
+                Rejoindre pour voir
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation desktop -->
+        <div class="absolute bottom-8 right-8 flex items-center gap-3 z-10">
+          <p id="bar-counter" class="font-heading text-xs text-neutral-500 tracking-widest mr-2">
+            01 / {String(barsForClient.length).padStart(2, '0')}
+          </p>
+          <button id="bar-prev" aria-label="Taverne précédente"
+            class="w-11 h-11 rounded-full border border-primary-400/40 flex items-center justify-center text-primary-400 hover:border-primary-400 hover:bg-dark-700 transition-colors">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button id="bar-next" aria-label="Taverne suivante"
+            class="w-11 h-11 rounded-full border border-primary-400/40 flex items-center justify-center text-primary-400 hover:border-primary-400 hover:bg-dark-700 transition-colors">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Ligne déco verticale séparation -->
+        <div class="absolute left-1/2 top-0 bottom-0 w-px bg-primary-400/10 pointer-events-none" aria-hidden="true" />
+      </div>
+
+      <!-- ── Mobile ── -->
+      <div class="block lg:hidden relative h-full">
+        <div class="absolute inset-0" aria-hidden="true">
+          <img id="mob-bg" src={barsForClient[0]?.photoUrl || undefined} alt="" class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-linear-to-b from-dark-900/30 via-transparent to-dark-900/95" />
+        </div>
+        <div class="relative z-10 h-full flex flex-col justify-between px-4 py-8">
+          <!-- Card flottante -->
+          <div class="card-parchment rounded-xl p-6 mx-auto w-full max-w-xs">
+            <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-3">Taverne</p>
+            <h3 id="mob-nom" class="font-heading text-xl text-neutral-200 tracking-wide mb-2">{barsForClient[0]?.nom}</h3>
+            <p id="mob-adr"  class="font-body text-sm text-neutral-400 mb-1">{barsForClient[0]?.adresse}</p>
+            <p id="mob-desc" class="font-body text-xs text-neutral-500 leading-relaxed">{barsForClient[0]?.desc}</p>
+          </div>
+          <!-- Navigation mobile -->
+          <div class="flex items-center justify-between px-2">
+            <div class="flex gap-3">
+              <button id="mob-prev" aria-label="Précédente"
+                class="w-10 h-10 rounded-full border border-primary-400/40 flex items-center justify-center text-primary-400 hover:bg-dark-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button id="mob-next" aria-label="Suivante"
+                class="w-10 h-10 rounded-full border border-primary-400/40 flex items-center justify-center text-primary-400 hover:bg-dark-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <p id="mob-counter" class="font-heading text-xs text-neutral-500 tracking-widest">
+              01 / {String(barsForClient.length).padStart(2, '0')}
+            </p>
+          </div>
+        </div>
+      </div>
+
     </section>
   )}
 
   <!-- ══════════════════════════════════════════════════════
-       CTA FINAL — APPEL AUX ARMES
+       LA VOIE DES JARLS — 3 cartes photo
        ══════════════════════════════════════════════════════ -->
-  <section class="relative py-24 lg:py-40 text-center overflow-hidden bg-dark-900">
-    <!-- Torchlight central -->
-    <div
-      class="absolute inset-0 pointer-events-none"
-      style="background: radial-gradient(ellipse 60% 80% at 50% 100%, rgba(196,154,44,0.08) 0%, transparent 60%);"
-      aria-hidden="true"
-    />
-    <div class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/40 to-transparent" />
-    <div class="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/30 to-transparent" />
+  <section class="relative py-24 lg:py-32 bg-dark-800 overflow-hidden">
+    <div class="max-w-360 mx-auto px-4 lg:px-20">
+
+      <div class="text-center mb-16 reveal">
+        <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-4">ᚦ &nbsp; Comment ça marche &nbsp; ᚦ</p>
+        <h2 class="font-heading text-3xl lg:text-5xl text-neutral-200 tracking-wide mb-5">La Voie des Jarls</h2>
+        <div class="divider-diamond max-w-48 mx-auto"><span /></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {voie.map((step, i) => (
+          <div class="reveal" style={`animation-delay:${i * 0.12}s`}>
+            <div class="voie-card relative rounded-2xl overflow-hidden group">
+              <Image src={step.img} alt={step.alt} width={480} height={600}
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div class="absolute inset-0 bg-linear-to-t from-dark-900 via-dark-900/35 to-transparent" />
+              <!-- Numéro filigrane -->
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
+                <span class="voie-num font-display text-neutral-100 opacity-5 leading-none">{step.num}</span>
+              </div>
+              <!-- Contenu -->
+              <div class="absolute bottom-0 left-0 right-0 p-6 lg:p-8">
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="font-display text-2xl text-primary-400">{step.num}</span>
+                  <div class="h-px flex-1 bg-primary-400/30" />
+                </div>
+                <h3 class="font-heading text-xl lg:text-2xl text-neutral-100 tracking-wide mb-2">{step.titre}</h3>
+                <p class="font-body text-base text-neutral-400 leading-relaxed">{step.desc}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       INSCRIPTION
+       ══════════════════════════════════════════════════════ -->
+  <section id="inscription" class="relative py-24 lg:py-36 overflow-hidden bg-dark-800">
+    <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <Image src={trone} alt="" width={1920} height={800} class="w-full h-full object-cover opacity-10" />
+      <div class="absolute inset-0 bg-linear-to-b from-dark-800/80 via-transparent to-dark-800/80" />
+    </div>
 
     <div class="relative z-10 max-w-360 mx-auto px-4 lg:px-20">
-      <p class="font-heading text-primary-700 text-xs tracking-[0.35em] uppercase mb-6">
-        ᚨ &nbsp; L'Heure est Venue &nbsp; ᚨ
-      </p>
-      <h2 class="font-display text-4xl lg:text-7xl text-neutral-100 tracking-widest mb-6 lg:mb-8 title-torch">
-        Prêt à entrer<br class="hidden lg:block" /> dans la légende ?
-      </h2>
-      <div class="divider-diamond max-w-xs mx-auto mb-8"><span /></div>
-      <p class="font-body text-lg lg:text-xl text-neutral-400 max-w-xl mx-auto mb-12 leading-relaxed">
-        Les Nornes ont tracé votre destin. Il ne vous reste plus qu'à saisir votre corne de miel et partir à la conquête des tavernes.
-      </p>
-      <a href="/inscription" class="btn-primary text-base px-12 py-6">
-        Forger ma Légende
-      </a>
+      <div class="flex flex-col lg:flex-row gap-14 lg:gap-20 items-center">
+
+        <!-- Pitch gauche -->
+        <div class="lg:w-5/12 text-center lg:text-left reveal">
+          <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-5">ᛟ &nbsp; Forge ton destin &nbsp; ᛟ</p>
+          <h2 class="font-display text-3xl lg:text-5xl text-neutral-100 tracking-widest mb-6 leading-tight">
+            Rejoindre<br />la Horde
+          </h2>
+          <div class="divider-diamond max-w-48 mb-8 lg:mr-auto"><span /></div>
+          <p class="font-body text-lg lg:text-xl text-neutral-400 leading-relaxed mb-8">
+            Créez votre compte gratuitement et commencez à parcourir la Route des Jarls. Chaque taverne visitée grave votre nom plus haut dans le classement éternel.
+          </p>
+          <ul class="flex flex-col gap-3 text-left">
+            {[
+              'Accès à la Route des Jarls complète',
+              'Check-in dans chaque taverne',
+              'Classement et badges de guerre',
+              'Sessions avec vos compagnons',
+            ].map(item => (
+              <li class="flex items-center gap-3">
+                <span class="w-5 h-5 rounded-full bg-accent-rune/20 border border-accent-rune/50 flex items-center justify-center shrink-0">
+                  <span class="text-green-400 text-xs">✓</span>
+                </span>
+                <span class="font-body text-base text-neutral-300">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Formulaire -->
+        <div class="flex-1 w-full max-w-lg lg:max-w-none reveal">
+          <div class="card-parchment rounded-2xl p-7 lg:p-10">
+            <div class="text-center mb-8">
+              <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-2">✦ Ægirhall ✦</p>
+              <h3 class="font-display text-2xl text-neutral-100 tracking-widest">Créer mon compte</h3>
+            </div>
+            {signupError && (
+              <div class="mb-6 p-3.5 rounded-lg bg-accent-blood/20 border border-accent-blood/50 font-body text-sm text-neutral-300" role="alert">
+                {signupError}
+              </div>
+            )}
+            <form method="POST" class="flex flex-col gap-5">
+              <div>
+                <label class="label-viking" for="lp-pseudo">Nom de guerrier *</label>
+                <input id="lp-pseudo" name="pseudo" type="text" required placeholder="Ragnar Lodbrok" class="input-viking" autocomplete="nickname" />
+              </div>
+              <div>
+                <label class="label-viking" for="lp-email">Email *</label>
+                <input id="lp-email" name="email" type="email" required placeholder="votre@email.com" class="input-viking" autocomplete="email" />
+              </div>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <label class="label-viking" for="lp-password">Mot de passe *</label>
+                  <input id="lp-password" name="password" type="password" required placeholder="8 caractères min." class="input-viking" autocomplete="new-password" />
+                </div>
+                <div>
+                  <label class="label-viking" for="lp-confirm">Confirmer *</label>
+                  <input id="lp-confirm" name="confirm" type="password" required placeholder="••••••••" class="input-viking" autocomplete="new-password" />
+                </div>
+              </div>
+              <button type="submit" class="btn-primary w-full py-4 mt-2 text-base">Forger ma Légende</button>
+            </form>
+            <div class="rune-divider mt-6 mb-5 text-dark-500 text-xs">ou</div>
+            <p class="text-center font-body text-neutral-500 text-base">
+              Déjà guerrier ?{' '}
+              <a href="/connexion" class="text-primary-400 hover:text-primary-300 transition-colors">Se connecter</a>
+            </p>
+          </div>
+        </div>
+
+      </div>
     </div>
   </section>
 
 </Layout>
+
+<style>
+  /* Titre hero */
+  .title-hero { font-size: clamp(3.5rem, 13vw, 150px); }
+
+  /* Animation delays hero */
+  .eyebrow-d { animation-delay: 0.05s; }
+  .title-d   { animation-delay: 0.18s; }
+  .sub-d     { animation-delay: 0.34s; }
+  .desc-d    { animation-delay: 0.50s; }
+  .cta-d     { animation-delay: 0.64s; }
+  .stats-d   { animation-delay: 0.80s; }
+
+  /* Image droite dans la section features */
+  .features-img-col { height: 340px; }
+  @media (min-width: 1024px) { .features-img-col { height: auto; min-height: 680px; } }
+
+  /* Titre "NOS TAVERNES" */
+  .title-tavernes { font-size: clamp(3rem, 10vw, 120px); }
+
+  /* Hauteur section carrousel */
+  .bars-carousel-section { height: 500px; }
+  @media (min-width: 1024px) { .bars-carousel-section { height: 640px; } }
+
+  /* Cartes "La Voie des Jarls" */
+  .voie-card { height: 460px; }
+  @media (min-width: 1024px) { .voie-card { height: 560px; } }
+  .voie-num { font-size: clamp(8rem, 18vw, 200px); }
+</style>
+
+<div id="carousel-data" data-bars={JSON.stringify(barsForClient)} hidden aria-hidden="true" />
+<script>
+  import '../js/carousel.js';
+</script>

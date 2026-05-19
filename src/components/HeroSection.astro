@@ -1,55 +1,89 @@
 ---
 import { Image } from 'astro:assets';
-import valknut from '../assets/icon/valknut.svg';
+import valknut  from '../assets/icon/valknut.svg';
+import vegvisir from '../assets/icon/vegvisir.svg';
 
 interface Props {
   title: string;
   subtitle?: string;
   descMobile?: string;
-  overflow?: boolean;
   rune?: string;
+  imgSrc?: ImageMetadata;
 }
 
-const { title, subtitle, descMobile, overflow = false, rune = 'ᚱ' } = Astro.props;
+const { title, subtitle, descMobile, rune = 'ᚱ', imgSrc } = Astro.props;
 ---
-<section class={`relative bg-dark-900 py-20 lg:py-32 text-center overflow-hidden`}>
+
+<section class="relative bg-dark-900 overflow-hidden" style="padding-block: clamp(4rem, 8vw, 7rem);">
+
+  <!-- Image de fond optionnelle -->
+  {imgSrc && (
+    <div class="absolute inset-0" aria-hidden="true">
+      <Image src={imgSrc} alt="" width={1440} height={500} class="w-full h-full object-cover opacity-15" />
+      <div class="absolute inset-0 bg-linear-to-b from-dark-900/60 via-transparent to-dark-900" />
+    </div>
+  )}
 
   <!-- Texture losanges -->
-  <div class="absolute inset-0 bg-diamond pointer-events-none opacity-60" aria-hidden="true" />
+  <div class="absolute inset-0 bg-diamond pointer-events-none opacity-50" aria-hidden="true" />
 
-  <!-- Torchlight doux -->
+  <!-- Lueur torchlight bas -->
   <div
     class="absolute inset-0 pointer-events-none"
-    style="background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(196,154,44,0.07) 0%, transparent 60%);"
+    style="background: radial-gradient(ellipse 75% 90% at 50% 110%, rgba(196,154,44,0.09) 0%, transparent 55%);"
     aria-hidden="true"
   />
 
-  <!-- Valknut décoratif en coin -->
-  <div class="absolute -right-8 -bottom-8 pointer-events-none select-none hidden lg:block" aria-hidden="true">
-    <Image src={valknut} alt="" width={240} height={240} class="opacity-[0.05]" style="color:#C49A2C;" />
+  <!-- Lueur centrale -->
+  <div
+    class="absolute inset-0 pointer-events-none"
+    style="background: radial-gradient(ellipse 55% 65% at 50% 50%, rgba(196,154,44,0.05) 0%, transparent 65%);"
+    aria-hidden="true"
+  />
+
+  <!-- Valknut décoratif -->
+  <div class="absolute -right-10 -bottom-10 pointer-events-none select-none hidden lg:block" aria-hidden="true">
+    <Image src={valknut} alt="" width={260} height={260} class="opacity-5" />
   </div>
 
-  <!-- Bordure or -->
-  <div class="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/50 to-transparent" aria-hidden="true" />
+  <!-- Vegvísir discret -->
+  <div class="absolute -left-16 top-1/2 -translate-y-1/2 pointer-events-none select-none hidden lg:block" aria-hidden="true">
+    <Image src={vegvisir} alt="" width={180} height={180} class="opacity-5" />
+  </div>
 
-  <div class="relative z-10 max-w-360 mx-auto px-4 lg:px-20">
-    <!-- Rune au-dessus -->
-    <p class="font-heading text-primary-700 text-lg tracking-widest mb-4" aria-hidden="true">
+  <!-- Lignes décoratives -->
+  <div class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/20 to-transparent" aria-hidden="true" />
+  <div class="absolute bottom-0 left-0 right-0" aria-hidden="true">
+    <div class="h-px bg-linear-to-r from-transparent via-primary-400/45 to-transparent" />
+    <div class="h-px bg-linear-to-r from-transparent via-primary-600/15 to-transparent mt-0.5" />
+  </div>
+
+  <!-- Contenu -->
+  <div class="relative z-10 max-w-360 mx-auto px-4 lg:px-20 text-center">
+
+    <!-- Rune -->
+    <p class="font-heading text-primary-700 tracking-rune-widest mb-5 select-none text-2xl" aria-hidden="true">
       {rune}
     </p>
 
-    <h1 class="font-display text-4xl lg:text-7xl text-neutral-200 leading-tight tracking-widest mb-4 lg:mb-6 title-torch">
+    <!-- Titre principal -->
+    <h1
+      class="font-display text-5xl lg:text-7xl text-neutral-100 leading-tight tracking-widest mb-4 lg:mb-5 title-torch drop-shadow-gold"
+    >
       {title}
     </h1>
 
+    <!-- Sous-titre -->
     {subtitle && (
-      <p class="font-heading text-lg lg:text-2xl text-primary-400 tracking-wide mb-4">
+      <p class="font-heading text-lg lg:text-2xl text-primary-400 tracking-rune-sm mb-5">
         {subtitle}
       </p>
     )}
 
-    <div class="divider-diamond max-w-48 mx-auto mt-4 mb-2"><span /></div>
+    <!-- Divider -->
+    <div class="divider-diamond max-w-48 mx-auto mt-4 mb-3"><span /></div>
 
+    <!-- Description mobile -->
     {descMobile && (
       <p class="font-body text-base text-neutral-500 max-w-xl mx-auto leading-relaxed mt-4 lg:hidden">
         {descMobile}

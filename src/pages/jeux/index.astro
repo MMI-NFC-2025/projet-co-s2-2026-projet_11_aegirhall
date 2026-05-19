@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import HeroSection from '../../components/HeroSection.astro';
 import { getCollection } from '../../js/backend.js';
+import StatusBadge from '../../components/StatusBadge.astro';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
@@ -43,9 +44,7 @@ const jeux = await getCollection('jeux', { sort: 'nom', token });
                 {jeu.nom}
               </h3>
               {jeu.type_de_jeux && (
-                <span class="badge-pending text-xs font-heading tracking-widest uppercase px-2 py-1 rounded shrink-0">
-                  {jeu.type_de_jeux}
-                </span>
+                <StatusBadge class="px-2 py-1 rounded shrink-0">{jeu.type_de_jeux}</StatusBadge>
               )}
             </div>
 

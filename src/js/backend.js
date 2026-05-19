@@ -160,4 +160,57 @@ export async function createVisite(barId, userId, token) {
   }
 }
 
+export async function updateUserFile(userId, formData, token) {
+  try {
+    const res = await fetch(`${PB_URL}/api/collections/users/records/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData,
+    });
+    const json = await res.json();
+    if (!res.ok) return { error: json };
+    return json;
+  } catch {
+    return { error: { message: 'Erreur réseau' } };
+  }
+}
+
+export async function deleteUser(userId, token) {
+  try {
+    const res = await fetch(`${PB_URL}/api/collections/users/records/${userId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export const PB_BASE_URL = PB_URL;
+
+// Niveaux 1→10 : XP requis + titre viking
+export const LEVELS = [
+  { niveau: 1,  xp_requis: 0,     titre: 'Novice'           },
+  { niveau: 2,  xp_requis: 200,   titre: 'Écuyer'           },
+  { niveau: 3,  xp_requis: 500,   titre: 'Guerrier'         },
+  { niveau: 4,  xp_requis: 1000,  titre: 'Vétéran'          },
+  { niveau: 5,  xp_requis: 1800,  titre: 'Champion'         },
+  { niveau: 6,  xp_requis: 3000,  titre: 'Héros'            },
+  { niveau: 7,  xp_requis: 4500,  titre: 'Légende'          },
+  { niveau: 8,  xp_requis: 6500,  titre: 'Maître'           },
+  { niveau: 9,  xp_requis: 9000,  titre: 'Grand Maître'     },
+  { niveau: 10, xp_requis: 12000, titre: 'Viking Éternel'   },
+];
+
+export function getLevelFromXp(xp) {
+  let current = LEVELS[0];
+  for (const l of LEVELS) {
+    if (xp >= l.xp_requis) current = l;
+    else break;
+  }
+  const next = LEVELS[current.niveau] ?? null; // niveau suivant (index = niveau car tableau 0-based)
+  const xpVersNext = next ? next.xp_requis - xp : 0;
+  const pctNext    = next ? Math.round(((xp - current.xp_requis) / (next.xp_requis - current.xp_requis)) * 100) : 100;
+  return { ...current, next, xpVersNext, pctNext };
+}

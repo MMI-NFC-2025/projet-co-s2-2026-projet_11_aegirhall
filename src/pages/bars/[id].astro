@@ -2,12 +2,13 @@
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import { Image } from 'astro:assets';
-import { getRecord, getCollection, getVisitesByUser, PB_BASE_URL } from '../../js/backend.js';
+import { getRecord, getCollection, updateUser, PB_BASE_URL } from '../../js/backend.js';
 import pingIcon   from '../../assets/icon/ping.svg';
 import tempsIcon  from '../../assets/icon/Temps.svg';
 import bierreIcon from '../../assets/icon/bierre.svg';
 import carteIcon  from '../../assets/icon/carte.svg';
 import boussol    from '../../assets/icon/boussol.svg';
+import StatusBadge from '../../components/StatusBadge.astro';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
@@ -17,33 +18,24 @@ const { id } = Astro.params;
 
 // Checkin POST
 if (Astro.request.method === 'POST') {
-  const PB = PB_BASE_URL;
   const json = { 'Content-Type': 'application/json' };
-  const auth = { Authorization: `Bearer ${token}` };
-
-  const checkRes = await fetch(`${PB}/api/collections/visites/records?filter=user="${userId}"%26%26bar="${id}"`, { headers: auth });
-  const checkData = await checkRes.json();
-  if (checkData?.items?.length > 0) {
-    return new Response(JSON.stringify({ ok: true, alreadyVisited: true }), { status: 200, headers: json });
+  const me = await getRecord('users', userId, { fields: 'id,id_taverne_visiter', token });
+  const existing: string[] = me?.id_taverne_visiter ?? [];
+  if (!existing.includes(id)) {
+    await updateUser(userId, { id_taverne_visiter: [...existing, id] }, token);
   }
-
-  const res = await fetch(`${PB}/api/collections/visites/records`, {
-    method: 'POST',
-    headers: { ...json, ...auth },
-    body: JSON.stringify({ user: userId, bar: id, valide: true }),
-  });
-  if (!res.ok) return new Response(JSON.stringify({ error: 'Erreur PocketBase' }), { status: 400, headers: json });
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: json });
 }
-const [bar, visites, allBars] = await Promise.all([
+
+const [bar, me, allBars] = await Promise.all([
   getRecord('bar', id),
-  getVisitesByUser(userId, token),
+  getRecord('users', userId, { fields: 'id,id_taverne_visiter', token }),
   getCollection('bar', { sort: 'nom', fields: 'id', token }),
 ]);
 
 if (!bar) return Astro.redirect('/bars');
 
-const visitedIds = visites.map(v => v.bar);
+const visitedIds = me?.id_taverne_visiter ?? [];
 const hasVisited = visitedIds.includes(bar.id);
 const barIndex   = allBars.findIndex(b => b.id === bar.id);
 const prevBar    = barIndex > 0 ? allBars[barIndex - 1] : null;
@@ -66,9 +58,9 @@ const hasMap = bar.localisation?.lat && bar.localisation?.lon;
         )}
         <h1 class="font-display text-3xl lg:text-6xl text-neutral-100 tracking-widest">{bar.nom}</h1>
       </div>
-      <span class={`text-xs font-heading tracking-widest uppercase px-3 py-1.5 rounded ${hasVisited ? 'badge-visited' : 'badge-pending'}`}>
+      <StatusBadge variant={hasVisited ? 'visited' : 'pending'} class="px-3 py-1.5 rounded">
         {hasVisited ? '⚔ Conquise' : '○ À conquérir'}
-      </span>
+      </StatusBadge>
     </div>
   </section>
 

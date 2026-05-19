@@ -24,3 +24,5 @@ pnpm-debug.log*
 .idea/
 
 CLAUDE.md
+# Local Netlify folder
+.netlify

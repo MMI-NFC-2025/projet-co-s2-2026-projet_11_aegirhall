@@ -1,0 +1,11 @@
+---
+const { variant = 'pending', class: className = '' } = Astro.props;
+const variantClass = variant === 'visited'
+  ? 'badge-visited'
+  : variant === 'pending'
+  ? 'badge-pending'
+  : 'text-neutral-600 border border-dark-600';
+---
+<span class={`${variantClass} text-xs font-heading tracking-widest uppercase ${className}`}>
+  <slot />
+</span>

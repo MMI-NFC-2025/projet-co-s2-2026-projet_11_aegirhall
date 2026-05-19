@@ -4,18 +4,20 @@ const close = document.getElementById('menu-close');
 
 if (btn && menu && close) {
   btn.addEventListener('click', () => {
-    menu.classList.remove('translate-x-full');
-    menu.classList.add('translate-x-0');
+    menu.classList.remove('-translate-y-full');
+    menu.classList.add('translate-y-0');
     menu.removeAttribute('aria-hidden');
     btn.setAttribute('aria-expanded', 'true');
+    btn.classList.add('is-open');
     document.body.style.overflow = 'hidden';
   });
 
   const closeMenu = () => {
-    menu.classList.remove('translate-x-0');
-    menu.classList.add('translate-x-full');
+    menu.classList.remove('translate-y-0');
+    menu.classList.add('-translate-y-full');
     menu.setAttribute('aria-hidden', 'true');
     btn.setAttribute('aria-expanded', 'false');
+    btn.classList.remove('is-open');
     document.body.style.overflow = '';
   };
 

@@ -1,7 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
-import { getRecord } from '../../js/backend.js';
+import { getRecord }  from '../../js/backend.js';
+import StatusBadge from '../../components/StatusBadge.astro';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
@@ -26,9 +27,7 @@ if (!jeu) return Astro.redirect('/jeux');
     )}
     <div class="absolute bottom-0 left-0 right-0 max-w-360 mx-auto px-4 lg:px-20 pb-8">
       {jeu.type_de_jeux && (
-        <span class="inline-block badge-pending text-xs font-heading tracking-widest uppercase px-3 py-1 rounded mb-3">
-          {jeu.type_de_jeux}
-        </span>
+        <StatusBadge class="inline-block px-3 py-1 rounded mb-3">{jeu.type_de_jeux}</StatusBadge>
       )}
       <h1 class="font-display text-3xl lg:text-6xl text-neutral-100 tracking-widest">{jeu.nom}</h1>
     </div>

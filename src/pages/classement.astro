@@ -3,42 +3,41 @@ import Layout from '../layouts/Layout.astro';
 import HeroSection from '../components/HeroSection.astro';
 import PbImage from '../components/PbImage.astro';
 import { Image } from 'astro:assets';
-import { getCollection } from '../js/backend.js';
+import { getCollection, getLevelFromXp, PB_BASE_URL } from '../js/backend.js';
 import tropheeIcon   from '../assets/icon/trophée.svg';
 import personnesIcon from '../assets/icon/personnes.svg';
+import ProgressBar   from '../components/ProgressBar.astro';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
 if (!token || !userId) return Astro.redirect('/connexion');
 
-// Récupère tous les utilisateurs avec leur nombre de visites
-const [users, visites, bars] = await Promise.all([
-  getCollection('users', { token }),
-  getCollection('visites', { filter: 'valide=true', token }),
-  getCollection('bar', { fields: 'id', perPage: 200 }),
-]);
+const users = await getCollection('users', {
+  fields: 'id,pseudo,nom,avatar,collectionId,xp',
+  perPage: 200,
+  token,
+});
 
-const totalBars = bars.length;
-
-// Calcul du classement — pct et isTop3 précomputés pour éviter <= dans le template
 const ranking = users
-  .map(u => ({
-    ...u,
-    visitCount: visites.filter(v => v.user === u.id).length,
-  }))
-  .sort((a, b) => b.visitCount - a.visitCount)
-  .map((u, i) => ({
-    ...u,
-    rank:   i + 1,
-    isTop3: i < 3,
-    isMe:   u.id === userId,
-    pct:    totalBars ? Math.round((visites.filter(v => v.user === u.id).length / totalBars) * 100) : 0,
-  }));
+  .map(u => {
+    const xp    = Number(u.xp ?? 0);
+    const level = getLevelFromXp(xp);
+    return {
+      ...u,
+      xp,
+      niveau:  level.niveau,
+      titre:   level.titre,
+      pctNext: level.pctNext,
+      isMe:    u.id === userId,
+    };
+  })
+  .sort((a, b) => b.xp - a.xp)
+  .map((u, i) => ({ ...u, rank: i + 1, isTop3: i < 3 }));
 
 const myRank = ranking.find(u => u.id === userId);
 
 const medalColors = ['text-yellow-400', 'text-neutral-300', 'text-amber-600'];
-const medalIcons  = ['👑', '⚔', '🪓'];
+const medalLabels = ['🏆', '⚔', '🪓'];
 ---
 <Layout title="Classement">
 
@@ -47,23 +46,29 @@ const medalIcons  = ['👑', '⚔', '🪓'];
   <!-- ── MON RANG ─────────────────────────────────────────── -->
   {myRank && (
     <section class="max-w-360 mx-auto px-4 lg:px-20 py-8">
-      <div class="card-parchment rounded-lg p-4 lg:p-5 flex items-center gap-4 border-primary-400/40">
+      <div class="card-parchment rounded-xl p-4 lg:p-5 flex items-center gap-4 border border-primary-400/30">
         <div class="w-10 h-10 rounded-full bg-primary-600/20 border border-primary-400/40 flex items-center justify-center font-display text-lg text-primary-400 shrink-0">
           {myRank.rank}
         </div>
-        <div class="flex-1">
-          <p class="font-heading text-sm text-neutral-200 tracking-wide">{myRank.nom} <span class="text-primary-500 text-xs">(vous)</span></p>
-          <p class="font-body text-xs text-neutral-500">{myRank.titre_viking}</p>
+        <div class="flex-1 min-w-0">
+          <p class="font-heading text-sm text-primary-400 tracking-wide truncate">
+            {myRank.pseudo ?? myRank.nom ?? 'Vous'}
+            <span class="text-primary-600 text-xs ml-1">(vous)</span>
+          </p>
+          <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">
+            Niv. {myRank.niveau} — {myRank.titre}
+          </p>
         </div>
-        <div class="text-right">
-          <p class="font-display text-2xl text-primary-400">{myRank.visitCount}</p>
-          <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">tavernes</p>
-        </div>
-        <div class="hidden lg:block">
-          <div class="progress-bar-track w-32" role="progressbar" aria-valuenow={totalBars ? Math.round((myRank.visitCount / totalBars) * 100) : 0} aria-valuemin={0} aria-valuemax={100} aria-label={`Votre progression : ${totalBars ? Math.round((myRank.visitCount / totalBars) * 100) : 0}%`}>
-            <div class="progress-bar-fill" style={`width:${totalBars ? Math.round((myRank.visitCount / totalBars) * 100) : 0}%`} />
+        <div class="hidden lg:flex flex-col items-end gap-1.5 min-w-36">
+          <div class="flex justify-between w-full">
+            <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">XP</span>
+            <span class="font-heading text-xs text-primary-400">{myRank.xp} XP</span>
           </div>
-          <p class="font-body text-xs text-neutral-600 mt-1 text-right">{totalBars ? Math.round((myRank.visitCount / totalBars) * 100) : 0}%</p>
+          <ProgressBar value={myRank.pctNext} label={`Vers niveau ${myRank.niveau + 1} : ${myRank.pctNext}%`} class="w-full" />
+        </div>
+        <div class="text-right shrink-0">
+          <p class="font-display text-2xl text-primary-400">{myRank.niveau}</p>
+          <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">Niveau</p>
         </div>
       </div>
     </section>
@@ -74,73 +79,80 @@ const medalIcons  = ['👑', '⚔', '🪓'];
     <div class="card-parchment rounded-xl overflow-hidden">
 
       <!-- Header tableau -->
-      <div class="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 bg-dark-700/50 border-b border-dark-600" role="row" aria-label="En-têtes du classement">
+      <div class="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 bg-dark-700/50 border-b border-dark-600">
         <div class="col-span-1 font-heading text-xs text-neutral-600 tracking-widest uppercase">Rang</div>
-        <div class="col-span-5 font-heading text-xs text-neutral-600 tracking-widest uppercase flex items-center gap-1.5">
+        <div class="col-span-4 font-heading text-xs text-neutral-600 tracking-widest uppercase flex items-center gap-1.5">
           <Image src={personnesIcon} alt="" width={13} height={13} class="invert opacity-40" aria-hidden="true" />
           Guerrier
         </div>
+        <div class="col-span-2 font-heading text-xs text-neutral-600 tracking-widest uppercase">Niveau</div>
         <div class="col-span-3 font-heading text-xs text-neutral-600 tracking-widest uppercase">Titre</div>
-        <div class="col-span-2 font-heading text-xs text-neutral-600 tracking-widest uppercase text-center flex items-center justify-center gap-1.5">
+        <div class="col-span-2 font-heading text-xs text-neutral-600 tracking-widest uppercase text-right flex items-center justify-end gap-1.5">
           <Image src={tropheeIcon} alt="" width={13} height={13} class="invert opacity-40" aria-hidden="true" />
-          Tavernes
+          XP
         </div>
-        <div class="col-span-1 font-heading text-xs text-neutral-600 tracking-widest uppercase text-right">%</div>
       </div>
 
-      {ranking.map(guerrier => {
-        const { pct, isMe, isTop3 } = guerrier;
-        return (
-          <div class={`grid grid-cols-3 lg:grid-cols-12 gap-4 items-center px-4 lg:px-6 py-4 border-b border-dark-700/50 last:border-0 transition-colors ${isMe ? 'bg-primary-400/5' : 'hover:bg-dark-700/30'}`}>
-            <!-- Rang -->
-            <div class="col-span-1">
-              {isTop3 ? (
-                <span class={`font-display text-xl ${medalColors[guerrier.rank - 1]}`}>
-                  {medalIcons[guerrier.rank - 1]}
-                </span>
+      {ranking.map(guerrier => (
+        <div class={`grid grid-cols-3 lg:grid-cols-12 gap-4 items-center px-4 lg:px-6 py-4 border-b border-dark-700/50 last:border-0 transition-colors ${guerrier.isMe ? 'bg-primary-400/5' : 'hover:bg-dark-700/30'}`}>
+
+          <!-- Rang -->
+          <div class="col-span-1 flex items-center">
+            {guerrier.isTop3 ? (
+              <span class={`font-display text-xl ${medalColors[guerrier.rank - 1]}`} aria-label={`${guerrier.rank}e place`}>
+                {medalLabels[guerrier.rank - 1]}
+              </span>
+            ) : (
+              <span class="font-heading text-sm text-neutral-500 w-8 text-center block">{guerrier.rank}</span>
+            )}
+          </div>
+
+          <!-- Guerrier -->
+          <div class="col-span-2 lg:col-span-4 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-dark-600 border border-dark-500 flex items-center justify-center overflow-hidden shrink-0">
+              {guerrier.avatar ? (
+                <PbImage record={guerrier} recordImage={guerrier.avatar} width={36} height={36} />
               ) : (
-                <span class="font-heading text-sm text-neutral-500 w-8 text-center block">{guerrier.rank}</span>
+                <span class="font-heading text-sm text-primary-400">
+                  {(guerrier.pseudo ?? guerrier.nom ?? 'V').charAt(0).toUpperCase()}
+                </span>
               )}
             </div>
-
-            <!-- Guerrier -->
-            <div class="col-span-2 lg:col-span-5 flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-dark-600 border border-dark-500 flex items-center justify-center overflow-hidden shrink-0">
-                {guerrier.avatar ? (
-                  <PbImage record={guerrier} recordImage={guerrier.avatar} width={36} height={36} />
-                ) : (
-                  <span class="font-heading text-sm text-primary-400">
-                    {guerrier.nom?.charAt(0)?.toUpperCase() ?? 'V'}
-                  </span>
-                )}
-              </div>
-              <div>
-                <p class={`font-heading text-sm tracking-wide ${isMe ? 'text-primary-400' : 'text-neutral-200'}`}>
-                  {guerrier.nom}
-                  {isMe && <span class="text-primary-600 text-xs ml-1">(vous)</span>}
-                </p>
-              </div>
-            </div>
-
-            <!-- Titre (desktop) -->
-            <div class="hidden lg:block lg:col-span-3">
-              <p class="font-body text-sm text-neutral-500 truncate">{guerrier.titre ?? '—'}</p>
-            </div>
-
-            <!-- Tavernes -->
-            <div class="hidden lg:flex lg:col-span-2 justify-center">
-              <span class={`font-heading text-base ${guerrier.visitCount > 0 ? 'text-primary-400' : 'text-neutral-600'}`}>
-                {guerrier.visitCount} <span class="text-xs text-neutral-600">/ {totalBars}</span>
-              </span>
-            </div>
-
-            <!-- % -->
-            <div class="hidden lg:block lg:col-span-1 text-right">
-              <span class="font-heading text-sm text-neutral-400">{pct}%</span>
+            <div class="min-w-0">
+              <p class={`font-heading text-sm tracking-wide truncate ${guerrier.isMe ? 'text-primary-400' : 'text-neutral-200'}`}>
+                {guerrier.pseudo ?? guerrier.nom ?? 'Guerrier'}
+                {guerrier.isMe && <span class="text-primary-600 text-xs ml-1">(vous)</span>}
+              </p>
+              <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase lg:hidden">
+                Niv. {guerrier.niveau} · <span class="text-primary-400">{guerrier.xp} XP</span>
+              </p>
             </div>
           </div>
-        );
-      })}
+
+          <!-- Niveau (desktop) -->
+          <div class="hidden lg:flex lg:col-span-2 items-center gap-2">
+            <span class="w-7 h-7 rounded-full bg-primary-600/20 border border-primary-400/30 flex items-center justify-center font-heading text-xs text-primary-400 shrink-0">
+              {guerrier.niveau}
+            </span>
+            <div class="flex-1 min-w-0">
+              <ProgressBar value={guerrier.pctNext} label={`Progression de ${guerrier.pseudo ?? guerrier.nom}`} />
+            </div>
+          </div>
+
+          <!-- Titre (desktop) -->
+          <div class="hidden lg:block lg:col-span-3">
+            <p class="font-body text-sm text-neutral-400 truncate">{guerrier.titre}</p>
+          </div>
+
+          <!-- XP -->
+          <div class="hidden lg:flex lg:col-span-2 justify-end">
+            <span class={`font-heading text-base ${guerrier.xp > 0 ? 'text-primary-400' : 'text-neutral-600'}`}>
+              {guerrier.xp} <span class="text-xs text-neutral-600">XP</span>
+            </span>
+          </div>
+
+        </div>
+      ))}
 
       {ranking.length === 0 && (
         <div class="py-16 text-center">
