@@ -290,7 +290,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
              style="background:linear-gradient(135deg,rgba(196,154,44,0.12) 0%,rgba(196,154,44,0.04) 100%);">
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-primary-400/15 border border-primary-400/30 flex items-center justify-center shrink-0">
-              <Image src={voitureIcon} alt="" width={22} height={22} class="invert opacity-80" aria-hidden="true" />
+              <Image src={voitureIcon} alt="" width={22} height={22} class="brightness-0 invert opacity-80" aria-hidden="true" />
             </div>
             <div class="flex-1 min-w-0">
               <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-0.5">Gardien SAM</p>
@@ -301,7 +301,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
             </div>
             {isEnCours && (
               <div class="shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-accent-blood/10 border border-accent-blood/30">
-                <Image src={waringIcon} alt="" width={18} height={18} class="invert opacity-80" aria-hidden="true" />
+                <Image src={waringIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-80" aria-hidden="true" />
                 <span class="font-heading text-xs text-accent-blood tracking-widest uppercase">SOS</span>
               </div>
             )}
@@ -320,7 +320,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
             <button type="button" id="btn-localiser"
               class={`card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer ${mapBars.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
               <div class="w-10 h-10 rounded-lg bg-primary-400/10 flex items-center justify-center">
-                <Image src={navigationIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+                <Image src={navigationIcon} alt="" width={20} height={20} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Localiser</span>
             </button>
@@ -328,7 +328,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
             <button type="button" id="btn-open-jeux"
               class={`card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer ${sessionGames.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
               <div class="w-10 h-10 rounded-lg bg-primary-400/10 flex items-center justify-center">
-                <Image src={jeuIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+                <Image src={jeuIcon} alt="" width={20} height={20} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Jeux</span>
             </button>
@@ -336,7 +336,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
             <button type="button" id="btn-alerte"
               class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer">
               <div class="w-10 h-10 rounded-lg bg-primary-400/10 flex items-center justify-center">
-                <Image src={waringIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+                <Image src={waringIcon} alt="" width={20} height={20} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Alerte</span>
             </button>
@@ -344,7 +344,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
             <button type="button" id="btn-share-session"
               class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer">
               <div class="w-10 h-10 rounded-lg bg-primary-400/10 flex items-center justify-center">
-                <Image src={partagerIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+                <Image src={partagerIcon} alt="" width={20} height={20} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Partager</span>
             </button>
@@ -420,7 +420,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
           <!-- Membres / guerriers de la soirée -->
           <div class="card-parchment rounded-xl p-5">
             <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase mb-4 flex items-center gap-2">
-              <Image src={personnesIcon} alt="" width={14} height={14} class="invert opacity-40" aria-hidden="true" />
+              <Image src={personnesIcon} alt="" width={14} height={14} class="brightness-0 invert opacity-40" aria-hidden="true" />
               Guerriers ce soir
             </p>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
@@ -539,7 +539,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
                     <div class="w-10 h-10 rounded-lg overflow-hidden bg-dark-700 shrink-0 flex items-center justify-center">
                       {jeu.img
                         ? <PbImage record={jeu} recordImage={jeu.img} width={40} height={40} />
-                        : <Image src={jeuIcon} alt="" width={20} height={20} class="invert opacity-40" />
+                        : <Image src={jeuIcon} alt="" width={20} height={20} class="brightness-0 invert opacity-40" />
                       }
                     </div>
                     <div class="flex-1 min-w-0">
@@ -859,7 +859,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
                       }
                       {isSam && (
                         <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-accent-rune border border-dark-700 flex items-center justify-center">
-                          <Image src={voitureIcon} alt="SAM" width={9} height={9} class="invert" />
+                          <Image src={voitureIcon} alt="SAM" width={9} height={9} class="brightness-0 invert" />
                         </div>
                       )}
                     </div>
@@ -1060,28 +1060,28 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center">
               <div class="w-9 h-9 rounded-lg bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
-                <Image src={tempsIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+                <Image src={tempsIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" aria-hidden="true" />
               </div>
               <p class="font-display text-2xl text-primary-400 leading-none">{durationStr}</p>
               <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">Durée</p>
             </div>
             <div class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center">
               <div class="w-9 h-9 rounded-lg bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
-                <Image src={bierreIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+                <Image src={bierreIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" aria-hidden="true" />
               </div>
               <p class="font-display text-2xl text-primary-400 leading-none">{sessionBars.length}</p>
               <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">Bars</p>
             </div>
             <div class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center">
               <div class="w-9 h-9 rounded-lg bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
-                <Image src={personnesIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+                <Image src={personnesIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" aria-hidden="true" />
               </div>
               <p class="font-display text-2xl text-primary-400 leading-none">{sessionMembers.length}</p>
               <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">Membres</p>
             </div>
             <div class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center">
               <div class="w-9 h-9 rounded-lg bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
-                <Image src={medailIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+                <Image src={medailIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" aria-hidden="true" />
               </div>
               <p class="font-display text-2xl text-primary-400 leading-none">{xpGained}</p>
               <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase">XP gagnés</p>
@@ -1093,7 +1093,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
                style="background:linear-gradient(135deg,rgba(45,106,79,0.12) 0%,rgba(45,106,79,0.04) 100%);">
             <div class="flex items-center gap-4 mb-3">
               <div class="w-10 h-10 rounded-xl bg-accent-rune/20 border border-accent-rune/40 flex items-center justify-center shrink-0">
-                <Image src={bouclierIcon} alt="" width={18} height={18} class="invert opacity-80" aria-hidden="true" />
+                <Image src={bouclierIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-80" aria-hidden="true" />
               </div>
               <div class="flex-1 min-w-0">
                 <p class="font-heading text-sm text-neutral-200 tracking-wide">Score de sécurité</p>
@@ -1112,7 +1112,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
             <div class="card-parchment rounded-xl p-5">
               <div class="flex items-center gap-3 mb-4">
                 <div class="w-9 h-9 rounded-xl bg-primary-400/15 border border-primary-400/25 flex items-center justify-center shrink-0">
-                  <Image src={couroneIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+                  <Image src={couroneIcon} alt="" width={16} height={16} class="brightness-0 invert opacity-70" aria-hidden="true" />
                 </div>
                 <div>
                   <p class="font-heading text-sm text-neutral-200 tracking-wide">Évaluer le gardien</p>
@@ -1124,8 +1124,8 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
                   <button type="button" data-star={n}
                     class="star-btn w-10 h-10 flex items-center justify-center rounded-lg hover:bg-primary-400/10 transition-colors"
                     aria-label={`${n} étoile${n > 1 ? 's' : ''}`}>
-                    <Image src={etoileFill} alt="" width={26} height={26} class="star-fill invert hidden pointer-events-none" />
-                    <Image src={etoileVide} alt="" width={26} height={26} class="star-empty invert opacity-40 pointer-events-none" />
+                    <Image src={etoileFill} alt="" width={26} height={26} class="star-fill brightness-0 invert hidden pointer-events-none" />
+                    <Image src={etoileVide} alt="" width={26} height={26} class="star-empty brightness-0 invert opacity-40 pointer-events-none" />
                   </button>
                 ))}
               </div>
@@ -1189,11 +1189,11 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
           <div class="flex flex-col sm:flex-row gap-3">
             <button type="button" id="btn-share-resume"
               class="btn-primary flex-1 py-3 flex items-center justify-center gap-2 text-sm">
-              <Image src={partagerIcon} alt="" width={16} height={16} class="invert" aria-hidden="true" />
+              <Image src={partagerIcon} alt="" width={16} height={16} class="brightness-0 invert" aria-hidden="true" />
               <span>Partager le résumé</span>
             </button>
             <a href="/" class="btn-outline flex-1 py-3 flex items-center justify-center gap-2 text-sm">
-              <Image src={homeIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+              <Image src={homeIcon} alt="" width={16} height={16} class="brightness-0 invert opacity-70" aria-hidden="true" />
               <span>Retour à l'accueil</span>
             </a>
           </div>
@@ -1222,7 +1222,7 @@ const justJoined    = Astro.url.searchParams.get('joined') === '1';
           {sessionMembers.length > 0 && (
             <div class="card-parchment rounded-xl p-5">
               <h3 class="font-heading text-xs text-neutral-400 tracking-widest uppercase mb-4 flex items-center gap-2">
-                <Image src={medailIcon} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+                <Image src={medailIcon} alt="" width={14} height={14} class="brightness-0 invert opacity-60" aria-hidden="true" />
                 Récompenses du clan
               </h3>
               <div class="flex flex-col gap-1">

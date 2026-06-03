@@ -3,12 +3,12 @@ import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import { getCollection, getMe } from '../../backend/backend.js';
 
-import heroImg       from '../assets/img/pexels-white-noiise-77351716-266460931.avif';
-import taverne1Img   from '../assets/img/log-cabin-mountains-mountain-hut1.avif';
-import bouclierImg   from '../assets/img/vintage-style-soldier-helmet-still-life1.avif';
-import nuitImg       from '../assets/img/log-cabin-mountains-mountain-hut1.avif';
+import heroImg       from '../assets/img/pexels-erychist-99357151.avif';
+import taverne1Img   from '../assets/img/tavernes-feu1.avif';
+import bouclierImg   from '../assets/img/pexels-pixabay-1619361.avif';
+import nuitImg       from '../assets/img/pexels-introspectivedsgn-50236981 (1).avif';
 import interImg      from '../assets/img/log-cabin-mountains-mountain-hut1.avif';
-import cascadeImg    from '../assets/img/pexels-introspectivedsgn-50237371.avif';
+import cascadeImg    from '../assets/img/pexels-introspectivedsgn-50237271.avif';
 import loinImg       from '../assets/img/log-cabin-mountains-mountain-hut1.avif';
 import vegvisirIcon  from '../assets/icon/vegvisir.svg';
 import personnesIcon from '../assets/icon/personnes.svg';
@@ -67,7 +67,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
 
       <!-- Vegvisir déco -->
       <div class="w-28 h-32 lg:w-40 lg:h-44 mb-8 opacity-60">
-        <Image src={vegvisirIcon} alt="" width={161} height={178} class="w-full h-full object-contain invert opacity-80" aria-hidden="true" />
+        <Image src={vegvisirIcon} alt="" width={161} height={178} class="w-full h-full object-contain brightness-0 invert opacity-80" aria-hidden="true" />
       </div>
 
       <!-- Runes divider -->
@@ -97,7 +97,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
         <a href={nextBar ? `/bars/${nextBar.id}` : '/bars'} class="btn-primary px-10 py-4 text-base flex items-center gap-3">
           <span>{nextBar ? 'Continuer la Route' : 'Voir les Tavernes'}</span>
-          <Image src={arrowIcon} alt="" width={16} height={16} class="invert" aria-hidden="true" />
+          <Image src={arrowIcon} alt="" width={16} height={16} class="brightness-0 invert" aria-hidden="true" />
         </a>
         <a href="/session" class="btn-outline px-10 py-4 text-base">Mes Sessions</a>
       </div>
@@ -130,7 +130,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
           <div class="w-full lg:w-1/2">
             <div class="flex items-center gap-4 mb-5">
               <div class="w-16 h-16 rounded-full bg-transparent border border-primary-400/30 flex items-center justify-center shrink-0 glow-teal">
-                <Image src={personnesIcon} alt="" width={28} height={28} class="invert opacity-80" aria-hidden="true" />
+                <Image src={personnesIcon} alt="" width={28} height={28} class="brightness-0 invert opacity-80" aria-hidden="true" />
               </div>
               <div>
                 <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-1">Étape 01</p>
@@ -153,7 +153,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
           <div class="w-full lg:w-1/2">
             <div class="flex items-center gap-4 mb-5">
               <div class="w-16 h-16 rounded-full bg-transparent border border-primary-400/30 flex items-center justify-center shrink-0 glow-teal">
-                <Image src={bouclierIcon} alt="" width={28} height={28} class="invert opacity-80" aria-hidden="true" />
+                <Image src={bouclierIcon} alt="" width={28} height={28} class="brightness-0 invert opacity-80" aria-hidden="true" />
               </div>
               <div>
                 <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-1">Étape 02</p>
@@ -176,7 +176,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
           <div class="w-full lg:w-1/2">
             <div class="flex items-center gap-4 mb-5">
               <div class="w-16 h-16 rounded-full bg-transparent border border-primary-400/30 flex items-center justify-center shrink-0 glow-teal">
-                <Image src={eclaireIcon} alt="" width={28} height={28} class="invert opacity-80" aria-hidden="true" />
+                <Image src={eclaireIcon} alt="" width={28} height={28} class="brightness-0 invert opacity-80" aria-hidden="true" />
               </div>
               <div>
                 <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-1">Étape 03</p>
@@ -213,7 +213,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
         </div>
         <div class="w-full lg:w-1/2">
           <div class="w-16 h-16 rounded-xl flex items-center justify-center mb-6 shrink-0 icon-gold-bg">
-            <Image src={bouclierIcon} alt="" width={32} height={32} class="invert" aria-hidden="true" />
+            <Image src={bouclierIcon} alt="" width={32} height={32} class="brightness-0 invert" aria-hidden="true" />
           </div>
           <h3 class="font-heading text-2xl lg:text-3xl text-neutral-100 tracking-wide mb-4">Système de gardien</h3>
           <p class="font-body text-base text-neutral-400 leading-relaxed mb-6">
@@ -237,7 +237,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
         </div>
         <div class="w-full lg:w-1/2">
           <div class="w-16 h-16 rounded-xl flex items-center justify-center mb-6 shrink-0 icon-gold-bg">
-            <Image src={navigationIcon} alt="" width={32} height={32} class="invert" aria-hidden="true" />
+            <Image src={navigationIcon} alt="" width={32} height={32} class="brightness-0 invert" aria-hidden="true" />
           </div>
           <h3 class="font-heading text-2xl lg:text-3xl text-neutral-100 tracking-wide mb-4">Mode Odyssée</h3>
           <p class="font-body text-base text-neutral-400 leading-relaxed mb-6">
@@ -264,7 +264,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
         ].map(item => (
           <div class="flex flex-col items-center text-center gap-4">
             <div class="w-14 h-14 rounded-xl bg-dark-700 border border-primary-400/15 flex items-center justify-center">
-              <Image src={item.icon} alt="" width={24} height={24} class="invert opacity-70" aria-hidden="true" />
+              <Image src={item.icon} alt="" width={24} height={24} class="brightness-0 invert opacity-70" aria-hidden="true" />
             </div>
             <p class="font-body text-sm text-neutral-400 leading-snug">{item.label}</p>
           </div>
@@ -297,7 +297,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
         ].map(card => (
           <div class="card-parchment card-highlight rounded-xl p-8 text-center flex flex-col items-center gap-4">
             <div class="w-16 h-16 rounded-xl flex items-center justify-center shrink-0 icon-gold-bg">
-              <Image src={card.icon} alt="" width={32} height={32} class="invert" aria-hidden="true" />
+              <Image src={card.icon} alt="" width={32} height={32} class="brightness-0 invert" aria-hidden="true" />
             </div>
             <h3 class="font-heading text-lg text-neutral-100 tracking-wide">{card.title}</h3>
             <p class="font-body text-sm text-neutral-500 leading-relaxed text-center">{card.desc}</p>
@@ -316,7 +316,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
           </div>
           <a href="/contact" class="btn-primary px-8 py-3 whitespace-nowrap shrink-0 flex items-center gap-2">
             <span>Nous contacter</span>
-            <Image src={arrowIcon} alt="" width={16} height={16} class="invert" aria-hidden="true" />
+            <Image src={arrowIcon} alt="" width={16} height={16} class="brightness-0 invert" aria-hidden="true" />
           </a>
         </div>
       </div>
@@ -357,7 +357,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
                 <Image src={etoileFill} alt="" width={16} height={16} class="opacity-90 filter-star-gold" aria-hidden="true" />
               ))}
             </div>
-            <Image src={citationIcon} alt="" width={28} height={28} class="invert opacity-25" aria-hidden="true" />
+            <Image src={citationIcon} alt="" width={28} height={28} class="brightness-0 invert opacity-25" aria-hidden="true" />
             <p class="font-body text-sm text-neutral-400 leading-relaxed flex-1">{t.quote}</p>
             <div class="flex items-center gap-3 pt-3 border-t border-dark-700">
               <div class="w-10 h-10 rounded-full bg-dark-600 border border-primary-400/30 flex items-center justify-center font-heading text-sm text-primary-400 shrink-0">
