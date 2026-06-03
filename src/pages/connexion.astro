@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import { authWithPassword } from '../js/backend.js';
-import taverne_nuit  from '../assets/img/taverne_nuit.avif';
+import taverne_nuit  from '../assets/img/sunriseforever-beach-3444288_1920.jpg';
 import mailIcon      from '../assets/icon/mail.svg';
 import lockIcon      from '../assets/icon/lock.svg';
 import arrowIcon     from '../assets/icon/arrow_droite.svg';
@@ -164,6 +164,7 @@ if (Astro.request.method === 'POST') {
         width={900}
         height={1000}
         class="absolute inset-0 w-full h-full object-cover animate-ken-burns"
+        style="object-position: 35% 55%"
       />
       <div class="absolute inset-0 bg-linear-to-l from-transparent via-dark-900/10 to-dark-900/85" />
       <div class="absolute inset-0 bg-linear-to-t from-dark-900/85 via-transparent to-dark-900/20" />

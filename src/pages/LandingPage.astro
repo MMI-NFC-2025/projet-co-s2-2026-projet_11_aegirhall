@@ -2,12 +2,12 @@
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import vegvisir from '../assets/icon/vegvisir.svg';
-import darkar   from '../assets/img/darkar_neige.avif';
+
 import doorHero  from '../assets/img/door-stretching-into-fantasy-world.jpg';
 import helmetImg from '../assets/img/vintage-style-soldier-helmet-still-life.jpg';
 import trone    from '../assets/img/trone.avif';
-import hut      from '../assets/img/hut.avif';
-import nuit     from '../assets/img/taverne_nuit.avif';
+import drakar   from '../assets/img/drakar.avif';
+import taverne  from '../assets/img/tavernes-feu.jpg';
 import { getCollection, getCount, createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
 
 const token  = Astro.cookies.get('pb_token')?.value;
@@ -64,8 +64,8 @@ const barsForClient = allBars.map((bar: any) => ({
 }));
 
 const voie = [
-  { num: 'I',   titre: 'Rejoindre la Horde',    desc: "Créez votre compte, choisissez votre titre et rejoignez les guerriers qui arpentent la route.", img: hut,   alt: 'Grande halle viking' },
-  { num: 'II',  titre: 'Parcourir les Tavernes', desc: "Suivez la Route des Jarls, visitez chaque taverne dans l'ordre et marquez votre passage.",       img: nuit,  alt: 'Taverne la nuit' },
+  { num: 'I',   titre: 'Rejoindre la Horde',    desc: "Créez votre compte, choisissez votre titre et rejoignez les guerriers qui arpentent la route.", img: drakar,  alt: 'Drakar viking' },
+  { num: 'II',  titre: 'Parcourir les Tavernes', desc: "Suivez la Route des Jarls, visitez chaque taverne dans l'ordre et marquez votre passage.",       img: taverne, alt: 'Taverne viking' },
   { num: 'III', titre: 'Gravez Votre Légende',   desc: "Montez dans le classement éternel, débloquez titres et badges de guerre.",                        img: trone, alt: 'Trône des Jarls' },
 ];
 ---
@@ -151,7 +151,7 @@ const voie = [
 
       <!-- Image droite pleine hauteur -->
       <div class="features-img-col lg:w-96 xl:w-md shrink-0 overflow-hidden reveal">
-        <Image src={helmetImg} alt="Casque de guerrier viking" width={600} height={900} class="w-full h-full object-cover" />
+        <Image src={helmetImg} alt="Casque de guerrier viking" width={600} height={900} class="w-full h-full object-cover" style="object-position: 92% center" />
       </div>
     </div>
   </section>
@@ -321,7 +321,8 @@ const voie = [
           <div class="reveal" style={`animation-delay:${i * 0.12}s`}>
             <div class="voie-card relative rounded-2xl overflow-hidden group">
               <Image src={step.img} alt={step.alt} width={480} height={600}
-                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                style={i === 1 ? 'object-position: center center' : undefined} />
               <div class="absolute inset-0 bg-linear-to-t from-dark-900 via-dark-900/35 to-transparent" />
               <!-- Numéro filigrane -->
               <div class="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
