@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import HeroSection from '../../components/HeroSection.astro';
-import { getCollection } from '../../js/backend.js';
+import { getCollection } from '../../../backend/backend.js';
 import StatusBadge from '../../components/StatusBadge.astro';
 
 const token  = Astro.cookies.get('pb_token')?.value;

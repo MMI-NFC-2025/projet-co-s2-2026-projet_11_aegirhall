@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
-import { getRecord }  from '../../js/backend.js';
+import { getRecord }  from '../../../backend/backend.js';
 import StatusBadge from '../../components/StatusBadge.astro';
 
 const token  = Astro.cookies.get('pb_token')?.value;

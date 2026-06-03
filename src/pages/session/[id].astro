@@ -1,11 +1,11 @@
-﻿---
+---
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import { Image } from 'astro:assets';
 import {
   getRecord, getCollection, getMe,
   patchSession, updateUser, PB_BASE_URL, getLevelFromXp,
-} from '../../js/backend.js';
+} from '../../../backend/backend.js';
 import carteIcon    from '../../assets/icon/carte.svg';
 import bierreIcon   from '../../assets/icon/bierre.svg';
 import personnesIcon from '../../assets/icon/personnes.svg';
@@ -20,7 +20,7 @@ import homeIcon     from '../../assets/icon/home.svg';
 import etoileVide   from '../../assets/icon/etoile_vide.svg';
 import etoileFill   from '../../assets/icon/etoile_fill.svg';
 import couroneIcon  from '../../assets/icon/courone.svg';
-import taverne_nuit    from '../../assets/img/taverne_nuit.avif';
+import taverne_nuit    from '../../assets/img/log-cabin-mountains-mountain-hut1.avif';
 import jeuIcon         from '../../assets/icon/jeux.svg';
 import navigationIcon  from '../../assets/icon/navigation.svg';
 import waringIcon      from '../../assets/icon/waring.svg';

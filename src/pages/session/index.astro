@@ -2,8 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import HeroSection from '../../components/HeroSection.astro';
 import { Image } from 'astro:assets';
-import barque from '../../assets/img/barque.avif';
-import { getCollection, getRecord, getMe } from '../../js/backend.js';
+import barque from '../../assets/img/bateau1.avif';
+import { getCollection, getRecord, getMe } from '../../../backend/backend.js';
 import StatusBadge from '../../components/StatusBadge.astro';
 
 const token  = Astro.cookies.get('pb_token')?.value;

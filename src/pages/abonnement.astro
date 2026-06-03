@@ -1,11 +1,11 @@
-﻿---
+---
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
-import { getMe, updateUser } from '../js/backend.js';
+import { getMe, updateUser } from '../../backend/backend.js';
 import couroneIcon  from '../assets/icon/courone.svg';
 import bouclierIcon from '../assets/icon/bouclier.svg';
 import eclaireIcon  from '../assets/icon/eclaire.svg';
-import tropheeIcon  from '../assets/icon/trophée.svg';
+import tropheeIcon  from '../assets/icon/troph�e.svg';
 import StatusBadge  from '../components/StatusBadge.astro';
 import medailIcon   from '../assets/icon/medail.svg';
 import bierreIcon   from '../assets/icon/bierre.svg';
@@ -25,9 +25,9 @@ if (Astro.request.method === 'POST') {
   if (plan === 'gratuit' || plan === 'premium') {
     const res = await updateUser(userId, { abonnements: plan }, token);
     if (res?.error) {
-      error = res.error?.message ?? 'Erreur lors de la mise à jour.';
+      error = res.error?.message ?? 'Erreur lors de la mise � jour.';
     } else {
-      success = plan === 'premium' ? 'Bienvenue dans le clan des Jarls !' : 'Abonnement repassé en Gratuit.';
+      success = plan === 'premium' ? 'Bienvenue dans le clan des Jarls !' : 'Abonnement repass� en Gratuit.';
     }
   }
 }
@@ -36,26 +36,26 @@ const me = await getMe(userId, token);
 const currentPlan = me?.abonnements ?? 'gratuit';
 const isPremium   = currentPlan === 'premium';
 ---
-<Layout title="Abonnement — AEgirhall">
+<Layout title="Abonnement � AEgirhall">
 
-  <!-- ── HERO ──────────────────────────────────────────── -->
+  <!-- -- HERO -------------------------------------------- -->
   <section class="bg-dark-900 border-b border-dark-700 py-10 lg:py-16 relative overflow-hidden">
-    <!-- Déco fond -->
+    <!-- D�co fond -->
     <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
       <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-primary-400/4 blur-3xl" />
     </div>
     <div class="max-w-360 mx-auto px-4 lg:px-20 text-center relative">
       <div class="inline-flex items-center gap-2 bg-primary-400/10 border border-primary-400/25 rounded-full px-4 py-1.5 mb-6">
         <Image src={couroneIcon} alt="" width={14} height={14} class="invert opacity-80" aria-hidden="true" />
-        <span class="font-heading text-xs text-primary-300 tracking-widest uppercase">Rang & Privilèges</span>
+        <span class="font-heading text-xs text-primary-300 tracking-widest uppercase">Rang & Privil�ges</span>
       </div>
       <h1 class="font-display text-3xl lg:text-5xl text-neutral-100 tracking-widest mb-4">Choisissez votre Clan</h1>
       <p class="font-body text-base lg:text-lg text-neutral-500 max-w-xl mx-auto">
-        Rejoignez le clan des Jarls et débloquez tous les privilèges de la taverne.
+        Rejoignez le clan des Jarls et d�bloquez tous les privil�ges de la taverne.
       </p>
       {success && (
         <div class="mt-6 inline-flex items-center gap-2 bg-accent-rune/15 border border-accent-rune/40 rounded-lg px-5 py-3">
-          <span class="text-green-400 text-sm">✓</span>
+          <span class="text-green-400 text-sm">?</span>
           <span class="font-heading text-sm text-green-300 tracking-wide">{success}</span>
         </div>
       )}
@@ -67,7 +67,7 @@ const isPremium   = currentPlan === 'premium';
     </div>
   </section>
 
-  <!-- ── PLANS ──────────────────────────────────────────── -->
+  <!-- -- PLANS -------------------------------------------- -->
   <section class="max-w-360 mx-auto px-4 lg:px-20 py-12 lg:py-16">
 
     <!-- Badge plan actuel -->
@@ -83,7 +83,7 @@ const isPremium   = currentPlan === 'premium';
     <!-- Cards plans -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-3xl mx-auto">
 
-      <!-- ── GRATUIT ── -->
+      <!-- -- GRATUIT -- -->
       <div class={`card-parchment rounded-2xl p-7 flex flex-col gap-5 relative ${!isPremium ? 'border-primary-400/30' : ''}`}>
         {!isPremium && (
           <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -93,40 +93,40 @@ const isPremium   = currentPlan === 'premium';
         <div>
           <p class="font-heading text-xs text-neutral-600 tracking-widest uppercase mb-1">Pour commencer</p>
           <h2 class="font-display text-2xl text-neutral-200 tracking-wide">Guerrier</h2>
-          <p class="font-body text-sm text-neutral-500 mt-1">L'accès de base à la taverne</p>
+          <p class="font-body text-sm text-neutral-500 mt-1">L'acc�s de base � la taverne</p>
         </div>
         <div class="flex items-end gap-1">
-          <span class="font-display text-4xl text-neutral-100">0 €</span>
+          <span class="font-display text-4xl text-neutral-100">0 �</span>
           <span class="font-body text-sm text-neutral-600 mb-1">/mois</span>
         </div>
         <ul class="flex flex-col gap-3 font-body text-sm text-neutral-400 flex-1">
           <li class="flex items-center gap-3">
-            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">✓</span>
-            Accès à la carte des tavernes
+            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">?</span>
+            Acc�s � la carte des tavernes
           </li>
           <li class="flex items-center gap-3">
-            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">✓</span>
-            Création de sessions (3 max)
+            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">?</span>
+            Cr�ation de sessions (3 max)
           </li>
           <li class="flex items-center gap-3">
-            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">✓</span>
-            Classement général
+            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">?</span>
+            Classement g�n�ral
           </li>
           <li class="flex items-center gap-3">
-            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">✓</span>
+            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">?</span>
             Profil guerrier de base
           </li>
           <li class="flex items-center gap-3 opacity-40">
-            <span class="w-5 h-5 rounded-full bg-dark-600 flex items-center justify-center text-xs shrink-0 text-neutral-600">✕</span>
+            <span class="w-5 h-5 rounded-full bg-dark-600 flex items-center justify-center text-xs shrink-0 text-neutral-600">?</span>
             Badge Jarl Premium
           </li>
           <li class="flex items-center gap-3 opacity-40">
-            <span class="w-5 h-5 rounded-full bg-dark-600 flex items-center justify-center text-xs shrink-0 text-neutral-600">✕</span>
-            Sessions illimitées
+            <span class="w-5 h-5 rounded-full bg-dark-600 flex items-center justify-center text-xs shrink-0 text-neutral-600">?</span>
+            Sessions illimit�es
           </li>
           <li class="flex items-center gap-3 opacity-40">
-            <span class="w-5 h-5 rounded-full bg-dark-600 flex items-center justify-center text-xs shrink-0 text-neutral-600">✕</span>
-            Statistiques avancées
+            <span class="w-5 h-5 rounded-full bg-dark-600 flex items-center justify-center text-xs shrink-0 text-neutral-600">?</span>
+            Statistiques avanc�es
           </li>
         </ul>
         {isPremium ? (
@@ -134,7 +134,7 @@ const isPremium   = currentPlan === 'premium';
             <input type="hidden" name="plan" value="gratuit" />
             <button type="submit"
               class="w-full py-3 font-heading text-sm tracking-widest uppercase text-neutral-600 border border-dark-600 rounded hover:border-neutral-600 hover:text-neutral-400 transition-colors">
-              Rétrograder
+              R�trograder
             </button>
           </form>
         ) : (
@@ -144,9 +144,9 @@ const isPremium   = currentPlan === 'premium';
         )}
       </div>
 
-      <!-- ── PREMIUM ── -->
+      <!-- -- PREMIUM -- -->
       <div class={`relative rounded-2xl p-7 flex flex-col gap-5 overflow-hidden bg-card-premium ${isPremium ? 'border-2 border-primary-400/60' : 'border border-primary-400/30'}`}>
-        <!-- Lueur dorée -->
+        <!-- Lueur dor�e -->
         <div class="absolute top-0 right-0 w-40 h-40 bg-primary-400/8 rounded-full blur-2xl pointer-events-none" aria-hidden="true" />
 
         {isPremium && (
@@ -161,20 +161,20 @@ const isPremium   = currentPlan === 'premium';
         )}
 
         <div>
-          <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-1">Accès complet</p>
+          <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-1">Acc�s complet</p>
           <div class="flex items-center gap-2">
             <h2 class="font-display text-2xl text-primary-300 tracking-wide">Jarl</h2>
             <Image src={couroneIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
           </div>
-          <p class="font-body text-sm text-neutral-500 mt-1">Tous les privilèges de la grande salle</p>
+          <p class="font-body text-sm text-neutral-500 mt-1">Tous les privil�ges de la grande salle</p>
         </div>
         <div class="flex items-end gap-1">
-          <span class="font-display text-4xl text-primary-300">4,99 €</span>
+          <span class="font-display text-4xl text-primary-300">4,99 �</span>
           <span class="font-body text-sm text-neutral-600 mb-1">/mois</span>
         </div>
         <ul class="flex flex-col gap-3 font-body text-sm text-neutral-400 flex-1">
           <li class="flex items-center gap-3">
-            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">✓</span>
+            <span class="w-5 h-5 rounded-full bg-accent-rune/20 text-green-400 flex items-center justify-center text-xs shrink-0">?</span>
             Tout le plan Guerrier
           </li>
           <li class="flex items-center gap-3 text-neutral-200">
@@ -187,19 +187,19 @@ const isPremium   = currentPlan === 'premium';
             <span class="w-5 h-5 rounded-full bg-primary-400/20 text-primary-300 flex items-center justify-center shrink-0">
               <Image src={bierreIcon} alt="" width={10} height={10} class="invert opacity-80" />
             </span>
-            Sessions illimitées
+            Sessions illimit�es
           </li>
           <li class="flex items-center gap-3 text-neutral-200">
             <span class="w-5 h-5 rounded-full bg-primary-400/20 text-primary-300 flex items-center justify-center shrink-0">
               <Image src={tropheeIcon} alt="" width={10} height={10} class="invert opacity-80" />
             </span>
-            Statistiques avancées
+            Statistiques avanc�es
           </li>
           <li class="flex items-center gap-3 text-neutral-200">
             <span class="w-5 h-5 rounded-full bg-primary-400/20 text-primary-300 flex items-center justify-center shrink-0">
               <Image src={personnesIcon} alt="" width={10} height={10} class="invert opacity-80" />
             </span>
-            Amis illimités
+            Amis illimit�s
           </li>
           <li class="flex items-center gap-3 text-neutral-200">
             <span class="w-5 h-5 rounded-full bg-primary-400/20 text-primary-300 flex items-center justify-center shrink-0">
@@ -212,18 +212,18 @@ const isPremium   = currentPlan === 'premium';
           <form method="POST">
             <input type="hidden" name="plan" value="premium" />
             <button type="submit" class="btn-primary w-full py-3.5 text-sm">
-              ⚔ Rejoindre le clan des Jarls
+              ? Rejoindre le clan des Jarls
             </button>
           </form>
         ) : (
           <div class="py-3 font-heading text-sm tracking-widest uppercase text-center text-primary-500">
-            ✓ Abonnement actif
+            ? Abonnement actif
           </div>
         )}
       </div>
     </div>
 
-    <!-- ── AVANTAGES DÉTAILLÉS (Premium) ──────────────────── -->
+    <!-- -- AVANTAGES D�TAILL�S (Premium) -------------------- -->
     <div class="mt-16">
       <div class="text-center mb-8">
         <h2 class="font-heading text-lg text-neutral-300 tracking-widest uppercase">Pourquoi rejoindre le clan des Jarls ?</h2>
@@ -235,7 +235,7 @@ const isPremium   = currentPlan === 'premium';
           <div class="w-11 h-11 rounded-xl bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
             <Image src={eclaireIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
           </div>
-          <h3 class="font-heading text-sm text-neutral-200 tracking-wide">Sessions illimitées</h3>
+          <h3 class="font-heading text-sm text-neutral-200 tracking-wide">Sessions illimit�es</h3>
           <p class="font-body text-xs text-neutral-500">Organisez autant de barathons que vous voulez, sans restriction.</p>
         </div>
 
@@ -244,39 +244,39 @@ const isPremium   = currentPlan === 'premium';
             <Image src={medailIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
           </div>
           <h3 class="font-heading text-sm text-neutral-200 tracking-wide">Badge Jarl exclusif</h3>
-          <p class="font-body text-xs text-neutral-500">Affichez votre statut de Jarl avec un badge doré sur votre profil.</p>
+          <p class="font-body text-xs text-neutral-500">Affichez votre statut de Jarl avec un badge dor� sur votre profil.</p>
         </div>
 
         <div class="card-parchment rounded-xl p-5 flex flex-col items-center text-center gap-3">
           <div class="w-11 h-11 rounded-xl bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
             <Image src={carteIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
           </div>
-          <h3 class="font-heading text-sm text-neutral-200 tracking-wide">Statistiques avancées</h3>
-          <p class="font-body text-xs text-neutral-500">Suivez vos exploits, vos tavernes conquises et vos scores en détail.</p>
+          <h3 class="font-heading text-sm text-neutral-200 tracking-wide">Statistiques avanc�es</h3>
+          <p class="font-body text-xs text-neutral-500">Suivez vos exploits, vos tavernes conquises et vos scores en d�tail.</p>
         </div>
 
       </div>
     </div>
 
-    <!-- ── FAQ ────────────────────────────────────────────── -->
+    <!-- -- FAQ ---------------------------------------------- -->
     <div class="mt-16 max-w-2xl mx-auto">
       <div class="text-center mb-8">
-        <h2 class="font-heading text-lg text-neutral-300 tracking-widest uppercase">Questions fréquentes</h2>
+        <h2 class="font-heading text-lg text-neutral-300 tracking-widest uppercase">Questions fr�quentes</h2>
         <div class="w-16 h-px bg-primary-400/40 mx-auto mt-3" />
       </div>
       <div class="flex flex-col gap-3">
         {[
           {
             q: 'Comment fonctionne l\'abonnement Premium ?',
-            a: 'Une fois activé, tous les avantages Jarl sont immédiatement disponibles sur votre compte. Vous pouvez rétrograder à tout moment.'
+            a: 'Une fois activ�, tous les avantages Jarl sont imm�diatement disponibles sur votre compte. Vous pouvez r�trograder � tout moment.'
           },
           {
-            q: 'Puis-je annuler à tout moment ?',
-            a: 'Oui, vous pouvez repasser en Gratuit à tout moment depuis cette page. Aucun engagement ni frais cachés.'
+            q: 'Puis-je annuler � tout moment ?',
+            a: 'Oui, vous pouvez repasser en Gratuit � tout moment depuis cette page. Aucun engagement ni frais cach�s.'
           },
           {
             q: 'Le plan Gratuit est-il vraiment gratuit ?',
-            a: 'Oui, le plan Guerrier reste gratuit à vie. Il donne accès aux fonctionnalités essentielles de la taverne.'
+            a: 'Oui, le plan Guerrier reste gratuit � vie. Il donne acc�s aux fonctionnalit�s essentielles de la taverne.'
           },
         ].map(({ q, a }) => (
           <details class="card-parchment rounded-xl group">

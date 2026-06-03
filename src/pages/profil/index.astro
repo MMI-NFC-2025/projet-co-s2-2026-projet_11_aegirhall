@@ -1,10 +1,10 @@
-﻿---
+---
 import Layout from '../../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import {
   getMe, getCollection, getRecord,
   updateUser, updateUserFile, deleteUser, PB_BASE_URL, getLevelFromXp,
-} from '../../js/backend.js';
+} from '../../../backend/backend.js';
 import homeIcon    from '../../assets/icon/home.svg';
 import notifIcon   from '../../assets/icon/notif.svg';
 import personnes   from '../../assets/icon/personnes.svg';
@@ -22,15 +22,15 @@ const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
 if (!token || !userId) return Astro.redirect('/connexion');
 
-/* ── Feedback messages ─────────────────────────────────── */
+/* -- Feedback messages ----------------------------------- */
 let profileSuccess  = false;
 let profileError    = '';
 let passwordSuccess = false;
 let passwordError   = '';
 let actionFeedback  = '';
-let activeTab       = 'parametres'; // tab à ouvrir après POST
+let activeTab       = 'parametres'; // tab � ouvrir apr�s POST
 
-/* ── POST handlers ─────────────────────────────────────── */
+/* -- POST handlers --------------------------------------- */
 if (Astro.request.method === 'POST') {
   const form   = await Astro.request.formData();
   const action = form.get('action')?.toString() ?? '';
@@ -55,7 +55,7 @@ if (Astro.request.method === 'POST') {
     profileError = 'Impossible de supprimer le compte.';
   }
 
-  /* Mise à jour profil */
+  /* Mise � jour profil */
   if (action === 'update_profile') {
     const data: Record<string, string> = {};
     for (const key of ['pseudo','nom','prenom','ville','description']) {
@@ -73,7 +73,7 @@ if (Astro.request.method === 'POST') {
     }
   }
 
-  /* Mise à jour réseaux */
+  /* Mise � jour r�seaux */
   if (action === 'update_social') {
     const insta   = form.get('insta')?.toString().trim()   ?? '';
     const facbook = form.get('facbook')?.toString().trim() ?? '';
@@ -95,7 +95,7 @@ if (Astro.request.method === 'POST') {
     if (password !== passwordConfirm) {
       passwordError = 'Les mots de passe ne correspondent pas.';
     } else if (password.length < 8) {
-      passwordError = 'Le mot de passe doit faire au moins 8 caractères.';
+      passwordError = 'Le mot de passe doit faire au moins 8 caract�res.';
     } else {
       const result = await updateUser(userId, { oldPassword, password, passwordConfirm }, token);
       if (result?.error) {
@@ -106,7 +106,7 @@ if (Astro.request.method === 'POST') {
     }
   }
 
-  /* Accepter demande d'amitié */
+  /* Accepter demande d'amiti� */
   if (action === 'accept_friend') {
     activeTab = 'notifications';
     const friendId = form.get('friendId')?.toString() ?? '';
@@ -118,11 +118,11 @@ if (Astro.request.method === 'POST') {
       const friendAmies= [...new Set([...(friend?.amies ?? []), userId])];
       await updateUser(userId,   { demande_amies: myDemandes, amies: myAmies }, token);
       await updateUser(friendId, { amies: friendAmies }, token);
-      actionFeedback = 'Vous êtes maintenant amis !';
+      actionFeedback = 'Vous �tes maintenant amis !';
     }
   }
 
-  /* Refuser demande d'amitié */
+  /* Refuser demande d'amiti� */
   if (action === 'decline_friend') {
     activeTab = 'notifications';
     const friendId = form.get('friendId')?.toString() ?? '';
@@ -130,7 +130,7 @@ if (Astro.request.method === 'POST') {
       const me = await getMe(userId, token);
       const myDemandes = (me?.demande_amies ?? []).filter((id: string) => id !== friendId);
       await updateUser(userId, { demande_amies: myDemandes }, token);
-      actionFeedback = 'Demande refusée.';
+      actionFeedback = 'Demande refus�e.';
     }
   }
 
@@ -148,7 +148,7 @@ if (Astro.request.method === 'POST') {
     }
   }
 
-  /* Mise à jour avatar */
+  /* Mise � jour avatar */
   if (action === 'update_avatar') {
     const avatarFile = form.get('avatar') as File | null;
     if (avatarFile && avatarFile.size > 0) {
@@ -156,14 +156,14 @@ if (Astro.request.method === 'POST') {
       pbForm.append('avatar', avatarFile);
       const result = await updateUserFile(userId, pbForm, token);
       if (result?.error) {
-        profileError = result.error?.message || 'Erreur lors du téléchargement.';
+        profileError = result.error?.message || 'Erreur lors du t�l�chargement.';
       } else {
         profileSuccess = true;
       }
     }
   }
 
-  /* Équiper un badge */
+  /* �quiper un badge */
   if (action === 'set_featured_badge') {
     activeTab = 'trophees';
     const badgeId = form.get('badgeId')?.toString() ?? '';
@@ -171,7 +171,7 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-/* ── Données SSR ───────────────────────────────────────── */
+/* -- Donn�es SSR ----------------------------------------- */
 const user = await getRecord('users', userId, {
   expand: 'amies,demande_amies',
   token,
@@ -192,7 +192,7 @@ const progression = bars.length ? Math.round((visitedIds.length / bars.length) *
 const friends: any[]  = user.expand?.amies          ?? [];
 const demandes: any[] = user.expand?.demande_amies  ?? [];
 
-/* ── Badges ────────────────────────────────────────────── */
+/* -- Badges ---------------------------------------------- */
 const allBadges = await getCollection('badges', { sort: 'condition_chiffre', perPage: 200, token });
 
 const finishedSessions = await getCollection('session_barathon', {
@@ -227,7 +227,7 @@ const earnedBadges    = allBadges.filter((b: any) => earnedBadgeIds.includes(b.i
 const featuredBadgeId: string = user.badges_equiper ?? '';
 const featuredBadge   = earnedBadges.find((b: any) => b.id === featuredBadgeId) ?? null;
 
-/* Prépare les données de chaque ami pour le modal côté client */
+/* Pr�pare les donn�es de chaque ami pour le modal c�t� client */
 const friendsForClient = await Promise.all(
   friends.map(async (f: any) => {
     const fRecord = await getRecord('users', f.id, { fields: 'id,pseudo,nom,prenom,ville,insta,facbook,discord,collectionId,avatar,id_taverne_visiter,badges_equiper', token });
@@ -296,12 +296,12 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
   : null;
 ---
 
-<Layout title={`${user.pseudo ?? 'Profil'} — AEgirhall`}>
+<Layout title={`${user.pseudo ?? 'Profil'} � AEgirhall`}>
 
   <div class="min-h-screen bg-dark-800 pt-24 pb-20">
     <div class="max-w-360 mx-auto px-4 lg:px-20">
 
-      <!-- ══ EN-TÊTE PROFIL ══════════════════════════════ -->
+      <!-- -- EN-T�TE PROFIL ------------------------------ -->
       <div class="flex flex-col lg:flex-row items-center lg:items-end gap-6 mb-10">
         <!-- Avatar -->
         <div class="relative shrink-0">
@@ -325,7 +325,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
             <input type="file" id="avatar-input" name="avatar" accept="image/*" class="hidden" />
           </form>
           {featuredBadge && (
-            <div class="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-dark-700 border-2 border-primary-400/60 overflow-hidden flex items-center justify-center" title={featuredBadge.nom ?? 'Badge équipé'}>
+            <div class="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-dark-700 border-2 border-primary-400/60 overflow-hidden flex items-center justify-center" title={featuredBadge.nom ?? 'Badge �quip�'}>
               {featuredBadge.img ? (
                 <PbImage record={featuredBadge} recordImage={featuredBadge.img} width={40} height={40} alt={featuredBadge.nom ?? 'Badge'} class="w-full h-full object-cover" />
               ) : (
@@ -338,7 +338,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <!-- Infos + stats -->
         <div class="flex-1 text-center lg:text-left">
           <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-1">
-            Niv. {levelData.niveau} · {levelData.titre}
+            Niv. {levelData.niveau} � {levelData.titre}
           </p>
           <h1 class="font-heading text-3xl lg:text-4xl text-neutral-100 tracking-wide mb-4">
             {user.pseudo ?? user.nom ?? 'Guerrier'}
@@ -359,7 +359,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
             {noteSamMoyenne !== null && (
               <div class="text-center">
                 <p class="font-display text-2xl text-primary-400">
-                  {noteSamMoyenne}<span class="text-base text-primary-600">/5 ★</span>
+                  {noteSamMoyenne}<span class="text-base text-primary-600">/5 ?</span>
                 </p>
                 <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Note SAM</p>
               </div>
@@ -372,14 +372,14 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
       <div class="mb-4">
         <div class="flex justify-between items-center mb-1.5">
           <span class="font-heading text-xs text-primary-500 tracking-widest uppercase">
-            Niveau {levelData.niveau} — {levelData.titre}
+            Niveau {levelData.niveau} � {levelData.titre}
           </span>
           {levelData.next ? (
             <span class="font-heading text-xs text-neutral-500">
               {userXp} / {levelData.next.xp_requis} XP
             </span>
           ) : (
-            <span class="font-heading text-xs text-primary-400 tracking-widest">Niveau max ✦</span>
+            <span class="font-heading text-xs text-primary-400 tracking-widest">Niveau max ?</span>
           )}
         </div>
         <ProgressBar value={levelData.pctNext} label={`Progression vers niveau ${levelData.next?.titre ?? 'max'} : ${levelData.pctNext}%`} />
@@ -399,13 +399,13 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <ProgressBar value={progression} label={`Tavernes conquises : ${visitedIds.length} sur ${bars.length}`} />
       </div>
 
-      <!-- ══ ONGLETS ══════════════════════════════════════ -->
+      <!-- -- ONGLETS -------------------------------------- -->
       <div class="flex gap-1 mb-8 border-b border-primary-400/15 overflow-x-auto">
         {[
-          { id: 'parametres',   label: 'Paramètres',    icon: homeIcon },
+          { id: 'parametres',   label: 'Param�tres',    icon: homeIcon },
           { id: 'amis',         label: 'Amis',          icon: personnes },
           { id: 'notifications',label: 'Notifs',        icon: notifIcon, badge: demandes.length },
-          { id: 'trophees',     label: 'Trophées',      icon: medailIcon },
+          { id: 'trophees',     label: 'Troph�es',      icon: medailIcon },
         ].map(tab => (
           <button
             class="tab-btn shrink-0 flex items-center gap-2 px-4 lg:px-6 py-3 font-heading text-xs tracking-widest uppercase transition-colors relative"
@@ -424,8 +424,8 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <a href="/abonnement"
            class={`shrink-0 flex items-center gap-2 px-4 lg:px-5 py-3 font-heading text-xs tracking-widest uppercase transition-colors rounded-t-lg mb-0 self-end ${user?.abonnements === 'premium' ? 'text-primary-400 hover:text-primary-300' : 'text-neutral-500 hover:text-neutral-300'}`}>
           {user?.abonnements === 'premium'
-            ? <span class="text-primary-400">♛</span>
-            : <span>⚡</span>
+            ? <span class="text-primary-400">?</span>
+            : <span>?</span>
           }
           {user?.abonnements === 'premium' ? 'Jarl' : 'Premium'}
         </a>
@@ -438,9 +438,9 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         </div>
       )}
 
-      <!-- ══════════════════════════════════════════════════
-           ONGLET : PARAMÈTRES
-           ══════════════════════════════════════════════════ -->
+      <!-- --------------------------------------------------
+           ONGLET : PARAM�TRES
+           -------------------------------------------------- -->
       <div id="tab-parametres" class="tab-panel tab-col">
 
         <!-- Informations personnelles -->
@@ -453,7 +453,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
             <input type="hidden" name="action" value="update_profile" />
             {profileSuccess && (
               <div class="mb-5 p-3 rounded-lg bg-accent-rune/20 border border-accent-rune/40 font-body text-sm text-neutral-300">
-                Profil mis à jour.
+                Profil mis � jour.
               </div>
             )}
             {profileError && (
@@ -471,7 +471,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
                 <input id="ville" name="ville" type="text" class="input-viking" value={user.ville ?? ''} />
               </div>
               <div>
-                <label class="label-viking" for="prenom">Prénom</label>
+                <label class="label-viking" for="prenom">Pr�nom</label>
                 <input id="prenom" name="prenom" type="text" class="input-viking" value={user.prenom ?? ''} />
               </div>
               <div>
@@ -479,7 +479,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
                 <input id="nom" name="nom" type="text" class="input-viking" value={user.nom ?? ''} />
               </div>
               <div>
-                <label class="label-viking" for="age">Âge</label>
+                <label class="label-viking" for="age">�ge</label>
                 <input id="age" name="age" type="number" min="18" max="120" class="input-viking" value={user.age ?? ''} />
               </div>
             </div>
@@ -493,11 +493,11 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
           </form>
         </div>
 
-        <!-- Réseaux sociaux -->
+        <!-- R�seaux sociaux -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
             <Image src={instasIcon} alt="" width={18} height={18} class="invert opacity-60" />
-            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Réseaux sociaux</h2>
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">R�seaux sociaux</h2>
           </div>
           <form method="POST" class="px-6 lg:px-8 py-6">
             <input type="hidden" name="action" value="update_social" />
@@ -530,17 +530,17 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
           </form>
         </div>
 
-        <!-- Sécurité -->
+        <!-- S�curit� -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
             <Image src={lockIcon} alt="" width={18} height={18} class="invert opacity-60" />
-            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Sécurité</h2>
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">S�curit�</h2>
           </div>
           <form method="POST" class="px-6 lg:px-8 py-6">
             <input type="hidden" name="action" value="update_password" />
             {passwordSuccess && (
               <div class="mb-5 p-3 rounded-lg bg-accent-rune/20 border border-accent-rune/40 font-body text-sm text-neutral-300">
-                Mot de passe mis à jour.
+                Mot de passe mis � jour.
               </div>
             )}
             {passwordError && (
@@ -551,15 +551,15 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
               <div>
                 <label class="label-viking" for="oldPassword">Mot de passe actuel</label>
-                <input id="oldPassword" name="oldPassword" type="password" class="input-viking" placeholder="••••••••" autocomplete="current-password" />
+                <input id="oldPassword" name="oldPassword" type="password" class="input-viking" placeholder="��������" autocomplete="current-password" />
               </div>
               <div>
                 <label class="label-viking" for="password">Nouveau mot de passe</label>
-                <input id="password" name="password" type="password" class="input-viking" placeholder="8 caractères min." autocomplete="new-password" />
+                <input id="password" name="password" type="password" class="input-viking" placeholder="8 caract�res min." autocomplete="new-password" />
               </div>
               <div>
                 <label class="label-viking" for="passwordConfirm">Confirmer</label>
-                <input id="passwordConfirm" name="passwordConfirm" type="password" class="input-viking" placeholder="••••••••" autocomplete="new-password" />
+                <input id="passwordConfirm" name="passwordConfirm" type="password" class="input-viking" placeholder="��������" autocomplete="new-password" />
               </div>
             </div>
             <div class="mt-6 flex justify-end">
@@ -577,7 +577,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
           <div class="px-6 lg:px-8 py-6 flex flex-col sm:flex-row gap-4">
             <form method="POST">
               <input type="hidden" name="action" value="logout" />
-              <button type="submit" class="btn-outline px-8 py-3 text-sm">Se déconnecter</button>
+              <button type="submit" class="btn-outline px-8 py-3 text-sm">Se d�connecter</button>
             </form>
             <button
               id="btn-delete-account"
@@ -591,9 +591,9 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
 
       </div><!-- /tab-parametres -->
 
-      <!-- ══════════════════════════════════════════════════
+      <!-- --------------------------------------------------
            ONGLET : AMIS
-           ══════════════════════════════════════════════════ -->
+           -------------------------------------------------- -->
       <div id="tab-amis" class="tab-panel hidden tab-col">
 
         <!-- Recherche -->
@@ -608,7 +608,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
               <input
                 id="friend-search"
                 type="text"
-                placeholder="Rechercher par pseudo…"
+                placeholder="Rechercher par pseudo�"
                 class="input-viking pl-10"
                 autocomplete="off"
               />
@@ -669,16 +669,16 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
 
       </div><!-- /tab-amis -->
 
-      <!-- ══════════════════════════════════════════════════
+      <!-- --------------------------------------------------
            ONGLET : NOTIFICATIONS
-           ══════════════════════════════════════════════════ -->
+           -------------------------------------------------- -->
       <div id="tab-notifications" class="tab-panel hidden tab-col">
 
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
             <Image src={notifIcon} alt="" width={18} height={18} class="invert opacity-60" />
             <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">
-              Demandes d'amitié
+              Demandes d'amiti�
               {demandes.length > 0 && (
                 <span class="ml-2 w-5 h-5 inline-flex items-center justify-center rounded-full bg-accent-blood font-heading text-xs text-neutral-100">
                   {demandes.length}
@@ -706,7 +706,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
                     )}
                     <div class="flex-1">
                       <p class="font-heading text-sm text-neutral-200 tracking-wide mb-1">
-                        <span class="text-primary-400">{d.pseudo ?? d.nom}</span> veut être votre ami(e)
+                        <span class="text-primary-400">{d.pseudo ?? d.nom}</span> veut �tre votre ami(e)
                       </p>
                     </div>
                     <div class="flex gap-2 shrink-0">
@@ -730,17 +730,17 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
 
       </div><!-- /tab-notifications -->
 
-      <!-- ══════════════════════════════════════════════════
-           ONGLET : TROPHÉES
-           ══════════════════════════════════════════════════ -->
+      <!-- --------------------------------------------------
+           ONGLET : TROPH�ES
+           -------------------------------------------------- -->
       <div id="tab-trophees" class="tab-panel hidden tab-col">
 
-        <!-- Trophées obtenus -->
+        <!-- Troph�es obtenus -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center justify-between px-6 lg:px-8 py-4 border-b border-primary-400/15">
             <div class="flex items-center gap-3">
               <Image src={medailIcon} alt="" width={18} height={18} class="invert opacity-60" />
-              <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Mes trophées</h2>
+              <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Mes troph�es</h2>
             </div>
             <span class="font-heading text-xs text-neutral-500 tracking-widest">{earnedBadges.length} / {allBadges.length}</span>
           </div>
@@ -748,7 +748,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
             {earnedBadges.length === 0 ? (
               <div class="text-center py-10">
                 <Image src={medailIcon} alt="" width={40} height={40} class="invert opacity-15 mx-auto mb-3" />
-                <p class="font-heading text-sm text-neutral-600 tracking-wide">Aucun trophée débloqué</p>
+                <p class="font-heading text-sm text-neutral-600 tracking-wide">Aucun troph�e d�bloqu�</p>
                 <p class="font-body text-xs text-neutral-700 mt-1">Explorez des tavernes et terminez des sessions !</p>
               </div>
             ) : (
@@ -769,19 +769,19 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
                       <button type="submit" class="flex flex-col items-center gap-2 w-full">
                         <div class={`relative w-14 h-14 rounded-full overflow-hidden border-2 transition-transform group-hover/badge:scale-105 ${isEquipped ? 'border-primary-400 ring-2 ring-primary-400/40' : 'border-primary-400/40'}`}>
                           {badge.img ? (
-                            <PbImage record={badge} recordImage={badge.img} width={56} height={56} alt={badge.nom ?? 'Trophée'} class="w-full h-full object-cover" />
+                            <PbImage record={badge} recordImage={badge.img} width={56} height={56} alt={badge.nom ?? 'Troph�e'} class="w-full h-full object-cover" />
                           ) : (
                             <div class="w-full h-full bg-dark-600 flex items-center justify-center">
                               <Image src={medailIcon} alt="" width={24} height={24} class="invert opacity-60" />
                             </div>
                           )}
                         </div>
-                        <p class="font-heading text-xs text-neutral-300 leading-tight line-clamp-2">{badge.nom ?? 'Trophée'}</p>
+                        <p class="font-heading text-xs text-neutral-300 leading-tight line-clamp-2">{badge.nom ?? 'Troph�e'}</p>
                         {condLabel && (
                           <p class="font-heading text-xs text-primary-700 tracking-widest uppercase">{condLabel}</p>
                         )}
                         {isEquipped && (
-                          <span class="font-heading text-xs text-primary-400 tracking-widest uppercase">Équipé</span>
+                          <span class="font-heading text-xs text-primary-400 tracking-widest uppercase">�quip�</span>
                         )}
                       </button>
                     </form>
@@ -792,19 +792,19 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
           </div>
         </div>
 
-        <!-- Tous les trophées disponibles -->
+        <!-- Tous les troph�es disponibles -->
         <details class="card-parchment rounded-2xl overflow-hidden">
           <summary class="flex items-center justify-between px-6 lg:px-8 py-4 cursor-pointer list-none select-none border-b border-primary-400/15 hover:bg-dark-700/30 transition-colors">
             <div class="flex items-center gap-3">
               <Image src={medailIcon} alt="" width={18} height={18} class="invert opacity-60" />
-              <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Tous les trophées disponibles</h2>
+              <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Tous les troph�es disponibles</h2>
               <span class="font-body text-neutral-500 text-xs">({allBadges.length})</span>
             </div>
-            <span class="summary-arrow font-heading text-xs text-neutral-500">▼</span>
+            <span class="summary-arrow font-heading text-xs text-neutral-500">?</span>
           </summary>
           <div class="px-6 lg:px-8 py-6">
             {allBadges.length === 0 ? (
-              <p class="font-body text-neutral-600 text-center py-4 text-sm">Aucun trophée disponible pour l'instant.</p>
+              <p class="font-body text-neutral-600 text-center py-4 text-sm">Aucun troph�e disponible pour l'instant.</p>
             ) : (
               <div class="grid grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6">
                 {allBadges.map((badge: any) => {
@@ -821,14 +821,14 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
                     <div class={`flex flex-col items-center gap-2 text-center group/badge transition-opacity ${isEarned ? '' : 'opacity-35'}`}>
                       <div class={`relative w-14 h-14 rounded-full overflow-hidden border-2 ${isEquipped ? 'border-primary-400' : isEarned ? 'border-primary-400/40' : 'border-neutral-700/50'} ${isEarned ? 'group-hover/badge:scale-105' : ''} transition-transform`}>
                         {badge.img ? (
-                          <PbImage record={badge} recordImage={badge.img} width={56} height={56} alt={badge.nom ?? 'Trophée'} class={`w-full h-full object-cover ${isEarned ? '' : 'grayscale'}`} />
+                          <PbImage record={badge} recordImage={badge.img} width={56} height={56} alt={badge.nom ?? 'Troph�e'} class={`w-full h-full object-cover ${isEarned ? '' : 'grayscale'}`} />
                         ) : (
                           <div class="w-full h-full bg-dark-600 flex items-center justify-center">
                             <Image src={medailIcon} alt="" width={24} height={24} class="invert opacity-50" />
                           </div>
                         )}
                       </div>
-                      <p class={`font-heading text-xs leading-tight line-clamp-2 ${isEarned ? 'text-neutral-300' : 'text-neutral-600'}`}>{badge.nom ?? 'Trophée'}</p>
+                      <p class={`font-heading text-xs leading-tight line-clamp-2 ${isEarned ? 'text-neutral-300' : 'text-neutral-600'}`}>{badge.nom ?? 'Troph�e'}</p>
                       {condLabel && (
                         <p class={`font-heading text-xs tracking-widest uppercase ${isEarned ? 'text-primary-700' : 'text-neutral-700'}`}>{condLabel}</p>
                       )}
@@ -845,7 +845,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
     </div><!-- /max-w -->
   </div>
 
-  <!-- ══ MODAL AMI ═══════════════════════════════════════ -->
+  <!-- -- MODAL AMI --------------------------------------- -->
   <div id="friend-modal" class="fixed inset-0 z-50 hidden modal-overlay p-4">
     <div class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm" id="modal-backdrop"></div>
     <div class="relative card-parchment rounded-2xl w-full max-w-lg max-h-screen overflow-y-auto z-10">
@@ -859,13 +859,13 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
     </div>
   </div>
 
-  <!-- ══ MODAL SUPPRESSION COMPTE ═══════════════════════ -->
+  <!-- -- MODAL SUPPRESSION COMPTE ----------------------- -->
   <div id="delete-modal" class="fixed inset-0 z-50 hidden modal-overlay p-4">
     <div class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm" id="delete-backdrop"></div>
     <div class="relative card-parchment rounded-2xl w-full max-w-md z-10 p-8">
       <h3 class="font-heading text-lg text-neutral-100 tracking-wide mb-3">Supprimer mon compte ?</h3>
       <p class="font-body text-base text-neutral-400 leading-relaxed mb-8">
-        Cette action est irréversible. Toutes vos données, visites et badges seront définitivement effacés.
+        Cette action est irr�versible. Toutes vos donn�es, visites et badges seront d�finitivement effac�s.
       </p>
       <div class="flex gap-4">
         <button id="delete-cancel" class="btn-outline flex-1 py-3 text-sm">Annuler</button>
@@ -947,15 +947,15 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
   import '../../js/profile.js';
 </script>
 
-<script define:vars={{ _newBadges: allBadges.filter((b: any) => toAward.includes(b.id)).map((b: any) => ({ nom: b.nom ?? 'Trophée', img: b.img ?? '', collectionId: b.collectionId ?? '', id: b.id })), _pbBaseUrl: PB_BASE_URL }} is:inline>
+<script define:vars={{ _newBadges: allBadges.filter((b: any) => toAward.includes(b.id)).map((b: any) => ({ nom: b.nom ?? 'Troph�e', img: b.img ?? '', collectionId: b.collectionId ?? '', id: b.id })), _pbBaseUrl: PB_BASE_URL }} is:inline>
   function showBadgeToast(badge) {
     var toast = document.createElement('div');
     toast.className = 'badge-toast card-parchment rounded-2xl px-5 py-3 flex items-center gap-3 border border-primary-400/40 shadow-xl';
     var imgHtml = badge.img
       ? '<img src="' + _pbBaseUrl + '/api/files/' + badge.collectionId + '/' + badge.id + '/' + badge.img + '" class="w-10 h-10 rounded-full object-cover border border-primary-400/30 shrink-0" alt="' + badge.nom + '" />'
-      : '<div class="w-10 h-10 rounded-full bg-dark-600 border border-primary-400/20 flex items-center justify-center shrink-0"><span class="text-primary-400 text-lg">🏅</span></div>';
+      : '<div class="w-10 h-10 rounded-full bg-dark-600 border border-primary-400/20 flex items-center justify-center shrink-0"><span class="text-primary-400 text-lg">??</span></div>';
     toast.innerHTML = imgHtml +
-      '<div><p class="font-heading text-xs text-primary-400 tracking-widest uppercase">Trophée débloqué !</p>' +
+      '<div><p class="font-heading text-xs text-primary-400 tracking-widest uppercase">Troph�e d�bloqu� !</p>' +
       '<p class="font-heading text-sm text-neutral-100 tracking-wide">' + badge.nom + '</p></div>';
     document.body.appendChild(toast);
     requestAnimationFrame(function() {

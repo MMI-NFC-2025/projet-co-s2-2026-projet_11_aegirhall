@@ -12,8 +12,6 @@
   --font-body: 'Vollkorn', Georgia, serif;
 
   /* ── Primary — Fire & Miel (Braise, Miel Doré, Or Runique) ── */
-  --color-primary-100: #FDF0DC;
-  --color-primary-200: #EDD890;
   --color-primary-300: #D4AF47;   /* Miel Doré — titres display */
   --color-primary-400: #C4490A;   /* Braise — CTA principal */
   --color-primary-500: #94701C;   /* Or Runique — accents */
@@ -24,8 +22,6 @@
 
   /* ── Dark — Warm Dark (Nuit Profonde, Obsidienne, Terre Brûlée) */
   --color-dark-50:  #EDF2F7;
-  --color-dark-100: #D0C8BE;
-  --color-dark-200: #A09080;
   --color-dark-300: #6A94A8;      /* Givre — infos / SAM */
   --color-dark-400: #4A6070;
   --color-dark-500: #2A3840;
@@ -42,8 +38,6 @@
   --color-neutral-500: #705840;
   --color-neutral-600: #503828;
   --color-neutral-700: #382818;
-  --color-neutral-800: #201408;
-  --color-neutral-900: #100A04;
 
   /* ── Accent ─────────────────────────────────────────── */
   --color-accent-blood: #8C1C13;  /* Sang — erreurs, danger */
