@@ -1,4 +1,4 @@
----
+﻿---
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import { Image } from 'astro:assets';
@@ -55,25 +55,6 @@ let actionError = '';
 if (Astro.request.method === 'POST') {
   const form   = await Astro.request.formData();
   const action = form.get('action')?.toString();
-
-  // Accepter / Refuser invitation
-  if (action === 'accept_invitation') {
-    const currentMembers = session.id_menbre ?? [];
-    if (!currentMembers.includes(userId)) {
-      await patchSession(id, { id_menbre: [...currentMembers, userId] }, token);
-    }
-    const me = await getMe(userId, token);
-    const remaining = (me?.demande_session ?? []).filter(s => s !== id);
-    await updateUser(userId, { demande_session: remaining }, token);
-    return Astro.redirect(`/session/${id}`);
-  }
-
-  if (action === 'reject_invitation') {
-    const me = await getMe(userId, token);
-    const remaining = (me?.demande_session ?? []).filter(s => s !== id);
-    await updateUser(userId, { demande_session: remaining }, token);
-    return Astro.redirect('/session');
-  }
 
   // Actions réservées à l'hôte
   if (isHost) {
@@ -264,8 +245,17 @@ if (isTermine && session?.date_heur_depart && session?.date_heur_arriver) {
 }
 const xpGained      = sessionBars.length * 50 + sessionMembers.length * 10;
 const securityScore = hasSam ? 96 : 72;
+const justJoined    = Astro.url.searchParams.get('joined') === '1';
 ---
 <Layout title={session?.nom ?? 'Session'}>
+
+  <!-- ── NOTIF REJOINDRE ──────────────────────────────────── -->
+  {justJoined && (
+    <div id="join-notif" class="fixed top-24 left-1/2 -translate-x-1/2 z-modal px-5 py-3 rounded-xl bg-accent-rune/90 border border-accent-rune text-neutral-100 font-heading text-sm tracking-wide shadow-xl backdrop-blur-sm flex items-center gap-3">
+      <span>✓</span>
+      <span>Vous avez rejoint <strong>{session?.nom}</strong></span>
+    </div>
+  )}
 
   <!-- ── COMPACT HEADER ───────────────────────────────────── -->
   <section class="bg-dark-900 border-b border-dark-700 py-5">
@@ -345,7 +335,7 @@ const securityScore = hasSam ? 96 : 72;
 
             <button type="button" id="btn-alerte"
               class="card-parchment rounded-xl p-4 flex flex-col items-center gap-2 text-center hover:border-primary-400/40 transition-colors w-full cursor-pointer">
-              <div class="w-10 h-10 rounded-lg bg-accent-blood/10 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-lg bg-primary-400/10 flex items-center justify-center">
                 <Image src={waringIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
               </div>
               <span class="font-heading text-xs text-neutral-300 tracking-widest uppercase">Alerte</span>
@@ -487,8 +477,8 @@ const securityScore = hasSam ? 96 : 72;
           <!-- ── MODALS ──────────────────────────────────────── -->
 
           <!-- Modal détail jeu -->
-          <div id="game-modal-backdrop" class="hidden fixed inset-0 z-50 bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
-          <div id="game-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="gm-nom">
+          <div id="game-modal-backdrop" class="hidden fixed inset-0 z-modal bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
+          <div id="game-modal" class="hidden fixed inset-0 z-modal items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="gm-nom">
             <div class="relative w-full max-w-sm bg-dark-700 border border-primary-400/20 rounded-2xl overflow-hidden shadow-xl">
               <div id="gm-img" class="w-full h-44 bg-dark-800 overflow-hidden" />
               <div class="p-6 flex flex-col gap-4">
@@ -524,8 +514,8 @@ const securityScore = hasSam ? 96 : 72;
           </div>
 
           <!-- Modal liste des jeux -->
-          <div id="jeux-list-backdrop" class="hidden fixed inset-0 z-50 bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
-          <div id="jeux-list-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Choisir un jeu">
+          <div id="jeux-list-backdrop" class="hidden fixed inset-0 z-modal bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
+          <div id="jeux-list-modal" class="hidden fixed inset-0 z-modal items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Choisir un jeu">
             <div class="relative w-full max-w-sm bg-dark-700 border border-primary-400/20 rounded-2xl overflow-hidden shadow-xl flex flex-col" style="max-height:80vh;">
               <div class="px-5 pt-5 pb-4 border-b border-dark-600 flex items-center justify-between shrink-0">
                 <div>
@@ -571,8 +561,8 @@ const securityScore = hasSam ? 96 : 72;
           </div>
 
           <!-- Modal alerte / urgences -->
-          <div id="alerte-backdrop" class="hidden fixed inset-0 z-50 bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
-          <div id="alerte-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Numéros d'urgence">
+          <div id="alerte-backdrop" class="hidden fixed inset-0 z-modal bg-dark-900/80 backdrop-blur-sm" aria-hidden="true" />
+          <div id="alerte-modal" class="hidden fixed inset-0 z-modal items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Numéros d'urgence">
             <div class="relative w-full max-w-sm bg-dark-700 border border-accent-blood/30 rounded-2xl overflow-hidden shadow-xl">
               <div class="px-6 pt-6 pb-3 border-b border-dark-600">
                 <p class="font-heading text-xs text-accent-blood tracking-widest uppercase mb-1">SOS</p>
@@ -730,8 +720,8 @@ const securityScore = hasSam ? 96 : 72;
               var btnJeuxClose     = document.getElementById('jeux-list-close');
               var btnRandom        = document.getElementById('btn-random-game');
 
-              function openJeuxList()  { jeuxListBackdrop.classList.remove('hidden'); jeuxListModal.classList.remove('hidden'); jeuxListModal.classList.add('flex'); }
-              function closeJeuxList() { jeuxListModal.classList.add('hidden'); jeuxListModal.classList.remove('flex'); jeuxListBackdrop.classList.add('hidden'); }
+              function openJeuxList()  { if (mapEl) mapEl.style.visibility = 'hidden'; jeuxListBackdrop.classList.remove('hidden'); jeuxListModal.classList.remove('hidden'); jeuxListModal.classList.add('flex'); }
+              function closeJeuxList() { jeuxListModal.classList.add('hidden'); jeuxListModal.classList.remove('flex'); jeuxListBackdrop.classList.add('hidden'); if (mapEl) mapEl.style.visibility = ''; }
 
               btnOpenJeux      && btnOpenJeux.addEventListener('click', openJeuxList);
               btnJeuxClose     && btnJeuxClose.addEventListener('click', closeJeuxList);
@@ -757,8 +747,8 @@ const securityScore = hasSam ? 96 : 72;
               var btnAlerte      = document.getElementById('btn-alerte');
               var btnAlerteClose = document.getElementById('alerte-close');
 
-              function openAlerte()  { alerteBackdrop.classList.remove('hidden'); alerteModal.classList.remove('hidden'); alerteModal.classList.add('flex'); }
-              function closeAlerte() { alerteModal.classList.add('hidden'); alerteModal.classList.remove('flex'); alerteBackdrop.classList.add('hidden'); }
+              function openAlerte()  { if (mapEl) mapEl.style.visibility = 'hidden'; alerteBackdrop.classList.remove('hidden'); alerteModal.classList.remove('hidden'); alerteModal.classList.add('flex'); }
+              function closeAlerte() { alerteModal.classList.add('hidden'); alerteModal.classList.remove('flex'); alerteBackdrop.classList.add('hidden'); if (mapEl) mapEl.style.visibility = ''; }
 
               btnAlerte      && btnAlerte.addEventListener('click', openAlerte);
               btnAlerteClose && btnAlerteClose.addEventListener('click', closeAlerte);
@@ -981,20 +971,20 @@ const securityScore = hasSam ? 96 : 72;
           <!-- Infos rapides -->
           <div class="card-parchment rounded-xl p-4 flex flex-col gap-2">
             <div class="flex justify-between text-xs">
-              <span class="font-heading text-neutral-600 tracking-widest uppercase">Départ</span>
-              <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_depart)}</span>
+              <span class="font-heading text-neutral-100 tracking-widest uppercase">Départ</span>
+              <span class="font-body text-neutral-200">{fmtDate(session?.date_heur_depart)}</span>
             </div>
             <div class="flex justify-between text-xs">
-              <span class="font-heading text-neutral-600 tracking-widest uppercase">Arrivée</span>
-              <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_arriver)}</span>
+              <span class="font-heading text-neutral-100 tracking-widest uppercase">Arrivée</span>
+              <span class="font-body text-neutral-200">{fmtDate(session?.date_heur_arriver)}</span>
             </div>
             <div class="flex justify-between text-xs">
-              <span class="font-heading text-neutral-600 tracking-widest uppercase">Membres</span>
-              <span class="font-body text-neutral-400">{sessionMembers.length}</span>
+              <span class="font-heading text-neutral-100 tracking-widest uppercase">Membres</span>
+              <span class="font-body text-neutral-200">{sessionMembers.length}</span>
             </div>
             <div class="flex justify-between text-xs">
-              <span class="font-heading text-neutral-600 tracking-widest uppercase">Bars</span>
-              <span class="font-body text-neutral-400">{sessionBars.length}</span>
+              <span class="font-heading text-neutral-100 tracking-widest uppercase">Bars</span>
+              <span class="font-body text-neutral-200">{sessionBars.length}</span>
             </div>
           </div>
 
@@ -1211,20 +1201,20 @@ const securityScore = hasSam ? 96 : 72;
           <!-- Infos rapides -->
           <div class="card-parchment rounded-xl p-4 flex flex-col gap-2">
             <div class="flex justify-between text-xs">
-              <span class="font-heading text-neutral-600 tracking-widest uppercase">Départ</span>
-              <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_depart)}</span>
+              <span class="font-heading text-neutral-100 tracking-widest uppercase">Départ</span>
+              <span class="font-body text-neutral-200">{fmtDate(session?.date_heur_depart)}</span>
             </div>
             <div class="flex justify-between text-xs">
-              <span class="font-heading text-neutral-600 tracking-widest uppercase">Arrivée</span>
-              <span class="font-body text-neutral-400">{fmtDate(session?.date_heur_arriver)}</span>
+              <span class="font-heading text-neutral-100 tracking-widest uppercase">Arrivée</span>
+              <span class="font-body text-neutral-200">{fmtDate(session?.date_heur_arriver)}</span>
             </div>
             <div class="flex justify-between text-xs">
-              <span class="font-heading text-neutral-600 tracking-widest uppercase">Durée</span>
-              <span class="font-body text-neutral-400">{durationStr}</span>
+              <span class="font-heading text-neutral-100 tracking-widest uppercase">Durée</span>
+              <span class="font-body text-neutral-200">{durationStr}</span>
             </div>
             <div class="flex justify-between text-xs">
-              <span class="font-heading text-neutral-600 tracking-widest uppercase">Membres</span>
-              <span class="font-body text-neutral-400">{sessionMembers.length}</span>
+              <span class="font-heading text-neutral-100 tracking-widest uppercase">Membres</span>
+              <span class="font-body text-neutral-200">{sessionMembers.length}</span>
             </div>
           </div>
 
@@ -1265,6 +1255,19 @@ const securityScore = hasSam ? 96 : 72;
 
 </Layout>
 
+{justJoined && (
+  <script>
+    var notif = document.getElementById('join-notif');
+    if (notif) {
+      setTimeout(function() {
+        notif.style.transition = 'opacity 0.5s';
+        notif.style.opacity = '0';
+        setTimeout(function() { notif.remove(); }, 500);
+      }, 3000);
+    }
+  </script>
+)}
+
 <script>
   import '../../js/tabs.js';
 </script>
@@ -1287,8 +1290,8 @@ const securityScore = hasSam ? 96 : 72;
     shareResumeBtn.addEventListener('click', () => {
       if (navigator.share) {
         navigator.share({
-          title: 'Résumé Ægirhall',
-          text: 'Notre soirée viking est terminée. Retrouvez le résumé sur Ægirhall !',
+          title: 'Résumé AEgirhall',
+          text: 'Notre soirée viking est terminée. Retrouvez le résumé sur AEgirhall !',
         }).catch(() => {});
       }
     });
@@ -1300,7 +1303,7 @@ const securityScore = hasSam ? 96 : 72;
     shareSessionBtn.addEventListener('click', () => {
       const url = window.location.href;
       if (navigator.share) {
-        navigator.share({ title: 'Session Ægirhall', url }).catch(() => {});
+        navigator.share({ title: 'Session AEgirhall', url }).catch(() => {});
       } else if (navigator.clipboard) {
         navigator.clipboard.writeText(url).catch(() => {});
       }

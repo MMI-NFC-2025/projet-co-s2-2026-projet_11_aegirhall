@@ -1,56 +1,58 @@
 @import '@fontsource/cinzel/400.css';
 @import '@fontsource/cinzel/700.css';
 @import '@fontsource/cinzel-decorative/400.css';
-@import '@fontsource/eb-garamond/400.css';
-@import '@fontsource/eb-garamond/500.css';
-@import '@fontsource/eb-garamond/600.css';
+@import '@fontsource/vollkorn/400.css';
+@import '@fontsource/vollkorn/400-italic.css';
 @import 'tailwindcss';
 
 @theme {
   /* ── Fonts ─────────────────────────────────────────── */
   --font-display: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
   --font-heading: 'Cinzel', Georgia, serif;
-  --font-body: 'EB Garamond', Georgia, serif;
+  --font-body: 'Vollkorn', Georgia, serif;
 
-  /* ── Primary — Gold / Mead ──────────────────────────── */
-  --color-primary-100: #FDF4DC;
-  --color-primary-200: #F5DC8C;
-  --color-primary-300: #E8BE50;
-  --color-primary-400: #C49A2C;
-  --color-primary-500: #A07820;
-  --color-primary-600: #7C5818;
-  --color-primary-700: #5C3C10;
-  --color-primary-800: #3C2408;
-  --color-primary-900: #1E1204;
+  /* ── Primary — Fire & Miel (Braise, Miel Doré, Or Runique) ── */
+  --color-primary-100: #FDF0DC;
+  --color-primary-200: #EDD890;
+  --color-primary-300: #D4AF47;   /* Miel Doré — titres display */
+  --color-primary-400: #C4490A;   /* Braise — CTA principal */
+  --color-primary-500: #94701C;   /* Or Runique — accents */
+  --color-primary-600: #7C3A10;
+  --color-primary-700: #5C2808;
+  --color-primary-800: #3C1804;
+  --color-primary-900: #1E0C02;
 
-  /* ── Dark — Navy / Fjord ────────────────────────────── */
+  /* ── Dark — Warm Dark (Nuit Profonde, Obsidienne, Terre Brûlée) */
   --color-dark-50:  #EDF2F7;
-  --color-dark-100: #D0DCE8;
-  --color-dark-200: #9CB4C8;
-  --color-dark-300: #6A8EA8;
-  --color-dark-400: #3A6480;
-  --color-dark-500: #1E4060;
-  --color-dark-600: #152A48;
-  --color-dark-700: #0E1E36;
-  --color-dark-800: #091424;
-  --color-dark-900: #040C16;
+  --color-dark-100: #D0C8BE;
+  --color-dark-200: #A09080;
+  --color-dark-300: #6A94A8;      /* Givre — infos / SAM */
+  --color-dark-400: #4A6070;
+  --color-dark-500: #2A3840;
+  --color-dark-600: #231F17;      /* Terre Brûlée — cartes */
+  --color-dark-700: #161410;      /* Obsidienne — surfaces */
+  --color-dark-800: #0E0C08;      /* Nuit Profonde — fond global */
+  --color-dark-900: #0A0806;
 
-  /* ── Neutral — Parchment / Stone ────────────────────── */
+  /* ── Neutral — Parchemin ────────────────────────────── */
   --color-neutral-100: #FFFFFF;
-  --color-neutral-200: #F5EFE3;
-  --color-neutral-300: #E0D4BE;
-  --color-neutral-400: #C0A882;
-  --color-neutral-500: #9A806A;
-  --color-neutral-600: #705840;
-  --color-neutral-700: #4A3420;
-  --color-neutral-800: #2C1E10;
-  --color-neutral-900: #180E06;
+  --color-neutral-200: #C8B98A;   /* Parchemin Sombre — texte body */
+  --color-neutral-300: #B0A070;
+  --color-neutral-400: #907850;
+  --color-neutral-500: #705840;
+  --color-neutral-600: #503828;
+  --color-neutral-700: #382818;
+  --color-neutral-800: #201408;
+  --color-neutral-900: #100A04;
 
   /* ── Accent ─────────────────────────────────────────── */
-  --color-accent-blood: #9B1F1F;
-  --color-accent-rune:  #2D6A4F;
+  --color-accent-blood: #8C1C13;  /* Sang — erreurs, danger */
+  --color-accent-rune:  #2D6A4F;  /* Vert rune — succès, visité */
 
-  /* ── Tracking — espacements ruiques (sans équivalent Tailwind standard) */
+  /* ── Z-index ────────────────────────────────────────── */
+  --z-modal: 1000;   /* au-dessus du z-index max de Leaflet (~700) */
+
+  /* ── Tracking — espacements runiques ────────────────── */
   --tracking-rune-sm:     0.15em;
   --tracking-rune:        0.20em;
   --tracking-rune-wide:   0.25em;
@@ -61,13 +63,13 @@
 /* ── Scrollbar ──────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #C49A2C #091424;
+  scrollbar-color: #D4AF47 #0E0C08;
 }
 
 /* ── Selection ──────────────────────────────────────────── */
 ::selection {
-  background-color: #C49A2C;
-  color: #040C16;
+  background-color: #C4490A;
+  color: #FDF0DC;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -87,8 +89,8 @@
   width: 2px;
   height: 2px;
   border-radius: 50%;
-  background: #E8BE50;
-  box-shadow: 0 0 5px 2px rgba(196, 154, 44, 0.6);
+  background: #D4AF47;
+  box-shadow: 0 0 5px 2px rgba(196, 73, 10, 0.6);
   animation: float-ember linear infinite;
   pointer-events: none;
 }
@@ -113,28 +115,28 @@
 @keyframes torch-flicker {
   0%, 100% {
     text-shadow:
-      0 0 10px #E8BE5088,
-      0 0 25px #C49A2C66,
-      0 0 50px #A0782033;
+      0 0 10px #D4AF4788,
+      0 0 25px #94701C66,
+      0 0 50px #94701C33;
   }
   30% {
     text-shadow:
-      0 0 16px #E8BE50BB,
-      0 0 40px #C49A2C88,
-      0 0 80px #A0782055;
+      0 0 16px #D4AF47BB,
+      0 0 40px #C4490A88,
+      0 0 80px #C4490A55;
   }
   60% {
     text-shadow:
-      0 0 8px #C49A2C66,
-      0 0 20px #A0782044,
-      0 0 35px #7C581822;
+      0 0 8px #94701C66,
+      0 0 20px #94701C44,
+      0 0 35px #7C3A1022;
   }
 }
 
-/* Pulsation douce — éléments or */
+/* Pulsation douce — éléments CTA */
 @keyframes pulse-gold {
-  0%, 100% { box-shadow: 0 0 0 0 #C49A2C44; }
-  50%       { box-shadow: 0 0 0 8px #C49A2C00; }
+  0%, 100% { box-shadow: 0 0 0 0 #C4490A44; }
+  50%       { box-shadow: 0 0 0 8px #C4490A00; }
 }
 
 /* Shimmer horizontal — boutons */
@@ -166,11 +168,11 @@
 .title-shimmer {
   background: linear-gradient(
     90deg,
-    #C49A2C 0%,
-    #E8BE50 25%,
-    #FDF4DC 50%,
-    #E8BE50 75%,
-    #C49A2C 100%
+    #94701C 0%,
+    #D4AF47 25%,
+    #F0E0A0 50%,
+    #D4AF47 75%,
+    #94701C 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -184,21 +186,21 @@
    FOND — TEXTURES PIERRE / BOIS
    ═══════════════════════════════════════════════════════════ */
 
-/* Motif grille or très subtil — fond de sections */
+/* Motif grille miel très subtil — fond de sections */
 .bg-mesh-gold {
   background-image:
-    linear-gradient(rgba(196, 154, 44, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(196, 154, 44, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(212, 175, 71, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 175, 71, 0.04) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
 /* Motif losanges — fond hero */
 .bg-diamond {
   background-image:
-    linear-gradient(45deg,  rgba(196, 154, 44, 0.035) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(196, 154, 44, 0.035) 25%, transparent 25%),
-    linear-gradient(45deg,  transparent 75%, rgba(196, 154, 44, 0.035) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(196, 154, 44, 0.035) 75%);
+    linear-gradient(45deg,  rgba(212, 175, 71, 0.035) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(212, 175, 71, 0.035) 25%, transparent 25%),
+    linear-gradient(45deg,  transparent 75%, rgba(212, 175, 71, 0.035) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(212, 175, 71, 0.035) 75%);
   background-size: 24px 24px;
   background-position: 0 0, 0 12px, 12px -12px, -12px 0;
 }
@@ -218,8 +220,8 @@
    ═══════════════════════════════════════════════════════════ */
 
 .card-parchment {
-  background: linear-gradient(135deg, #152A48 0%, #0E1E36 100%);
-  border: 1px solid #C49A2C33;
+  background: linear-gradient(135deg, #231F17 0%, #161410 100%);
+  border: 1px solid #D4AF4733;
   position: relative;
 }
 
@@ -228,7 +230,7 @@
   content: '';
   position: absolute;
   inset: 3px;
-  border: 1px solid #C49A2C14;
+  border: 1px solid #D4AF4714;
   border-radius: inherit;
   pointer-events: none;
 }
@@ -238,26 +240,26 @@
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 .card-hover:hover {
-  border-color: #C49A2C55;
-  box-shadow: 0 0 20px #C49A2C14, inset 0 0 30px #C49A2C08;
+  border-color: #C4490A55;
+  box-shadow: 0 0 20px #C4490A14, inset 0 0 30px #C4490A08;
 }
 
 /* Cadre runique avec coins or */
 .frame-rune {
   position: relative;
-  border: 1px solid #C49A2C40;
+  border: 1px solid #D4AF4740;
   padding: 1.5rem;
 }
 .frame-rune::before,
 .frame-rune::after {
   content: '◆';
   position: absolute;
-  color: #C49A2C;
+  color: #D4AF47;
   font-size: 10px;
   line-height: 1;
 }
-.frame-rune::before { top: -6px;  left:  16px; background: #091424; padding: 0 4px; }
-.frame-rune::after  { bottom: -6px; right: 16px; background: #091424; padding: 0 4px; }
+.frame-rune::before { top: -6px;  left:  16px; background: #0E0C08; padding: 0 4px; }
+.frame-rune::after  { bottom: -6px; right: 16px; background: #0E0C08; padding: 0 4px; }
 
 /* ═══════════════════════════════════════════════════════════
    BOUTONS
@@ -268,9 +270,9 @@
   align-items: center;
   justify-content: center;
   padding: 0.75rem 2rem;
-  background: linear-gradient(135deg, #E8BE50 0%, #C49A2C 50%, #A07820 100%);
+  background: linear-gradient(135deg, #E06030 0%, #C4490A 50%, #8C2C06 100%);
   background-size: 200% auto;
-  color: #040C16;
+  color: #FDF0DC;
   font-family: 'Cinzel', serif;
   font-weight: 700;
   font-size: 0.875rem;
@@ -280,11 +282,11 @@
   border-radius: 0.25rem;
   position: relative;
   transition: box-shadow 0.3s, transform 0.15s, background-position 0.5s;
-  box-shadow: 0 2px 12px #C49A2C44, inset 0 1px 0 #FDF4DC44;
+  box-shadow: 0 2px 12px #C4490A44, inset 0 1px 0 #FDF0DC44;
 }
 .btn-primary:hover {
   background-position: right center;
-  box-shadow: 0 4px 20px #C49A2C66, 0 0 40px #C49A2C22, inset 0 1px 0 #FDF4DC44;
+  box-shadow: 0 4px 20px #C4490A66, 0 0 40px #C4490A22, inset 0 1px 0 #FDF0DC44;
   transform: translateY(-2px);
 }
 .btn-primary:active { transform: translateY(0); }
@@ -293,9 +295,9 @@
   align-items: center;
   justify-content: center;
   padding: 0.375rem 0.875rem;
-  background: linear-gradient(135deg, #E8BE50 0%, #C49A2C 50%, #A07820 100%);
+  background: linear-gradient(135deg, #E06030 0%, #C4490A 50%, #8C2C06 100%);
   background-size: 200% auto;
-  color: #040C16;
+  color: #FDF0DC;
   font-family: 'Cinzel', serif;
   font-weight: 700;
   font-size: 0.75rem;
@@ -305,12 +307,12 @@
   border-radius: 0.25rem;
   cursor: pointer;
   transition: box-shadow 0.3s, transform 0.15s, background-position 0.5s;
-  box-shadow: 0 2px 8px #C49A2C44;
+  box-shadow: 0 2px 8px #C4490A44;
   white-space: nowrap;
 }
 .btn-primary-sm:hover {
   background-position: right center;
-  box-shadow: 0 4px 14px #C49A2C66;
+  box-shadow: 0 4px 14px #C4490A66;
   transform: translateY(-1px);
 }
 .btn-primary-sm:disabled { opacity: 0.5; cursor: default; transform: none; }
@@ -329,8 +331,8 @@
   align-items: center;
   justify-content: center;
   padding: 0.75rem 2rem;
-  border: 1px solid #C49A2C88;
-  color: #C49A2C;
+  border: 1px solid #C4490A88;
+  color: #C4490A;
   font-family: 'Cinzel', serif;
   font-weight: 700;
   font-size: 0.875rem;
@@ -341,9 +343,9 @@
   background: transparent;
 }
 .btn-outline:hover {
-  background: #C49A2C14;
-  border-color: #C49A2C;
-  box-shadow: 0 0 16px #C49A2C22;
+  background: #C4490A14;
+  border-color: #C4490A;
+  box-shadow: 0 0 16px #C4490A22;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -353,20 +355,20 @@
 .input-viking {
   width: 100%;
   padding: 0.75rem 1rem;
-  background: #040C1699;
-  border: 1px solid #C49A2C44;
+  background: #0E0C0899;
+  border: 1px solid #D4AF4744;
   border-radius: 0.25rem;
-  color: #F5EFE3;
-  font-family: 'EB Garamond', serif;
+  color: #C8B98A;
+  font-family: 'Vollkorn', serif;
   font-size: 1.125rem;
   outline: none;
   transition: border-color 0.25s, box-shadow 0.25s;
 }
 .input-viking:focus {
-  border-color: #C49A2C;
-  box-shadow: 0 0 0 3px #C49A2C22;
+  border-color: #C4490A;
+  box-shadow: 0 0 0 3px #C4490A22;
 }
-.input-viking::placeholder { color: #3A6480; }
+.input-viking::placeholder { color: #6A94A8; }
 
 .label-viking {
   display: block;
@@ -376,7 +378,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #A07820;
+  color: #94701C;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -387,7 +389,7 @@
   display: flex;
   align-items: center;
   gap: 0.875rem;
-  color: #C49A2C;
+  color: #D4AF47;
   opacity: 0.55;
 }
 .rune-divider::before,
@@ -403,7 +405,7 @@
   display: flex;
   align-items: center;
   gap: 0;
-  color: #C49A2C;
+  color: #D4AF47;
   opacity: 0.4;
 }
 .divider-diamond::before,
@@ -433,9 +435,9 @@
   color: #6FCF97;
 }
 .badge-pending {
-  background: #C49A2C18;
-  border: 1px solid #C49A2C66;
-  color: #E8BE50;
+  background: #D4AF4718;
+  border: 1px solid #D4AF4766;
+  color: #D4AF47;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -443,9 +445,9 @@
    ═══════════════════════════════════════════════════════════ */
 
 .header-scrolled {
-  background: rgba(4, 12, 22, 0.96);
+  background: rgba(14, 12, 8, 0.96);
   backdrop-filter: blur(14px) saturate(1.2);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(196, 154, 44, 0.15);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(212, 175, 71, 0.15);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -453,7 +455,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 .progress-bar-track {
-  background: #0E1E36;
+  background: #161410;
   border-radius: 999px;
   overflow: hidden;
   height: 8px;
@@ -461,10 +463,10 @@
 }
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7C5818, #C49A2C, #E8BE50);
+  background: linear-gradient(90deg, #94701C, #C4490A, #E06030);
   border-radius: 999px;
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 8px #C49A2C66;
+  box-shadow: 0 0 8px #C4490A66;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -473,19 +475,19 @@
 
 /* Lueur or sur texte */
 .text-glow {
-  text-shadow: 0 0 12px #C49A2C88, 0 0 24px #C49A2C44;
+  text-shadow: 0 0 12px #D4AF4788, 0 0 24px #D4AF4744;
 }
 
 /* Popup Leaflet personnalisée */
 .popup-viking .leaflet-popup-content-wrapper {
-  background: #0E1E36;
-  border: 1px solid #C49A2C44;
+  background: #161410;
+  border: 1px solid #D4AF4744;
   border-radius: 4px;
-  color: #F5EFE3;
+  color: #C8B98A;
   box-shadow: 0 4px 20px #00000088;
 }
 .popup-viking .leaflet-popup-tip {
-  background: #0E1E36;
+  background: #161410;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -494,9 +496,9 @@
 
 /* Carte verre — glassmorphism léger pour sections sur image */
 .card-glass {
-  background: rgba(14, 30, 54, 0.65);
+  background: rgba(22, 20, 16, 0.65);
   backdrop-filter: blur(16px) saturate(1.3);
-  border: 1px solid rgba(196, 154, 44, 0.22);
+  border: 1px solid rgba(212, 175, 71, 0.22);
   position: relative;
 }
 .card-glass::before {
@@ -504,17 +506,17 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(196,154,44,0.04) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(212,175,71,0.04) 0%, transparent 60%);
   pointer-events: none;
 }
 
-/* Carte highlight — contour or animé au hover */
+/* Carte highlight — contour animé au hover */
 .card-highlight {
   transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.25s ease;
 }
 .card-highlight:hover {
-  border-color: rgba(196, 154, 44, 0.45);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(196,154,44,0.1);
+  border-color: rgba(196, 73, 10, 0.45);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(196,73,10,0.1);
   transform: translateY(-2px);
 }
 
@@ -522,7 +524,7 @@
    BOUTONS — VARIANTES SUPPLÉMENTAIRES
    ═══════════════════════════════════════════════════════════ */
 
-/* Bouton fantôme — texte gold, pas de fond */
+/* Bouton fantôme — texte Braise, pas de fond */
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -530,7 +532,7 @@
   padding: 0.625rem 1.5rem;
   border: none;
   background: transparent;
-  color: #C49A2C;
+  color: #C4490A;
   font-family: 'Cinzel', serif;
   font-weight: 700;
   font-size: 0.75rem;
@@ -539,17 +541,17 @@
   transition: color 0.2s, text-shadow 0.2s;
 }
 .btn-ghost:hover {
-  color: #E8BE50;
-  text-shadow: 0 0 10px rgba(196,154,44,0.5);
+  color: #D4AF47;
+  text-shadow: 0 0 10px rgba(212,175,71,0.5);
 }
 
 /* ═══════════════════════════════════════════════════════════
-   NAVIGATION — LIENS AVEC SOULIGNEMENT OR
+   NAVIGATION — LIENS AVEC SOULIGNEMENT
    ═══════════════════════════════════════════════════════════ */
 
 .link-underline-gold {
   position: relative;
-  color: #C49A2C;
+  color: #C4490A;
   text-decoration: none;
   transition: color 0.2s;
 }
@@ -560,10 +562,10 @@
   left: 0;
   width: 0;
   height: 1px;
-  background: #E8BE50;
+  background: #D4AF47;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.link-underline-gold:hover { color: #E8BE50; }
+.link-underline-gold:hover { color: #D4AF47; }
 .link-underline-gold:hover::after { width: 100%; }
 
 /* ═══════════════════════════════════════════════════════════
@@ -576,19 +578,19 @@
   align-items: center;
   gap: 0.2rem;
   padding: 1rem 1.25rem;
-  border: 1px solid rgba(196,154,44,0.2);
-  background: linear-gradient(135deg, rgba(21,42,72,0.8) 0%, rgba(14,30,54,0.8) 100%);
+  border: 1px solid rgba(212,175,71,0.2);
+  background: linear-gradient(135deg, rgba(35,31,23,0.8) 0%, rgba(22,20,16,0.8) 100%);
   border-radius: 0.375rem;
   transition: border-color 0.25s, box-shadow 0.25s;
 }
 .stat-block:hover {
-  border-color: rgba(196,154,44,0.4);
-  box-shadow: 0 0 16px rgba(196,154,44,0.08);
+  border-color: rgba(212,175,71,0.4);
+  box-shadow: 0 0 16px rgba(212,175,71,0.08);
 }
 .stat-block__value {
   font-family: 'Cinzel Decorative', serif;
   font-size: 1.75rem;
-  color: #C49A2C;
+  color: #D4AF47;
   line-height: 1;
 }
 .stat-block__label {
@@ -596,16 +598,16 @@
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #9A806A;
+  color: #907850;
 }
 
 /* ═══════════════════════════════════════════════════════════
    FORMULAIRES — AMÉLIORATIONS FOCUS
    ═══════════════════════════════════════════════════════════ */
 
-/* Focus ring doré accessible */
+/* Focus ring accessible */
 .input-viking:focus-visible {
-  outline: 2px solid #C49A2C66;
+  outline: 2px solid #C4490A66;
   outline-offset: 2px;
 }
 
@@ -618,11 +620,11 @@
   left: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #3A6480;
+  color: #6A94A8;
   pointer-events: none;
   transition: color 0.25s;
 }
-.input-wrapper:focus-within .input-icon { color: #C49A2C; }
+.input-wrapper:focus-within .input-icon { color: #C4490A; }
 .input-wrapper .input-viking { padding-left: 2.5rem; }
 
 /* ═══════════════════════════════════════════════════════════
@@ -655,21 +657,21 @@
    FILTRES & EFFETS SPÉCIAUX
    ═══════════════════════════════════════════════════════════ */
 
-.drop-shadow-gold    { filter: drop-shadow(0 2px 28px rgba(196,154,44,0.20)); }
-.drop-shadow-gold-lg { filter: drop-shadow(0 2px 32px rgba(196,154,44,0.30)); }
+.drop-shadow-gold    { filter: drop-shadow(0 2px 28px rgba(212,175,71,0.20)); }
+.drop-shadow-gold-lg { filter: drop-shadow(0 2px 32px rgba(212,175,71,0.30)); }
 
 /* Halo teal — icônes étapes */
 .glow-teal { box-shadow: 0 0 15px 0 rgba(74,155,155,0.5); }
 
-/* Fond or dégradé — icônes features */
+/* Fond Miel Doré dégradé — icônes features */
 .icon-gold-bg {
-  background: linear-gradient(135deg, #d4af37 0%, #b89030 100%);
-  box-shadow: 0 10px 20px rgba(212,175,55,0.2);
+  background: linear-gradient(135deg, #D4AF47 0%, #94701C 100%);
+  box-shadow: 0 10px 20px rgba(212,175,71,0.2);
 }
 
-/* Orbe de lumière or floue — décoration fond */
+/* Orbe de lumière floue — décoration fond */
 .blur-orb-gold {
-  background: rgba(196,154,44,0.09);
+  background: rgba(212,175,71,0.09);
   filter: blur(72px);
 }
 
@@ -678,7 +680,7 @@
 
 /* Dégradé carte plan premium */
 .bg-card-premium {
-  background: linear-gradient(135deg, rgba(196,154,44,0.12) 0%, rgba(21,42,72,0.95) 50%, rgba(14,30,54,0.98) 100%);
+  background: linear-gradient(135deg, rgba(196,73,10,0.12) 0%, rgba(35,31,23,0.95) 50%, rgba(22,20,16,0.98) 100%);
 }
 
 /* Dégradé carte sécurité/SAM */
@@ -698,12 +700,12 @@
 .btn-primary:focus-visible,
 .btn-outline:focus-visible,
 .btn-ghost:focus-visible {
-  outline: 2px solid #C49A2C;
+  outline: 2px solid #C4490A;
   outline-offset: 3px;
 }
 
 a:focus-visible {
-  outline: 2px solid #C49A2C66;
+  outline: 2px solid #C4490A66;
   outline-offset: 2px;
   border-radius: 2px;
 }

@@ -1,4 +1,4 @@
----
+﻿---
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import { authWithPassword } from '../js/backend.js';
@@ -34,7 +34,7 @@ if (Astro.request.method === 'POST') {
   }
 }
 ---
-<Layout title="Connexion — Ægirhall">
+<Layout title="Connexion — AEgirhall">
 
   <div class="min-h-[calc(100vh-92px)] flex">
 
@@ -51,12 +51,12 @@ if (Astro.request.method === 'POST') {
       <div class="relative z-10 w-full max-w-sm">
 
         <a href="/" class="font-display text-lg text-primary-500 tracking-widest hover:text-primary-400 transition-colors block mb-10">
-          Ægirhall
+          AEgirhall
         </a>
 
         <h1 class="font-display text-3xl text-primary-400 tracking-widest mb-2">Se connecter</h1>
         <p class="font-body text-neutral-500 text-base leading-relaxed mb-8">
-          Connectez-vous à votre compte Ægirhall
+          Connectez-vous à votre compte AEgirhall
         </p>
 
         {error && (

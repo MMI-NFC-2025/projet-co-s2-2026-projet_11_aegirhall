@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import { Image } from 'astro:assets';
-import { getCollection, getRecord, updateUser, createSession } from '../../js/backend.js';
+import { getCollection, getRecord, createSession } from '../../js/backend.js';
 import personnesIcon from '../../assets/icon/personnes.svg';
 import voitureIcon   from '../../assets/icon/voiture.svg';
 import bierreIcon    from '../../assets/icon/bierre.svg';
@@ -51,15 +51,7 @@ if (Astro.request.method === 'POST') {
   if (session?.error) {
     error = Object.values(session.error?.data ?? {}).map((v: any) => v?.message).filter(Boolean).join(' ') || session.error?.message || 'Erreur de création.';
   } else {
-    const invited = selectedMembers.filter(id => id !== userId);
-    await Promise.all(invited.map(async memberId => {
-      const member = await getRecord('users', memberId, { token });
-      const existing = member?.demande_session ?? [];
-      if (!existing.includes(session.id)) {
-        await updateUser(memberId, { demande_session: [...existing, session.id] }, token);
-      }
-    }));
-    return Astro.redirect(`/session/${session.id}`);
+    return Astro.redirect(`/session/${session.id}?joined=1`);
   }
 }
 
@@ -291,6 +283,37 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
                 </label>
               ))}
               {jeux.length === 0 && <p class="font-body text-neutral-500 text-center py-8 col-span-2">Aucun jeu disponible.</p>}
+
+              <!-- Séparateur jeux en ligne -->
+              <div class="col-span-2 flex items-center gap-3 pt-1">
+                <div class="flex-1 h-px bg-dark-600" />
+                <span class="font-heading text-xs text-neutral-600 tracking-widest uppercase shrink-0">Jeux en ligne — toujours disponibles</span>
+                <div class="flex-1 h-px bg-dark-600" />
+              </div>
+
+              {([
+                { nom: 'Touche du Guerrier', desc: 'Réflexes — Rouge → Vert',    href: '/jeux/reflexes', xp: '50–200 XP', icon: '◉' },
+                { nom: 'Calculs du Jarl',   desc: 'Calcul mental — 30 sec',      href: '/jeux/calculs',  xp: '5–30 XP',   icon: '🧮' },
+                { nom: 'Vrai ou Faux',      desc: 'Équations — 30 sec',          href: '/jeux/vrai-faux',xp: '5–25 XP',   icon: '✓✗' },
+                { nom: 'Séquence Viking',   desc: 'Mémoire — reproduisez l\'ordre', href: '/jeux/sequence',xp: '20–100 XP', icon: '◆' },
+              ] as const).map(g => (
+                <div class="card-parchment rounded-lg overflow-hidden col-span-1">
+                  <div class="h-12 bg-dark-900 flex items-center justify-center select-none" aria-hidden="true">
+                    <span class="text-2xl opacity-30">{g.icon}</span>
+                  </div>
+                  <div class="p-3 flex items-center gap-3">
+                    <div class="flex-1 min-w-0">
+                      <p class="font-heading text-sm text-neutral-200 tracking-wide">{g.nom}</p>
+                      <p class="font-body text-xs text-neutral-500">{g.desc}</p>
+                    </div>
+                    <a href={g.href} target="_blank" rel="noopener"
+                       class="font-heading text-xs text-primary-400 hover:text-primary-300 tracking-widest uppercase shrink-0 transition-colors"
+                       aria-label={`Jouer à ${g.nom}`}>
+                      Jouer →
+                    </a>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
----
+﻿---
 interface Props {
   title?: string;
   description?: string;
@@ -6,12 +6,12 @@ interface Props {
 }
 
 const {
-  title = 'Ægirhall',
+  title = 'AEgirhall',
   description = 'Le grand barathon viking — parcourez la Route des Jarls et conquérez chaque taverne.',
   image = '/og.jpg'
 } = Astro.props;
 
-const fullTitle = title === 'Ægirhall' ? title : `${title} — Ægirhall`;
+const fullTitle = title === 'AEgirhall' ? title : `${title} — AEgirhall`;
 const canonical = Astro.url.href;
 ---
 <title>{fullTitle}</title>

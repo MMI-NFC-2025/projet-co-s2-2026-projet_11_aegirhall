@@ -1,4 +1,4 @@
----
+﻿---
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import { getCollection, getMe } from '../js/backend.js';
@@ -46,7 +46,7 @@ const progression = bars.length ? Math.round((visitedIds.length / bars.length) *
 const nextBar     = bars.find(b => !visitedIds.includes(b.id));
 const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
 ---
-<Layout title="Accueil — Ægirhall">
+<Layout title="Accueil — AEgirhall">
 
   <!-- ══════════════════════════════════════════════════════════════
        HERO
@@ -84,7 +84,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
 
       <!-- Description -->
       <p class="font-body text-lg lg:text-2xl text-neutral-100 leading-relaxed max-w-3xl mx-auto mb-4">
-        Ægirhall est une application de sécurité nocturne inspirée de la camaraderie viking.
+        AEgirhall est une application de sécurité nocturne inspirée de la camaraderie viking.
         Créez votre groupe, désignez un gardien sobre, et profitez de vos soirées en toute confiance.
       </p>
 
@@ -291,7 +291,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 reveal">
         {[
-          { icon: biereIcon,    title: 'Réseau de bars',      desc: 'Bars et établissements partenaires offrant des offres exclusives aux membres Ægirhall.' },
+          { icon: biereIcon,    title: 'Réseau de bars',      desc: 'Bars et établissements partenaires offrant des offres exclusives aux membres AEgirhall.' },
           { icon: voitureIcon,  title: 'Retour sécurisé',     desc: 'Services de transport intégrés pour des trajets en toute sécurité à la fin de chaque soirée.' },
           { icon: couroneIcon,  title: 'Avantages premium',   desc: 'Réductions exclusives auprès de nos partenaires pour récompenser les groupes responsables.' },
         ].map(card => (
@@ -311,7 +311,7 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
           <div>
             <h3 class="font-heading text-xl text-neutral-100 tracking-wide mb-2">Devenir partenaire</h3>
             <p class="font-body text-base text-neutral-500 max-w-xl leading-relaxed">
-              Vous êtes un bar, un établissement ou un prestataire de services ? Rejoignez Ægirhall pour toucher une clientèle engagée et responsable.
+              Vous êtes un bar, un établissement ou un prestataire de services ? Rejoignez AEgirhall pour toucher une clientèle engagée et responsable.
             </p>
           </div>
           <a href="/contact" class="btn-primary px-8 py-3 whitespace-nowrap shrink-0 flex items-center gap-2">
@@ -333,17 +333,17 @@ const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
       <div class="text-center mb-14 reveal">
         <div class="rune-divider text-primary-400/40 text-sm font-heading tracking-rune-wider mb-6 justify-center">ᛏ ᛒ ᛖ</div>
         <h2 class="font-display text-4xl lg:text-5xl text-primary-400 tracking-wide mb-4">Ce que disent nos guerriers</h2>
-        <p class="font-body text-lg text-neutral-400">La communauté Ægirhall témoigne de ses expériences</p>
+        <p class="font-body text-lg text-neutral-400">La communauté AEgirhall témoigne de ses expériences</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 reveal">
         {[
           {
-            quote: '"Ægirhall a complètement changé notre façon de sortir. On se sent tellement plus en sécurité avec le système de gardien. Mes parents sont rassurés aussi !"',
+            quote: '"AEgirhall a complètement changé notre façon de sortir. On se sent tellement plus en sécurité avec le système de gardien. Mes parents sont rassurés aussi !"',
             name: 'Sophie L.', role: 'Étudiante, Oslo', initial: 'S',
           },
           {
-            quote: '"En tant que professionnel de la nuit, je vois la différence. Les groupes utilisant Ægirhall sont plus responsables et profitent mieux de leur soirée."',
+            quote: '"En tant que professionnel de la nuit, je vois la différence. Les groupes utilisant AEgirhall sont plus responsables et profitent mieux de leur soirée."',
             name: 'Thomas B.', role: 'Barman, Bergen', initial: 'T',
           },
           {

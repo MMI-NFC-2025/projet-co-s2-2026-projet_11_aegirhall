@@ -22,6 +22,25 @@ export async function getCollection(collection, options = {}) {
   }
 }
 
+export async function getCount(collection, options = {}) {
+  const params = new URLSearchParams();
+  params.set('perPage', '1');
+  params.set('fields', 'id');
+  if (options.filter) params.set('filter', options.filter);
+
+  const headers = {};
+  if (options.token) headers['Authorization'] = `Bearer ${options.token}`;
+
+  try {
+    const res = await fetch(`${PB_URL}/api/collections/${collection}/records?${params}`, { headers });
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return data.totalItems ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function getRecord(collection, id, options = {}) {
   const params = new URLSearchParams();
   if (options.expand) params.set('expand', options.expand);

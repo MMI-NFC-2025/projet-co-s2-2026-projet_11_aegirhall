@@ -1,12 +1,14 @@
----
+﻿---
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import vegvisir from '../assets/icon/vegvisir.svg';
 import darkar   from '../assets/img/darkar_neige.avif';
+import doorHero  from '../assets/img/door-stretching-into-fantasy-world.jpg';
+import helmetImg from '../assets/img/vintage-style-soldier-helmet-still-life.jpg';
 import trone    from '../assets/img/trone.avif';
 import hut      from '../assets/img/hut.avif';
 import nuit     from '../assets/img/taverne_nuit.avif';
-import { getCollection, createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
+import { getCollection, getCount, createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
@@ -43,12 +45,11 @@ if (Astro.request.method === 'POST') {
 }
 
 /* ── Données ──────────────────────────────────────────── */
-const [allBars, allUsers] = await Promise.all([
-  getCollection('bar',   { sort: 'ordre', perPage: 200, fields: 'id,nom,img,adresse,desciption,ordre,collectionId' }),
-  getCollection('users', { perPage: 200,  fields: 'id' }),
+const [allBars, totalBars, totalUsers] = await Promise.all([
+  getCollection('bar', { sort: 'ordre', perPage: 200, fields: 'id,nom,img,adresse,desciption,ordre,collectionId' }),
+  getCount('bar'),
+  getCount('users'),
 ]);
-const totalBars  = allBars.length;
-const totalUsers = allUsers.length;
 
 const barsForClient = allBars.map((bar: any) => ({
   id:       bar.id,
@@ -77,7 +78,7 @@ const voie = [
   <section class="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden bg-dark-900">
 
     <div class="absolute inset-0" aria-hidden="true">
-      <Image src={darkar} alt="" width={1920} height={1080} class="w-full h-full object-cover opacity-50" />
+      <Image src={doorHero} alt="" width={1920} height={1080} class="w-full h-full object-cover opacity-60" />
       <div class="absolute inset-0 bg-linear-to-b from-dark-900/40 via-dark-900/10 to-dark-900" />
     </div>
 
@@ -86,7 +87,7 @@ const voie = [
         ✦ &nbsp; Barathon Viking &nbsp; ✦
       </p>
       <h1 class="title-hero font-display leading-none tracking-widest text-neutral-100 mb-6 opacity-0 animate-rise title-d">
-        ÆGIRHALL
+        AEGIRHALL
       </h1>
       <p class="font-heading text-xl lg:text-3xl text-primary-300 tracking-wide mb-5 opacity-0 animate-rise sub-d">
         La Route des Jarls
@@ -118,7 +119,7 @@ const voie = [
   </section>
 
   <!-- ══════════════════════════════════════════════════════
-       CE QUE PROPOSE ÆGIRHALL — split text / image
+       CE QUE PROPOSE AEGIRHALL — split text / image
        ══════════════════════════════════════════════════════ -->
   <section class="relative bg-dark-800 overflow-hidden">
     <div class="max-w-360 mx-auto flex flex-col lg:flex-row items-stretch">
@@ -127,7 +128,7 @@ const voie = [
       <div class="flex-1 px-4 lg:px-20 py-20 lg:py-32 reveal">
         <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-6">ᚦ &nbsp; La Horde vous attend &nbsp; ᚦ</p>
         <h2 class="font-heading text-3xl lg:text-5xl text-neutral-200 tracking-wide mb-5 leading-snug">
-          Ce que propose<br />Ægirhall
+          Ce que propose<br />AEgirhall
         </h2>
         <div class="divider-diamond max-w-48 mb-12"><span /></div>
         <div class="flex flex-col gap-10">
@@ -150,7 +151,7 @@ const voie = [
 
       <!-- Image droite pleine hauteur -->
       <div class="features-img-col lg:w-96 xl:w-md shrink-0 overflow-hidden reveal">
-        <Image src={trone} alt="Trône des Jarls" width={600} height={900} class="w-full h-full object-cover" />
+        <Image src={helmetImg} alt="Casque de guerrier viking" width={600} height={900} class="w-full h-full object-cover" />
       </div>
     </div>
   </section>
@@ -170,7 +171,7 @@ const voie = [
         <div class="lg:pb-4 max-w-sm">
           <div class="divider-diamond max-w-24 mb-6 lg:hidden"><span /></div>
           <p class="font-body text-base lg:text-lg text-neutral-400 leading-relaxed">
-            Explorez les tavernes d'Ægirhall et découvrez les étapes de votre prochaine odyssée viking. Chaque bar vous attend avec ses propres épreuves.
+            Explorez les tavernes d'AEgirhall et découvrez les étapes de votre prochaine odyssée viking. Chaque bar vous attend avec ses propres épreuves.
           </p>
         </div>
       </div>
@@ -385,7 +386,7 @@ const voie = [
         <div class="flex-1 w-full max-w-lg lg:max-w-none reveal">
           <div class="card-parchment rounded-2xl p-7 lg:p-10">
             <div class="text-center mb-8">
-              <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-2">✦ Ægirhall ✦</p>
+              <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-2">✦ AEgirhall ✦</p>
               <h3 class="font-display text-2xl text-neutral-100 tracking-widest">Créer mon compte</h3>
             </div>
             {signupError && (

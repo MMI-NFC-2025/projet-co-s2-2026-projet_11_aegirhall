@@ -1,4 +1,4 @@
----
+﻿---
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import { getMe, updateUser } from '../js/backend.js';
@@ -36,7 +36,7 @@ const me = await getMe(userId, token);
 const currentPlan = me?.abonnements ?? 'gratuit';
 const isPremium   = currentPlan === 'premium';
 ---
-<Layout title="Abonnement — Ægirhall">
+<Layout title="Abonnement — AEgirhall">
 
   <!-- ── HERO ──────────────────────────────────────────── -->
   <section class="bg-dark-900 border-b border-dark-700 py-10 lg:py-16 relative overflow-hidden">
