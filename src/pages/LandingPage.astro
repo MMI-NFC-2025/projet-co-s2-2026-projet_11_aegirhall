@@ -7,7 +7,7 @@ import doorHero  from '../assets/img/door-stretching-into-fantasy-world.jpg';
 import helmetImg from '../assets/img/vintage-style-soldier-helmet-still-life.jpg';
 import trone    from '../assets/img/trone.avif';
 import drakar   from '../assets/img/drakar.avif';
-import taverne  from '../assets/img/tavernes-feu.jpg';
+import taverne  from '../assets/img/taverne_ornement.avif';
 import { getCollection, getCount, createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
 
 const token  = Astro.cookies.get('pb_token')?.value;
@@ -151,7 +151,7 @@ const voie = [
 
       <!-- Image droite pleine hauteur -->
       <div class="features-img-col lg:w-96 xl:w-md shrink-0 overflow-hidden reveal">
-        <Image src={helmetImg} alt="Casque de guerrier viking" width={600} height={900} class="w-full h-full object-cover" style="object-position: 92% center" />
+        <Image src={helmetImg} alt="Casque de guerrier viking" width={600} height={900} class="w-full h-full object-cover" />
       </div>
     </div>
   </section>
