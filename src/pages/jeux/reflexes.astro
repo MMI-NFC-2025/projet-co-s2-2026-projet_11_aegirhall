@@ -1,0 +1,378 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { PB_BASE_URL } from '../../js/backend.js';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+---
+<Layout title="Touche du Guerrier — AEgirhall">
+
+  <!-- ── HEADER ───────────────────────────────────────────── -->
+  <section class="bg-dark-900 border-b border-dark-700 py-8 lg:py-10">
+    <div class="max-w-360 mx-auto px-4 lg:px-20">
+      <a href="/jeux" class="font-heading text-xs text-neutral-600 hover:text-neutral-400 tracking-widest uppercase transition-colors">
+        ← Tous les jeux
+      </a>
+      <div class="mt-4">
+        <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-2">Jeu de réflexes</p>
+        <h1 class="font-display text-3xl lg:text-5xl text-neutral-100 tracking-widest">Touche du Guerrier</h1>
+        <p class="font-body text-neutral-400 text-base mt-2 max-w-xl">
+          Le bouton passe au rouge — ne cliquez pas. Dès qu'il devient vert, réagissez ! Trop tôt ou trop tard, c'est perdu.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CONTENU ───────────────────────────────────────────── -->
+  <section class="max-w-360 mx-auto px-4 lg:px-20 py-8 lg:py-12">
+    <div class="flex flex-col lg:flex-row gap-6 lg:gap-10 items-start">
+
+      <!-- ── Colonne gauche : paramètres ── -->
+      <div class="w-full lg:w-72 shrink-0 flex flex-col gap-5">
+
+        <!-- Sélection difficulté -->
+        <div class="card-parchment rounded-xl p-5">
+          <p class="label-viking mb-4">Difficulté</p>
+          <div class="flex flex-col gap-2">
+            {([
+              { key: 'facile',    label: 'Facile',    time: '1 000 ms', xp: 50,  bars: 3 },
+              { key: 'moyen',     label: 'Moyen',     time: '600 ms',   xp: 100, bars: 6 },
+              { key: 'difficile', label: 'Difficile', time: '300 ms',   xp: 200, bars: 9 },
+            ] as const).map(d => (
+              <button
+                class="diff-btn w-full flex items-center gap-3 p-3 rounded-lg border border-dark-500 bg-dark-700 hover:border-primary-400/40 transition-all text-left"
+                data-diff={d.key}
+                aria-label={`Difficulté ${d.label} — réagir en ${d.time} — gain ${d.xp} XP`}
+              >
+                <div class="flex flex-col gap-0.5 flex-1 min-w-0">
+                  <span class="font-heading text-sm text-neutral-200 tracking-wide">{d.label}</span>
+                  <span class="font-body text-xs text-neutral-500">Réagir en <strong class="text-neutral-400">{d.time}</strong></span>
+                </div>
+                <div class="flex flex-col items-end gap-1.5 shrink-0">
+                  <span class="font-display text-xs text-primary-300">+{d.xp} XP</span>
+                  <div class="flex gap-0.5" aria-hidden="true">
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <span class={`w-1 h-1 rounded-full ${i < d.bars ? 'bg-primary-400' : 'bg-dark-500'}`} />
+                    ))}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <!-- Règles -->
+        <div class="card-parchment rounded-xl p-5">
+          <p class="label-viking mb-3">Règles</p>
+          <ul class="flex flex-col gap-2.5">
+            <li class="flex items-start gap-2.5">
+              <span class="text-accent-blood text-xs mt-0.5 shrink-0">▸</span>
+              <span class="font-body text-xs text-neutral-400">Bouton <strong class="text-accent-blood">rouge</strong> — ne cliquez pas, attendez</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-xs mt-0.5 shrink-0" style="color:#16a34a">▸</span>
+              <span class="font-body text-xs text-neutral-400">Bouton <strong style="color:#16a34a">vert</strong> — cliquez le plus vite possible</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-primary-300 text-xs mt-0.5 shrink-0">▸</span>
+              <span class="font-body text-xs text-neutral-400">Réagissez dans le délai imparti pour gagner de l'XP</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-neutral-600 text-xs mt-0.5 shrink-0">▸</span>
+              <span class="font-body text-xs text-neutral-500">Le délai avant le vert est aléatoire (1 à 4 secondes)</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- XP session -->
+        <div id="session-total" class="hidden card-parchment rounded-xl p-5">
+          <p class="label-viking mb-2">Session en cours</p>
+          <div class="flex items-center justify-between">
+            <span class="font-body text-sm text-neutral-500">XP gagné</span>
+            <span id="total-xp-val" class="font-display text-xl text-primary-300">0 XP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Colonne droite : jeu ── -->
+      <div class="flex-1 card-parchment rounded-2xl p-8 lg:p-12 flex flex-col items-center gap-8 min-h-80">
+
+        <!-- Statut -->
+        <p id="game-status" class="font-heading text-sm text-neutral-500 tracking-widest uppercase text-center">
+          Sélectionnez une difficulté
+        </p>
+
+        <!-- Bouton de réaction -->
+        <button
+          id="reaction-btn"
+          data-state="idle"
+          disabled
+          aria-live="polite"
+          aria-label="Bouton de réaction"
+          class="w-48 h-48 lg:w-64 lg:h-64 rounded-full flex flex-col items-center justify-center transition-colors duration-150 select-none"
+        >
+          <span id="btn-icon" class="text-5xl lg:text-6xl" aria-hidden="true">⚔</span>
+          <span id="btn-label" class="font-heading text-xs tracking-widest uppercase mt-2">En attente</span>
+        </button>
+
+        <!-- Résultat -->
+        <div id="game-result" class="hidden flex-col items-center gap-3 text-center w-full max-w-xs">
+          <p id="result-msg"  class="font-heading text-xl tracking-wide"></p>
+          <p id="result-time" class="font-body text-sm text-neutral-500"></p>
+          <p id="result-xp"   class="hidden font-display text-3xl text-primary-300"></p>
+          <button id="replay-btn" class="btn-outline text-sm px-6 py-2.5 mt-2">
+            ⟳ Rejouer
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</Layout>
+
+<style>
+  /* ── États du bouton de réaction ── */
+  #reaction-btn[data-state="idle"] {
+    background: var(--color-dark-700);
+    border: 4px solid var(--color-dark-500);
+    cursor: not-allowed;
+    color: var(--color-neutral-600);
+  }
+  #reaction-btn[data-state="ready"] {
+    background: var(--color-dark-600);
+    border: 4px solid var(--color-primary-500);
+    cursor: pointer;
+    color: var(--color-primary-300);
+  }
+  #reaction-btn[data-state="ready"]:hover {
+    border-color: var(--color-primary-400);
+    box-shadow: 0 0 24px rgba(196,73,10,0.2);
+  }
+  #reaction-btn[data-state="wait"] {
+    background: var(--color-accent-blood);
+    border: 4px solid #6b1010;
+    cursor: pointer;
+    color: #ffffff;
+    animation: pulse-danger 0.6s ease-in-out infinite;
+  }
+  #reaction-btn[data-state="go"] {
+    background: #15803d;
+    border: 4px solid #16a34a;
+    cursor: pointer;
+    color: #ffffff;
+    animation: pulse-go 0.4s ease-in-out infinite;
+  }
+  #reaction-btn[data-state="win"] {
+    background: #15803d;
+    border: 4px solid #16a34a;
+    color: #ffffff;
+  }
+  #reaction-btn[data-state="fail"] {
+    background: var(--color-accent-blood);
+    border: 4px solid #6b1010;
+    color: #ffffff;
+    animation: shake 0.4s ease;
+  }
+
+  @keyframes pulse-danger {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(140,28,19,0.5); }
+    50%       { box-shadow: 0 0 0 20px rgba(140,28,19,0); }
+  }
+  @keyframes pulse-go {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(21,128,61,0.6); }
+    50%       { box-shadow: 0 0 0 24px rgba(21,128,61,0); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-10px); }
+    40%       { transform: translateX(10px); }
+    60%       { transform: translateX(-7px); }
+    80%       { transform: translateX(7px); }
+  }
+
+  .diff-btn.active {
+    border-color: var(--color-primary-400);
+    background: linear-gradient(135deg, var(--color-dark-600) 0%, var(--color-dark-700) 100%);
+    box-shadow: 0 0 14px rgba(196,73,10,0.12);
+  }
+</style>
+
+<script define:vars={{ _token: token, _userId: userId, _pbUrl: PB_BASE_URL }} is:inline>
+(function() {
+  var DIFFICULTIES = {
+    facile:    { timeLimit: 1000, xp: 50  },
+    moyen:     { timeLimit: 600,  xp: 100 },
+    difficile: { timeLimit: 300,  xp: 200 },
+  };
+
+  var selectedDiff = null;
+  var phase        = 'idle';
+  var greenAt      = 0;
+  var waitTimer    = null;
+  var failTimer    = null;
+  var sessionXp    = 0;
+
+  var statusEl  = document.getElementById('game-status');
+  var btnEl     = document.getElementById('reaction-btn');
+  var btnIcon   = document.getElementById('btn-icon');
+  var btnLabel  = document.getElementById('btn-label');
+  var resultEl  = document.getElementById('game-result');
+  var resultMsg = document.getElementById('result-msg');
+  var resultTime= document.getElementById('result-time');
+  var resultXp  = document.getElementById('result-xp');
+  var replayBtn = document.getElementById('replay-btn');
+  var totalWrap = document.getElementById('session-total');
+  var totalVal  = document.getElementById('total-xp-val');
+
+  /* ── Sélection difficulté ── */
+  document.querySelectorAll('.diff-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (phase === 'wait' || phase === 'go') return;
+      document.querySelectorAll('.diff-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      selectedDiff = btn.dataset.diff;
+      setPhase('ready');
+    });
+  });
+
+  /* ── Bouton principal ── */
+  btnEl.addEventListener('click', function() {
+    if (!selectedDiff) return;
+    if (phase === 'ready') { startRound();                     return; }
+    if (phase === 'wait')  { doFail('Trop tôt ! Attendez le vert.'); return; }
+    if (phase === 'go')    { doTap();                          return; }
+  });
+
+  replayBtn && replayBtn.addEventListener('click', function() {
+    if (selectedDiff) setPhase('ready');
+  });
+
+  /* ── Logique de jeu ── */
+  function startRound() {
+    clearTimers();
+    setPhase('wait');
+    var delay = 1200 + Math.random() * 3000;
+    waitTimer = setTimeout(function() {
+      greenAt = Date.now();
+      setPhase('go');
+      var diff = DIFFICULTIES[selectedDiff];
+      failTimer = setTimeout(function() {
+        if (phase === 'go') doFail('Trop lent ! Fenêtre : ' + diff.timeLimit + 'ms');
+      }, diff.timeLimit);
+    }, delay);
+  }
+
+  function doTap() {
+    var elapsed = Date.now() - greenAt;
+    var diff    = DIFFICULTIES[selectedDiff];
+    clearTimers();
+    if (elapsed <= diff.timeLimit) {
+      doWin(elapsed, diff.xp);
+    } else {
+      doFail('Trop lent ! ' + elapsed + 'ms (limite : ' + diff.timeLimit + 'ms)');
+    }
+  }
+
+  function doWin(elapsed, xp) {
+    clearTimers();
+    phase = 'done';
+    sessionXp += xp;
+
+    btnEl.dataset.state = 'win';
+    btnIcon.textContent = '✓';
+    btnLabel.textContent = elapsed + ' ms';
+
+    statusEl.textContent = 'Réflexes de guerrier !';
+
+    resultEl.classList.remove('hidden');
+    resultEl.classList.add('flex');
+    resultMsg.textContent  = '⚡ Victoire !';
+    resultMsg.style.color  = '#16a34a';
+    resultTime.textContent = 'Temps de réaction : ' + elapsed + ' ms';
+    resultXp.textContent   = '+' + xp + ' XP';
+    resultXp.classList.remove('hidden');
+
+    totalWrap.classList.remove('hidden');
+    totalVal.textContent = sessionXp + ' XP';
+
+    saveXp(xp);
+  }
+
+  function doFail(msg) {
+    clearTimers();
+    phase = 'done';
+
+    btnEl.dataset.state  = 'fail';
+    btnIcon.textContent  = '✗';
+    btnLabel.textContent = 'Raté';
+
+    statusEl.textContent = msg;
+
+    resultEl.classList.remove('hidden');
+    resultEl.classList.add('flex');
+    resultMsg.textContent = '✗ Raté !';
+    resultMsg.style.color = 'var(--color-accent-blood)';
+    resultTime.textContent = msg;
+    resultXp.classList.add('hidden');
+  }
+
+  function saveXp(xp) {
+    fetch(_pbUrl + '/api/collections/users/records/' + _userId, {
+      headers: { 'Authorization': 'Bearer ' + _token },
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(user) {
+      return fetch(_pbUrl + '/api/collections/users/records/' + _userId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+        body: JSON.stringify({ xp: Number(user.xp || 0) + xp }),
+      });
+    }).catch(function() {});
+  }
+
+  /* ── Gestion des phases ── */
+  function setPhase(newPhase) {
+    phase = newPhase;
+    resultEl.classList.add('hidden');
+    resultEl.classList.remove('flex');
+
+    switch (newPhase) {
+      case 'idle':
+        btnEl.dataset.state  = 'idle';
+        btnEl.disabled       = true;
+        btnIcon.textContent  = '⚔';
+        btnLabel.textContent = 'En attente';
+        statusEl.textContent = 'Sélectionnez une difficulté';
+        break;
+      case 'ready':
+        btnEl.dataset.state  = 'ready';
+        btnEl.disabled       = false;
+        btnIcon.textContent  = '⚔';
+        btnLabel.textContent = 'Commencer';
+        statusEl.textContent = 'Prêt ? Appuyez pour lancer';
+        break;
+      case 'wait':
+        btnEl.dataset.state  = 'wait';
+        btnEl.disabled       = false;
+        btnIcon.textContent  = '◉';
+        btnLabel.textContent = 'Attendez...';
+        statusEl.textContent = 'Ne cliquez pas encore !';
+        break;
+      case 'go':
+        btnEl.dataset.state  = 'go';
+        btnEl.disabled       = false;
+        btnIcon.textContent  = '◉';
+        btnLabel.textContent = 'MAINTENANT !';
+        statusEl.textContent = 'CLIQUEZ !';
+        break;
+    }
+  }
+
+  function clearTimers() {
+    clearTimeout(waitTimer);
+    clearTimeout(failTimer);
+  }
+})();
+</script>

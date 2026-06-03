@@ -1,0 +1,85 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PbImage from '../../components/PbImage.astro';
+import { getRecord }  from '../../js/backend.js';
+import StatusBadge from '../../components/StatusBadge.astro';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+const { id } = Astro.params;
+const jeu = await getRecord('jeux', id, { token });
+
+if (!jeu) return Astro.redirect('/jeux');
+---
+<Layout title={jeu.nom}>
+
+  <!-- ── HERO ──────────────────────────────────────────────── -->
+  <section class="relative h-64 lg:h-80 overflow-hidden">
+    {jeu.img ? (
+      <>
+        <PbImage record={jeu} recordImage={jeu.img} width={1440} height={320} />
+        <div class="absolute inset-0 bg-linear-to-t from-dark-900 via-dark-800/50 to-transparent" />
+      </>
+    ) : (
+      <div class="w-full h-full bg-dark-900" />
+    )}
+    <div class="absolute bottom-0 left-0 right-0 max-w-360 mx-auto px-4 lg:px-20 pb-8">
+      {jeu.type_de_jeux && (
+        <StatusBadge class="inline-block px-3 py-1 rounded mb-3">{jeu.type_de_jeux}</StatusBadge>
+      )}
+      <h1 class="font-display text-3xl lg:text-6xl text-neutral-100 tracking-widest">{jeu.nom}</h1>
+    </div>
+  </section>
+
+  <!-- ── CONTENU ───────────────────────────────────────────── -->
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+
+      <!-- Contenu principal -->
+      <div class="lg:col-span-2 flex flex-col gap-8">
+        {jeu.descrition && (
+          <div class="card-parchment rounded-lg p-6">
+            <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-4">Description</h2>
+            <p class="font-body text-lg text-neutral-300 leading-relaxed">{jeu.descrition}</p>
+          </div>
+        )}
+      </div>
+
+      <!-- Sidebar -->
+      <div class="flex flex-col gap-5">
+        <div class="card-parchment rounded-lg p-5">
+          <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Infos</p>
+          <div class="flex flex-col gap-4">
+            {jeu.type_de_jeux && (
+              <div class="flex justify-between items-center">
+                <span class="font-body text-neutral-400 text-base">Type</span>
+                <span class="font-heading text-sm text-primary-400">{jeu.type_de_jeux}</span>
+              </div>
+            )}
+            {jeu.difficulter != null && (
+              <div class="flex flex-col gap-2">
+                <div class="flex justify-between">
+                  <span class="font-body text-neutral-400 text-base">Difficulté</span>
+                  <span class="font-heading text-sm text-primary-400">{jeu.difficulter}/10</span>
+                </div>
+                <div class="flex gap-1" aria-hidden="true">
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <span class={`flex-1 h-1.5 rounded-full ${i < jeu.difficulter ? 'bg-primary-400' : 'bg-dark-500'}`} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <a href="/jeux" class="btn-outline text-sm text-center py-3">
+          ← Tous les jeux
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+</Layout>

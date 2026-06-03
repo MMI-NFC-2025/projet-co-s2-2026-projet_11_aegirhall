@@ -1,0 +1,191 @@
+﻿---
+import Layout from '../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+import { authWithPassword } from '../js/backend.js';
+import taverne_nuit  from '../assets/img/sunriseforever-beach-3444288_1920.jpg';
+import mailIcon      from '../assets/icon/mail.svg';
+import lockIcon      from '../assets/icon/lock.svg';
+import arrowIcon     from '../assets/icon/arrow_droite.svg';
+import googleIcon    from '../assets/icon/connextion_google.svg';
+import facebookIcon  from '../assets/icon/connextion_facebook.svg';
+import waringIcon    from '../assets/icon/waring.svg';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (token && userId) return Astro.redirect('/');
+
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const identity = form.get('identity')?.toString() ?? '';
+  const password  = form.get('password')?.toString()  ?? '';
+
+  const result = await authWithPassword(identity, password);
+
+  if (result?.token) {
+    const displayName = result.record.pseudo ?? result.record.nom ?? result.record.username ?? 'Guerrier';
+    Astro.cookies.set('pb_token',     result.token,     { path: '/', httpOnly: true, maxAge: 604800 });
+    Astro.cookies.set('pb_user_id',   result.record.id, { path: '/', httpOnly: true, maxAge: 604800 });
+    Astro.cookies.set('pb_user_name', displayName,      { path: '/', httpOnly: true, maxAge: 604800 });
+    return Astro.redirect('/');
+  } else {
+    error = 'Identifiant ou mot de passe incorrect.';
+  }
+}
+---
+<Layout title="Connexion — AEgirhall">
+
+  <div class="min-h-[calc(100vh-92px)] flex">
+
+    <!-- ── Panneau formulaire (gauche) ──────────────────────── -->
+    <div class="flex-1 lg:max-w-130 flex items-center justify-center px-6 py-14 bg-dark-900 relative overflow-hidden">
+
+      <div class="absolute inset-0 bg-diamond opacity-25 pointer-events-none" aria-hidden="true" />
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="background: radial-gradient(ellipse 80% 55% at 50% 100%, rgba(196,154,44,0.07) 0%, transparent 65%);"
+        aria-hidden="true"
+      />
+
+      <div class="relative z-10 w-full max-w-sm">
+
+        <a href="/" class="font-display text-lg text-primary-500 tracking-widest hover:text-primary-400 transition-colors block mb-10">
+          AEgirhall
+        </a>
+
+        <h1 class="font-display text-3xl text-primary-400 tracking-widest mb-2">Se connecter</h1>
+        <p class="font-body text-neutral-500 text-base leading-relaxed mb-8">
+          Connectez-vous à votre compte AEgirhall
+        </p>
+
+        {error && (
+          <div
+            class="mb-6 p-3 rounded-lg bg-accent-blood/15 border border-accent-blood/40 font-body text-sm text-neutral-300 flex items-start gap-2"
+            role="alert"
+          >
+            <Image src={waringIcon} alt="" width={16} height={16} class="invert mt-0.5 shrink-0 opacity-70" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form method="POST" class="flex flex-col gap-5" novalidate>
+
+          <!-- Email -->
+          <div>
+            <label class="label-viking" for="identity">Email</label>
+            <div class="input-wrapper">
+              <Image src={mailIcon} alt="" width={18} height={18} class="input-icon invert opacity-35" aria-hidden="true" />
+              <input
+                id="identity" name="identity" type="email"
+                autocomplete="email" required placeholder="erik@exemple.com"
+                class="input-viking"
+              />
+            </div>
+          </div>
+
+          <!-- Mot de passe -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="label-viking" for="password" style="margin-bottom:0">Mot de passe</label>
+              <a href="#" class="font-heading text-xs text-primary-600 hover:text-primary-400 transition-colors tracking-wide">
+                Oublié ?
+              </a>
+            </div>
+            <div class="input-wrapper">
+              <Image src={lockIcon} alt="" width={18} height={18} class="input-icon invert opacity-35" aria-hidden="true" />
+              <input
+                id="password" name="password" type="password"
+                autocomplete="current-password" required placeholder="••••••••"
+                class="input-viking"
+              />
+            </div>
+          </div>
+
+          <!-- Se souvenir -->
+          <label class="flex items-center gap-3 cursor-pointer group -mt-1">
+            <input type="checkbox" name="remember" class="w-4 h-4 accent-primary-400 rounded" />
+            <span class="font-body text-sm text-neutral-500 group-hover:text-neutral-400 transition-colors">
+              Se souvenir de moi
+            </span>
+          </label>
+
+          <!-- Rune divider -->
+          <div class="rune-divider text-dark-400 text-xs font-heading tracking-rune-wider">ᛗ</div>
+
+          <!-- Submit -->
+          <button type="submit" class="btn-primary w-full py-4 flex items-center justify-center gap-3">
+            <span>Se connecter</span>
+            <Image src={arrowIcon} alt="" width={16} height={16} class="invert" aria-hidden="true" />
+          </button>
+
+        </form>
+
+        <!-- Divider OU -->
+        <div class="flex items-center gap-4 my-6">
+          <div class="flex-1 h-px bg-dark-700"></div>
+          <span class="font-heading text-xs text-neutral-600 tracking-widest">OU</span>
+          <div class="flex-1 h-px bg-dark-700"></div>
+        </div>
+
+        <!-- Social buttons -->
+        <div class="flex flex-col gap-3">
+          <button
+            type="button"
+            class="w-full flex items-center gap-3 px-4 py-3 bg-dark-800 border border-dark-600 rounded-lg font-body text-sm text-neutral-400 hover:border-dark-500 hover:text-neutral-200 transition-colors"
+          >
+            <Image src={googleIcon} alt="Google" width={20} height={20} class="shrink-0" />
+            <span>Continuer avec Google</span>
+          </button>
+          <button
+            type="button"
+            class="w-full flex items-center gap-3 px-4 py-3 bg-dark-800 border border-dark-600 rounded-lg font-body text-sm text-neutral-400 hover:border-dark-500 hover:text-neutral-200 transition-colors"
+          >
+            <Image src={facebookIcon} alt="Facebook" width={20} height={20} class="shrink-0" />
+            <span>Continuer avec Facebook</span>
+          </button>
+        </div>
+
+        <p class="text-center font-body text-neutral-500 text-sm mt-8">
+          Pas encore de compte ?{' '}
+          <a href="/inscription" class="text-primary-400 hover:text-primary-300 transition-colors underline underline-offset-2 decoration-primary-700">
+            Créer un compte
+          </a>
+        </p>
+
+      </div>
+    </div>
+
+    <!-- ── Panneau image (droite, desktop) ──────────────────── -->
+    <div class="hidden lg:block relative flex-1 overflow-hidden">
+      <Image
+        src={taverne_nuit}
+        alt=""
+        width={900}
+        height={1000}
+        class="absolute inset-0 w-full h-full object-cover animate-ken-burns"
+        style="object-position: 35% 55%"
+      />
+      <div class="absolute inset-0 bg-linear-to-l from-transparent via-dark-900/10 to-dark-900/85" />
+      <div class="absolute inset-0 bg-linear-to-t from-dark-900/85 via-transparent to-dark-900/20" />
+
+      <!-- Halo or -->
+      <div
+        class="absolute bottom-1/3 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none blur-orb-gold"
+        aria-hidden="true"
+      />
+
+      <div class="absolute bottom-12 left-10 right-10">
+        <div class="rune-divider text-primary-700/50 text-xs mb-5 font-heading tracking-rune-wider">ᚼ</div>
+        <h2 class="font-display text-2xl lg:text-3xl text-neutral-100 tracking-widest mb-3">
+          Bienvenue de retour
+        </h2>
+        <p class="font-body text-lg text-neutral-400 leading-relaxed max-w-xs">
+          Votre horde vous attend. Reprenez votre place dans la légende.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+</Layout>

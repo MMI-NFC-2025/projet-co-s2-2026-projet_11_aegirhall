@@ -1,0 +1,83 @@
+﻿---
+const year = new Date().getFullYear();
+---
+<footer class="relative bg-dark-900 border-t border-primary-400/20 mt-20" aria-label="Pied de page">
+  <!-- Ligne or décorative -->
+  <div class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/50 to-transparent" aria-hidden="true" />
+
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-12 lg:py-16">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-10 lg:gap-12 mb-10">
+
+      <!-- Colonne 1 — Branding -->
+      <div class="lg:col-span-1">
+        <p class="font-display text-2xl text-primary-400 tracking-wider mb-3">AEgirhall</p>
+        <p class="font-body text-neutral-500 text-base leading-relaxed">
+          La Route des Jarls — le barathon des guerriers qui n'ont peur ni des tempêtes ni de la bière.
+        </p>
+      </div>
+
+      <!-- Colonne 2 — Navigation -->
+      <nav aria-label="Navigation du site">
+        <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Navigation</p>
+        <ul class="space-y-2">
+          {[
+            { href: '/bars',        label: 'La Route' },
+            { href: '/classement',  label: 'Classement' },
+            { href: '/Apropos',     label: 'À Propos' },
+          ].map(l => (
+            <li>
+              <a href={l.href} class="font-body text-neutral-400 hover:text-primary-300 transition-colors text-base">
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <!-- Colonne 3 — Compte -->
+      <nav aria-label="Votre compte">
+        <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Votre Compte</p>
+        <ul class="space-y-2">
+          {[
+            { href: '/connexion',  label: 'Connexion' },
+            { href: '/inscription', label: 'Inscription' },
+            { href: '/profil',     label: 'Mon Profil' },
+          ].map(l => (
+            <li>
+              <a href={l.href} class="font-body text-neutral-400 hover:text-primary-300 transition-colors text-base">
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <!-- Colonne 4 — Légal -->
+      <nav aria-label="Informations légales">
+        <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-4">Légal</p>
+        <ul class="space-y-2">
+          {[
+            { href: '/mention_legal', label: 'Mentions Légales' },
+            { href: '/contact',       label: 'Contact' },
+          ].map(l => (
+            <li>
+              <a href={l.href} class="font-body text-neutral-400 hover:text-primary-300 transition-colors text-base">
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Bas de footer -->
+    <div class="border-t border-dark-700 pt-6 flex flex-col lg:flex-row justify-between items-center gap-4">
+      <p class="font-body text-neutral-600 text-sm">
+        © {year} AEgirhall — Tous droits réservés
+      </p>
+      <p class="font-heading text-xs text-primary-700 tracking-widest uppercase" aria-hidden="true">
+        ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ
+      </p>
+    </div>
+  </div>
+</footer>

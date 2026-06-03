@@ -1,0 +1,976 @@
+﻿---
+import Layout from '../../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+import {
+  getMe, getCollection, getRecord,
+  updateUser, updateUserFile, deleteUser, PB_BASE_URL, getLevelFromXp,
+} from '../../js/backend.js';
+import homeIcon    from '../../assets/icon/home.svg';
+import notifIcon   from '../../assets/icon/notif.svg';
+import personnes   from '../../assets/icon/personnes.svg';
+import lockIcon    from '../../assets/icon/lock.svg';
+import instasIcon  from '../../assets/icon/insta.svg';
+import linkedinIcon from '../../assets/icon/linkding.svg';
+import githubIcon  from '../../assets/icon/guithub.svg';
+import waringIcon  from '../../assets/icon/waring.svg';
+import ProgressBar from '../../components/ProgressBar.astro';
+import seachIcon   from '../../assets/icon/seach.svg';
+import medailIcon  from '../../assets/icon/medail.svg';
+import PbImage     from '../../components/PbImage.astro';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+/* ── Feedback messages ─────────────────────────────────── */
+let profileSuccess  = false;
+let profileError    = '';
+let passwordSuccess = false;
+let passwordError   = '';
+let actionFeedback  = '';
+let activeTab       = 'parametres'; // tab à ouvrir après POST
+
+/* ── POST handlers ─────────────────────────────────────── */
+if (Astro.request.method === 'POST') {
+  const form   = await Astro.request.formData();
+  const action = form.get('action')?.toString() ?? '';
+
+  /* Logout */
+  if (action === 'logout') {
+    Astro.cookies.delete('pb_token',     { path: '/' });
+    Astro.cookies.delete('pb_user_id',   { path: '/' });
+    Astro.cookies.delete('pb_user_name', { path: '/' });
+    return Astro.redirect('/LandingPage');
+  }
+
+  /* Supprimer le compte */
+  if (action === 'delete_account') {
+    const ok = await deleteUser(userId, token);
+    if (ok) {
+      Astro.cookies.delete('pb_token',     { path: '/' });
+      Astro.cookies.delete('pb_user_id',   { path: '/' });
+      Astro.cookies.delete('pb_user_name', { path: '/' });
+      return Astro.redirect('/LandingPage');
+    }
+    profileError = 'Impossible de supprimer le compte.';
+  }
+
+  /* Mise à jour profil */
+  if (action === 'update_profile') {
+    const data: Record<string, string> = {};
+    for (const key of ['pseudo','nom','prenom','ville','description']) {
+      const v = form.get(key)?.toString().trim();
+      if (v !== undefined) data[key] = v;
+    }
+    const age = form.get('age')?.toString().trim();
+    if (age) (data as any).age = Number(age) || 0;
+    const result = await updateUser(userId, data, token);
+    if (result?.error) {
+      profileError = Object.values(result.error?.data ?? {}).map((v: any) => v?.message).filter(Boolean).join(' ') || result.error?.message || 'Erreur.';
+    } else {
+      profileSuccess = true;
+      if (data.pseudo) Astro.cookies.set('pb_user_name', data.pseudo, { path: '/', httpOnly: true, maxAge: 604800 });
+    }
+  }
+
+  /* Mise à jour réseaux */
+  if (action === 'update_social') {
+    const insta   = form.get('insta')?.toString().trim()   ?? '';
+    const facbook = form.get('facbook')?.toString().trim() ?? '';
+    const discord = form.get('discord')?.toString().trim() ?? '';
+    const result  = await updateUser(userId, { insta, facbook, discord }, token);
+    if (result?.error) {
+      profileError = result.error?.message || 'Erreur.';
+    } else {
+      profileSuccess = true;
+    }
+  }
+
+  /* Changement mot de passe */
+  if (action === 'update_password') {
+    activeTab = 'parametres';
+    const oldPassword     = form.get('oldPassword')?.toString() ?? '';
+    const password        = form.get('password')?.toString() ?? '';
+    const passwordConfirm = form.get('passwordConfirm')?.toString() ?? '';
+    if (password !== passwordConfirm) {
+      passwordError = 'Les mots de passe ne correspondent pas.';
+    } else if (password.length < 8) {
+      passwordError = 'Le mot de passe doit faire au moins 8 caractères.';
+    } else {
+      const result = await updateUser(userId, { oldPassword, password, passwordConfirm }, token);
+      if (result?.error) {
+        passwordError = Object.values(result.error?.data ?? {}).map((v: any) => v?.message).filter(Boolean).join(' ') || result.error?.message || 'Erreur.';
+      } else {
+        passwordSuccess = true;
+      }
+    }
+  }
+
+  /* Accepter demande d'amitié */
+  if (action === 'accept_friend') {
+    activeTab = 'notifications';
+    const friendId = form.get('friendId')?.toString() ?? '';
+    if (friendId) {
+      const me = await getMe(userId, token);
+      const friend = await getRecord('users', friendId, { fields: 'id,amies', token });
+      const myDemandes = (me?.demande_amies ?? []).filter((id: string) => id !== friendId);
+      const myAmies    = [...new Set([...(me?.amies ?? []), friendId])];
+      const friendAmies= [...new Set([...(friend?.amies ?? []), userId])];
+      await updateUser(userId,   { demande_amies: myDemandes, amies: myAmies }, token);
+      await updateUser(friendId, { amies: friendAmies }, token);
+      actionFeedback = 'Vous êtes maintenant amis !';
+    }
+  }
+
+  /* Refuser demande d'amitié */
+  if (action === 'decline_friend') {
+    activeTab = 'notifications';
+    const friendId = form.get('friendId')?.toString() ?? '';
+    if (friendId) {
+      const me = await getMe(userId, token);
+      const myDemandes = (me?.demande_amies ?? []).filter((id: string) => id !== friendId);
+      await updateUser(userId, { demande_amies: myDemandes }, token);
+      actionFeedback = 'Demande refusée.';
+    }
+  }
+
+  /* Supprimer un ami */
+  if (action === 'remove_friend') {
+    activeTab = 'amis';
+    const friendId = form.get('friendId')?.toString() ?? '';
+    if (friendId) {
+      const me = await getMe(userId, token);
+      const friend = await getRecord('users', friendId, { fields: 'id,amies', token });
+      const myAmies     = (me?.amies ?? []).filter((id: string) => id !== friendId);
+      const friendAmies = (friend?.amies ?? []).filter((id: string) => id !== userId);
+      await updateUser(userId,   { amies: myAmies },     token);
+      await updateUser(friendId, { amies: friendAmies }, token);
+    }
+  }
+
+  /* Mise à jour avatar */
+  if (action === 'update_avatar') {
+    const avatarFile = form.get('avatar') as File | null;
+    if (avatarFile && avatarFile.size > 0) {
+      const pbForm = new FormData();
+      pbForm.append('avatar', avatarFile);
+      const result = await updateUserFile(userId, pbForm, token);
+      if (result?.error) {
+        profileError = result.error?.message || 'Erreur lors du téléchargement.';
+      } else {
+        profileSuccess = true;
+      }
+    }
+  }
+
+  /* Équiper un badge */
+  if (action === 'set_featured_badge') {
+    activeTab = 'trophees';
+    const badgeId = form.get('badgeId')?.toString() ?? '';
+    await updateUser(userId, { badges_equiper: badgeId || null }, token);
+  }
+}
+
+/* ── Données SSR ───────────────────────────────────────── */
+const user = await getRecord('users', userId, {
+  expand: 'amies,demande_amies',
+  token,
+});
+
+if (!user) {
+  Astro.cookies.delete('pb_token',     { path: '/' });
+  Astro.cookies.delete('pb_user_id',   { path: '/' });
+  Astro.cookies.delete('pb_user_name', { path: '/' });
+  return Astro.redirect('/connexion');
+}
+
+const bars = await getCollection('bar', { sort: 'nom', perPage: 200, fields: 'id,nom', token });
+
+const visitedIds  = user.id_taverne_visiter ?? [];
+const progression = bars.length ? Math.round((visitedIds.length / bars.length) * 100) : 0;
+
+const friends: any[]  = user.expand?.amies          ?? [];
+const demandes: any[] = user.expand?.demande_amies  ?? [];
+
+/* ── Badges ────────────────────────────────────────────── */
+const allBadges = await getCollection('badges', { sort: 'condition_chiffre', perPage: 200, token });
+
+const finishedSessions = await getCollection('session_barathon', {
+  filter: `(id_menbre ~ "${userId}" || id_hote = "${userId}") && etat_session = "fini"`,
+  fields: 'id',
+  perPage: 500,
+  token,
+});
+const sessionCount = finishedSessions.length;
+const barCount     = visitedIds.length;
+const xpForBadge   = Number(user.xp ?? 0);
+
+let earnedBadgeIds: string[] = user.badges ?? [];
+const toAward = allBadges
+  .filter((b: any) => !earnedBadgeIds.includes(b.id))
+  .filter((b: any) => {
+    const t = Number(b.condition_chiffre ?? 0);
+    if (b.condition === 'nombre_de_bar')          return barCount     >= t;
+    if (b.condition === 'nombre_d_xp')            return xpForBadge   >= t;
+    if (b.condition === 'nombre_de_session_fini') return sessionCount >= t;
+    return false;
+  })
+  .map((b: any) => b.id);
+
+if (toAward.length > 0) {
+  const merged = [...earnedBadgeIds, ...toAward];
+  const updRes = await updateUser(userId, { badges: merged }, token);
+  if (!updRes?.error) earnedBadgeIds = merged;
+}
+
+const earnedBadges    = allBadges.filter((b: any) => earnedBadgeIds.includes(b.id));
+const featuredBadgeId: string = user.badges_equiper ?? '';
+const featuredBadge   = earnedBadges.find((b: any) => b.id === featuredBadgeId) ?? null;
+
+/* Prépare les données de chaque ami pour le modal côté client */
+const friendsForClient = await Promise.all(
+  friends.map(async (f: any) => {
+    const fRecord = await getRecord('users', f.id, { fields: 'id,pseudo,nom,prenom,ville,insta,facbook,discord,collectionId,avatar,id_taverne_visiter,badges_equiper', token });
+    const fVisitedIds: string[] = fRecord?.id_taverne_visiter ?? [];
+    const fVisitedBars = fVisitedIds
+      .map((bid: string) => bars.find((b: any) => b.id === bid)?.nom)
+      .filter(Boolean);
+    const fFeaturedBadgeRec = fRecord?.badges_equiper
+      ? allBadges.find((b: any) => b.id === fRecord.badges_equiper)
+      : null;
+    return {
+      id:           f.id,
+      pseudo:       f.pseudo ?? f.nom ?? 'Guerrier',
+      nom:          f.nom ?? '',
+      prenom:       f.prenom ?? '',
+      ville:        f.ville ?? '',
+      insta:        f.insta ?? '',
+      facbook:      f.facbook ?? '',
+      discord:      f.discord ?? '',
+      collectionId: f.collectionId ?? '',
+      avatar:       f.avatar ?? '',
+      visitedBars:  fVisitedBars,
+      featuredBadge: fFeaturedBadgeRec ? {
+        id:           fFeaturedBadgeRec.id,
+        nom:          fFeaturedBadgeRec.nom ?? '',
+        img:          fFeaturedBadgeRec.img ?? '',
+        collectionId: fFeaturedBadgeRec.collectionId ?? '',
+      } : null,
+    };
+  })
+);
+
+/* Tous les users pour la recherche locale (style Bargo) */
+const allUsersRaw = await getCollection('users', {
+  sort:    'pseudo',
+  perPage: 200,
+  fields:  'id,pseudo,prenom,nom,avatar,collectionId',
+  token,
+});
+const allUsersForSearch = allUsersRaw
+  .filter((u: any) => u.id !== userId)
+  .map((u: any) => ({
+    id:           u.id,
+    pseudo:       u.pseudo  ?? '',
+    prenom:       u.prenom  ?? '',
+    nom:          u.nom     ?? '',
+    avatar:       u.avatar  ?? '',
+    collectionId: u.collectionId ?? '',
+  }));
+
+const avatarUrl = user.avatar
+  ? `${PB_BASE_URL}/api/files/${user.collectionId}/${user.id}/${user.avatar}`
+  : null;
+
+const userXp    = Number(user.xp ?? 0);
+const levelData = getLevelFromXp(userXp);
+
+const samSessions = await getCollection('session_barathon', {
+  filter: `id_sam = "${userId}" && etat_session = "fini"`,
+  fields: 'id,note_sam',
+  token,
+});
+const ratedSamSessions = samSessions.filter((s: any) => Number(s.note_sam) > 0);
+const noteSamMoyenne: number | null = ratedSamSessions.length > 0
+  ? Math.round(ratedSamSessions.reduce((acc: number, s: any) => acc + Number(s.note_sam), 0) / ratedSamSessions.length * 10) / 10
+  : null;
+---
+
+<Layout title={`${user.pseudo ?? 'Profil'} — AEgirhall`}>
+
+  <div class="min-h-screen bg-dark-800 pt-24 pb-20">
+    <div class="max-w-360 mx-auto px-4 lg:px-20">
+
+      <!-- ══ EN-TÊTE PROFIL ══════════════════════════════ -->
+      <div class="flex flex-col lg:flex-row items-center lg:items-end gap-6 mb-10">
+        <!-- Avatar -->
+        <div class="relative shrink-0">
+          <form id="avatar-form" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="update_avatar" />
+            <label for="avatar-input" class="cursor-pointer block relative group/av" title="Modifier la photo de profil">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={user.pseudo} class="w-24 h-24 lg:w-28 lg:h-28 rounded-full object-cover border-2 border-primary-400/40 transition-opacity group-hover/av:opacity-70" />
+              ) : (
+                <div class="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-dark-600 border-2 border-primary-400/20 flex items-center justify-center transition-opacity group-hover/av:opacity-70">
+                  <span class="font-display text-4xl text-primary-400">{(user.pseudo ?? 'G')[0].toUpperCase()}</span>
+                </div>
+              )}
+              <div class="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover/av:opacity-100 transition-opacity pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-100 drop-shadow">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </div>
+            </label>
+            <input type="file" id="avatar-input" name="avatar" accept="image/*" class="hidden" />
+          </form>
+          {featuredBadge && (
+            <div class="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-dark-700 border-2 border-primary-400/60 overflow-hidden flex items-center justify-center" title={featuredBadge.nom ?? 'Badge équipé'}>
+              {featuredBadge.img ? (
+                <PbImage record={featuredBadge} recordImage={featuredBadge.img} width={40} height={40} alt={featuredBadge.nom ?? 'Badge'} class="w-full h-full object-cover" />
+              ) : (
+                <Image src={medailIcon} alt="" width={20} height={20} class="invert opacity-80" />
+              )}
+            </div>
+          )}
+        </div>
+
+        <!-- Infos + stats -->
+        <div class="flex-1 text-center lg:text-left">
+          <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-1">
+            Niv. {levelData.niveau} · {levelData.titre}
+          </p>
+          <h1 class="font-heading text-3xl lg:text-4xl text-neutral-100 tracking-wide mb-4">
+            {user.pseudo ?? user.nom ?? 'Guerrier'}
+          </h1>
+          <div class="flex flex-wrap gap-6 justify-center lg:justify-start">
+            <div class="text-center">
+              <p class="font-display text-2xl text-primary-400">{visitedIds.length}</p>
+              <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Conquises</p>
+            </div>
+            <div class="text-center">
+              <p class="font-display text-2xl text-primary-400">{friends.length}</p>
+              <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Amis</p>
+            </div>
+            <div class="text-center">
+              <p class="font-display text-2xl text-primary-400">{userXp}</p>
+              <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">XP total</p>
+            </div>
+            {noteSamMoyenne !== null && (
+              <div class="text-center">
+                <p class="font-display text-2xl text-primary-400">
+                  {noteSamMoyenne}<span class="text-base text-primary-600">/5 ★</span>
+                </p>
+                <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Note SAM</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <!-- Barre XP / niveau -->
+      <div class="mb-4">
+        <div class="flex justify-between items-center mb-1.5">
+          <span class="font-heading text-xs text-primary-500 tracking-widest uppercase">
+            Niveau {levelData.niveau} — {levelData.titre}
+          </span>
+          {levelData.next ? (
+            <span class="font-heading text-xs text-neutral-500">
+              {userXp} / {levelData.next.xp_requis} XP
+            </span>
+          ) : (
+            <span class="font-heading text-xs text-primary-400 tracking-widest">Niveau max ✦</span>
+          )}
+        </div>
+        <ProgressBar value={levelData.pctNext} label={`Progression vers niveau ${levelData.next?.titre ?? 'max'} : ${levelData.pctNext}%`} />
+        {levelData.next && (
+          <p class="font-body text-xs text-neutral-600 mt-1 text-right">
+            {levelData.xpVersNext} XP avant {levelData.next.titre}
+          </p>
+        )}
+      </div>
+
+      <!-- Barre progression tavernes -->
+      <div class="mb-10">
+        <div class="flex justify-between items-center mb-1.5">
+          <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Tavernes conquises</span>
+          <span class="font-heading text-xs text-neutral-500">{visitedIds.length} / {bars.length}</span>
+        </div>
+        <ProgressBar value={progression} label={`Tavernes conquises : ${visitedIds.length} sur ${bars.length}`} />
+      </div>
+
+      <!-- ══ ONGLETS ══════════════════════════════════════ -->
+      <div class="flex gap-1 mb-8 border-b border-primary-400/15 overflow-x-auto">
+        {[
+          { id: 'parametres',   label: 'Paramètres',    icon: homeIcon },
+          { id: 'amis',         label: 'Amis',          icon: personnes },
+          { id: 'notifications',label: 'Notifs',        icon: notifIcon, badge: demandes.length },
+          { id: 'trophees',     label: 'Trophées',      icon: medailIcon },
+        ].map(tab => (
+          <button
+            class="tab-btn shrink-0 flex items-center gap-2 px-4 lg:px-6 py-3 font-heading text-xs tracking-widest uppercase transition-colors relative"
+            data-tab={tab.id}
+          >
+            <Image src={tab.icon} alt="" width={16} height={16} class="opacity-70 invert" />
+            {tab.label}
+            {tab.badge ? (
+              <span class="w-4 h-4 rounded-full bg-accent-blood flex items-center justify-center font-heading text-xs text-neutral-100">
+                {tab.badge}
+              </span>
+            ) : null}
+          </button>
+        ))}
+        <div class="flex-1" />
+        <a href="/abonnement"
+           class={`shrink-0 flex items-center gap-2 px-4 lg:px-5 py-3 font-heading text-xs tracking-widest uppercase transition-colors rounded-t-lg mb-0 self-end ${user?.abonnements === 'premium' ? 'text-primary-400 hover:text-primary-300' : 'text-neutral-500 hover:text-neutral-300'}`}>
+          {user?.abonnements === 'premium'
+            ? <span class="text-primary-400">♛</span>
+            : <span>⚡</span>
+          }
+          {user?.abonnements === 'premium' ? 'Jarl' : 'Premium'}
+        </a>
+      </div>
+
+      <!-- Feedback global -->
+      {actionFeedback && (
+        <div class="mb-6 p-3.5 rounded-lg bg-accent-rune/20 border border-accent-rune/40 font-body text-sm text-neutral-300">
+          {actionFeedback}
+        </div>
+      )}
+
+      <!-- ══════════════════════════════════════════════════
+           ONGLET : PARAMÈTRES
+           ══════════════════════════════════════════════════ -->
+      <div id="tab-parametres" class="tab-panel tab-col">
+
+        <!-- Informations personnelles -->
+        <div class="card-parchment rounded-2xl overflow-hidden">
+          <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
+            <Image src={homeIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Informations personnelles</h2>
+          </div>
+          <form method="POST" class="px-6 lg:px-8 py-6">
+            <input type="hidden" name="action" value="update_profile" />
+            {profileSuccess && (
+              <div class="mb-5 p-3 rounded-lg bg-accent-rune/20 border border-accent-rune/40 font-body text-sm text-neutral-300">
+                Profil mis à jour.
+              </div>
+            )}
+            {profileError && (
+              <div class="mb-5 p-3 rounded-lg bg-accent-blood/20 border border-accent-blood/40 font-body text-sm text-neutral-300">
+                {profileError}
+              </div>
+            )}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div>
+                <label class="label-viking" for="pseudo">Nom de guerrier</label>
+                <input id="pseudo" name="pseudo" type="text" class="input-viking" value={user.pseudo ?? ''} />
+              </div>
+              <div>
+                <label class="label-viking" for="ville">Ville</label>
+                <input id="ville" name="ville" type="text" class="input-viking" value={user.ville ?? ''} />
+              </div>
+              <div>
+                <label class="label-viking" for="prenom">Prénom</label>
+                <input id="prenom" name="prenom" type="text" class="input-viking" value={user.prenom ?? ''} />
+              </div>
+              <div>
+                <label class="label-viking" for="nom">Nom</label>
+                <input id="nom" name="nom" type="text" class="input-viking" value={user.nom ?? ''} />
+              </div>
+              <div>
+                <label class="label-viking" for="age">Âge</label>
+                <input id="age" name="age" type="number" min="18" max="120" class="input-viking" value={user.age ?? ''} />
+              </div>
+            </div>
+            <div class="mt-5">
+              <label class="label-viking" for="description">Description</label>
+              <textarea id="description" name="description" rows="3" class="input-viking resize-none">{user.description ?? ''}</textarea>
+            </div>
+            <div class="mt-6 flex justify-end">
+              <button type="submit" class="btn-primary px-8 py-3">Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Réseaux sociaux -->
+        <div class="card-parchment rounded-2xl overflow-hidden">
+          <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
+            <Image src={instasIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Réseaux sociaux</h2>
+          </div>
+          <form method="POST" class="px-6 lg:px-8 py-6">
+            <input type="hidden" name="action" value="update_social" />
+            <div class="flex flex-col gap-5">
+              <div class="flex items-center gap-3">
+                <Image src={instasIcon} alt="Instagram" width={20} height={20} class="invert opacity-50 shrink-0" />
+                <div class="flex-1">
+                  <label class="label-viking" for="insta">Instagram</label>
+                  <input id="insta" name="insta" type="text" class="input-viking" placeholder="@votre_compte" value={user.insta ?? ''} />
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <Image src={linkedinIcon} alt="Facebook" width={20} height={20} class="invert opacity-50 shrink-0" />
+                <div class="flex-1">
+                  <label class="label-viking" for="facbook">Facebook</label>
+                  <input id="facbook" name="facbook" type="text" class="input-viking" placeholder="votre.profil" value={user.facbook ?? ''} />
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <Image src={githubIcon} alt="Discord" width={20} height={20} class="invert opacity-50 shrink-0" />
+                <div class="flex-1">
+                  <label class="label-viking" for="discord">Discord</label>
+                  <input id="discord" name="discord" type="text" class="input-viking" placeholder="pseudo#0000" value={user.discord ?? ''} />
+                </div>
+              </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+              <button type="submit" class="btn-primary px-8 py-3">Enregistrer</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Sécurité -->
+        <div class="card-parchment rounded-2xl overflow-hidden">
+          <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
+            <Image src={lockIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Sécurité</h2>
+          </div>
+          <form method="POST" class="px-6 lg:px-8 py-6">
+            <input type="hidden" name="action" value="update_password" />
+            {passwordSuccess && (
+              <div class="mb-5 p-3 rounded-lg bg-accent-rune/20 border border-accent-rune/40 font-body text-sm text-neutral-300">
+                Mot de passe mis à jour.
+              </div>
+            )}
+            {passwordError && (
+              <div class="mb-5 p-3 rounded-lg bg-accent-blood/20 border border-accent-blood/40 font-body text-sm text-neutral-300">
+                {passwordError}
+              </div>
+            )}
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div>
+                <label class="label-viking" for="oldPassword">Mot de passe actuel</label>
+                <input id="oldPassword" name="oldPassword" type="password" class="input-viking" placeholder="••••••••" autocomplete="current-password" />
+              </div>
+              <div>
+                <label class="label-viking" for="password">Nouveau mot de passe</label>
+                <input id="password" name="password" type="password" class="input-viking" placeholder="8 caractères min." autocomplete="new-password" />
+              </div>
+              <div>
+                <label class="label-viking" for="passwordConfirm">Confirmer</label>
+                <input id="passwordConfirm" name="passwordConfirm" type="password" class="input-viking" placeholder="••••••••" autocomplete="new-password" />
+              </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+              <button type="submit" class="btn-primary px-8 py-3">Changer le mot de passe</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Zone danger -->
+        <div class="card-parchment rounded-2xl overflow-hidden border border-accent-blood/20">
+          <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-accent-blood/20">
+            <Image src={waringIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Zone dangereuse</h2>
+          </div>
+          <div class="px-6 lg:px-8 py-6 flex flex-col sm:flex-row gap-4">
+            <form method="POST">
+              <input type="hidden" name="action" value="logout" />
+              <button type="submit" class="btn-outline px-8 py-3 text-sm">Se déconnecter</button>
+            </form>
+            <button
+              id="btn-delete-account"
+              type="button"
+              class="font-heading text-xs text-accent-blood tracking-widest uppercase border border-accent-blood/40 rounded-lg px-8 py-3 hover:bg-accent-blood/10 transition-colors"
+            >
+              Supprimer mon compte
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /tab-parametres -->
+
+      <!-- ══════════════════════════════════════════════════
+           ONGLET : AMIS
+           ══════════════════════════════════════════════════ -->
+      <div id="tab-amis" class="tab-panel hidden tab-col">
+
+        <!-- Recherche -->
+        <div class="card-parchment rounded-2xl overflow-hidden">
+          <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
+            <Image src={seachIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Trouver un guerrier</h2>
+          </div>
+          <div class="px-6 lg:px-8 py-6">
+            <div class="relative">
+              <Image src={seachIcon} alt="" width={16} height={16} class="absolute left-4 top-1/2 -translate-y-1/2 invert opacity-40" />
+              <input
+                id="friend-search"
+                type="text"
+                placeholder="Rechercher par pseudo…"
+                class="input-viking pl-10"
+                autocomplete="off"
+              />
+            </div>
+            <div id="search-results" class="mt-4 hidden search-results-list"></div>
+          </div>
+        </div>
+
+        <!-- Liste des amis -->
+        <div class="card-parchment rounded-2xl overflow-hidden">
+          <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
+            <Image src={personnes} alt="" width={18} height={18} class="invert opacity-60" />
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">
+              Mes amis
+              <span class="ml-2 font-body text-neutral-500 normal-case tracking-normal">({friends.length})</span>
+            </h2>
+          </div>
+          <div class="px-6 lg:px-8 py-6">
+            {friends.length === 0 ? (
+              <p class="font-body text-neutral-500 text-center py-4">Aucun ami pour l'instant. Utilisez la recherche pour en trouver.</p>
+            ) : (
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {friends.map((f: any) => (
+                  <div class="flex items-center gap-4 p-4 rounded-xl bg-dark-700/50 border border-primary-400/10">
+                    <button
+                      class="friend-card-btn flex items-center gap-3 flex-1 text-left"
+                      data-friend-id={f.id}
+                    >
+                      {f.avatar ? (
+                        <img
+                          src={`${PB_BASE_URL}/api/files/${f.collectionId}/${f.id}/${f.avatar}`}
+                          alt={f.pseudo}
+                          class="w-12 h-12 rounded-full object-cover border border-primary-400/20 shrink-0"
+                        />
+                      ) : (
+                        <div class="w-12 h-12 rounded-full bg-dark-600 border border-primary-400/20 flex items-center justify-center shrink-0">
+                          <span class="font-display text-xl text-primary-400">{(f.pseudo ?? 'G')[0].toUpperCase()}</span>
+                        </div>
+                      )}
+                      <div>
+                        <p class="font-heading text-sm text-neutral-200 tracking-wide">{f.pseudo ?? f.nom}</p>
+                        {f.ville && <p class="font-body text-xs text-neutral-500">{f.ville}</p>}
+                      </div>
+                    </button>
+                    <form method="POST">
+                      <input type="hidden" name="action" value="remove_friend" />
+                      <input type="hidden" name="friendId" value={f.id} />
+                      <button type="submit" class="font-heading text-xs text-neutral-600 hover:text-accent-blood tracking-widest uppercase transition-colors px-2 py-1">
+                        Retirer
+                      </button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div><!-- /tab-amis -->
+
+      <!-- ══════════════════════════════════════════════════
+           ONGLET : NOTIFICATIONS
+           ══════════════════════════════════════════════════ -->
+      <div id="tab-notifications" class="tab-panel hidden tab-col">
+
+        <div class="card-parchment rounded-2xl overflow-hidden">
+          <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
+            <Image src={notifIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">
+              Demandes d'amitié
+              {demandes.length > 0 && (
+                <span class="ml-2 w-5 h-5 inline-flex items-center justify-center rounded-full bg-accent-blood font-heading text-xs text-neutral-100">
+                  {demandes.length}
+                </span>
+              )}
+            </h2>
+          </div>
+          <div class="px-6 lg:px-8 py-6">
+            {demandes.length === 0 ? (
+              <p class="font-body text-neutral-500 text-center py-4">Aucune demande en attente.</p>
+            ) : (
+              <div class="flex flex-col gap-4">
+                {demandes.map((d: any) => (
+                  <div class="flex items-center gap-4 p-4 rounded-xl bg-dark-700/50 border border-primary-400/10">
+                    {d.avatar ? (
+                      <img
+                        src={`${PB_BASE_URL}/api/files/${d.collectionId}/${d.id}/${d.avatar}`}
+                        alt={d.pseudo}
+                        class="w-12 h-12 rounded-full object-cover border border-primary-400/20 shrink-0"
+                      />
+                    ) : (
+                      <div class="w-12 h-12 rounded-full bg-dark-600 border border-primary-400/20 flex items-center justify-center shrink-0">
+                        <span class="font-display text-xl text-primary-400">{(d.pseudo ?? 'G')[0].toUpperCase()}</span>
+                      </div>
+                    )}
+                    <div class="flex-1">
+                      <p class="font-heading text-sm text-neutral-200 tracking-wide mb-1">
+                        <span class="text-primary-400">{d.pseudo ?? d.nom}</span> veut être votre ami(e)
+                      </p>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                      <form method="POST">
+                        <input type="hidden" name="action" value="accept_friend" />
+                        <input type="hidden" name="friendId" value={d.id} />
+                        <button type="submit" class="btn-primary text-xs px-4 py-2">Accepter</button>
+                      </form>
+                      <form method="POST">
+                        <input type="hidden" name="action" value="decline_friend" />
+                        <input type="hidden" name="friendId" value={d.id} />
+                        <button type="submit" class="btn-outline text-xs px-4 py-2">Refuser</button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div><!-- /tab-notifications -->
+
+      <!-- ══════════════════════════════════════════════════
+           ONGLET : TROPHÉES
+           ══════════════════════════════════════════════════ -->
+      <div id="tab-trophees" class="tab-panel hidden tab-col">
+
+        <!-- Trophées obtenus -->
+        <div class="card-parchment rounded-2xl overflow-hidden">
+          <div class="flex items-center justify-between px-6 lg:px-8 py-4 border-b border-primary-400/15">
+            <div class="flex items-center gap-3">
+              <Image src={medailIcon} alt="" width={18} height={18} class="invert opacity-60" />
+              <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Mes trophées</h2>
+            </div>
+            <span class="font-heading text-xs text-neutral-500 tracking-widest">{earnedBadges.length} / {allBadges.length}</span>
+          </div>
+          <div class="px-6 lg:px-8 py-6">
+            {earnedBadges.length === 0 ? (
+              <div class="text-center py-10">
+                <Image src={medailIcon} alt="" width={40} height={40} class="invert opacity-15 mx-auto mb-3" />
+                <p class="font-heading text-sm text-neutral-600 tracking-wide">Aucun trophée débloqué</p>
+                <p class="font-body text-xs text-neutral-700 mt-1">Explorez des tavernes et terminez des sessions !</p>
+              </div>
+            ) : (
+              <div class="grid grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6">
+                {earnedBadges.map((badge: any) => {
+                  const isEquipped = badge.id === featuredBadgeId;
+                  const condLabel  = badge.condition === 'nombre_de_bar'
+                    ? `${badge.condition_chiffre} tavernes`
+                    : badge.condition === 'nombre_d_xp'
+                      ? `${badge.condition_chiffre} XP`
+                      : badge.condition === 'nombre_de_session_fini'
+                        ? `${badge.condition_chiffre} sessions`
+                        : '';
+                  return (
+                    <form method="POST" class="flex flex-col items-center gap-2 text-center group/badge cursor-pointer">
+                      <input type="hidden" name="action" value="set_featured_badge" />
+                      <input type="hidden" name="badgeId" value={isEquipped ? '' : badge.id} />
+                      <button type="submit" class="flex flex-col items-center gap-2 w-full">
+                        <div class={`relative w-14 h-14 rounded-full overflow-hidden border-2 transition-transform group-hover/badge:scale-105 ${isEquipped ? 'border-primary-400 ring-2 ring-primary-400/40' : 'border-primary-400/40'}`}>
+                          {badge.img ? (
+                            <PbImage record={badge} recordImage={badge.img} width={56} height={56} alt={badge.nom ?? 'Trophée'} class="w-full h-full object-cover" />
+                          ) : (
+                            <div class="w-full h-full bg-dark-600 flex items-center justify-center">
+                              <Image src={medailIcon} alt="" width={24} height={24} class="invert opacity-60" />
+                            </div>
+                          )}
+                        </div>
+                        <p class="font-heading text-xs text-neutral-300 leading-tight line-clamp-2">{badge.nom ?? 'Trophée'}</p>
+                        {condLabel && (
+                          <p class="font-heading text-xs text-primary-700 tracking-widest uppercase">{condLabel}</p>
+                        )}
+                        {isEquipped && (
+                          <span class="font-heading text-xs text-primary-400 tracking-widest uppercase">Équipé</span>
+                        )}
+                      </button>
+                    </form>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <!-- Tous les trophées disponibles -->
+        <details class="card-parchment rounded-2xl overflow-hidden">
+          <summary class="flex items-center justify-between px-6 lg:px-8 py-4 cursor-pointer list-none select-none border-b border-primary-400/15 hover:bg-dark-700/30 transition-colors">
+            <div class="flex items-center gap-3">
+              <Image src={medailIcon} alt="" width={18} height={18} class="invert opacity-60" />
+              <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Tous les trophées disponibles</h2>
+              <span class="font-body text-neutral-500 text-xs">({allBadges.length})</span>
+            </div>
+            <span class="summary-arrow font-heading text-xs text-neutral-500">▼</span>
+          </summary>
+          <div class="px-6 lg:px-8 py-6">
+            {allBadges.length === 0 ? (
+              <p class="font-body text-neutral-600 text-center py-4 text-sm">Aucun trophée disponible pour l'instant.</p>
+            ) : (
+              <div class="grid grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6">
+                {allBadges.map((badge: any) => {
+                  const isEarned   = earnedBadgeIds.includes(badge.id);
+                  const isEquipped = badge.id === featuredBadgeId;
+                  const condLabel  = badge.condition === 'nombre_de_bar'
+                    ? `${badge.condition_chiffre} tavernes`
+                    : badge.condition === 'nombre_d_xp'
+                      ? `${badge.condition_chiffre} XP`
+                      : badge.condition === 'nombre_de_session_fini'
+                        ? `${badge.condition_chiffre} sessions`
+                        : '';
+                  return (
+                    <div class={`flex flex-col items-center gap-2 text-center group/badge transition-opacity ${isEarned ? '' : 'opacity-35'}`}>
+                      <div class={`relative w-14 h-14 rounded-full overflow-hidden border-2 ${isEquipped ? 'border-primary-400' : isEarned ? 'border-primary-400/40' : 'border-neutral-700/50'} ${isEarned ? 'group-hover/badge:scale-105' : ''} transition-transform`}>
+                        {badge.img ? (
+                          <PbImage record={badge} recordImage={badge.img} width={56} height={56} alt={badge.nom ?? 'Trophée'} class={`w-full h-full object-cover ${isEarned ? '' : 'grayscale'}`} />
+                        ) : (
+                          <div class="w-full h-full bg-dark-600 flex items-center justify-center">
+                            <Image src={medailIcon} alt="" width={24} height={24} class="invert opacity-50" />
+                          </div>
+                        )}
+                      </div>
+                      <p class={`font-heading text-xs leading-tight line-clamp-2 ${isEarned ? 'text-neutral-300' : 'text-neutral-600'}`}>{badge.nom ?? 'Trophée'}</p>
+                      {condLabel && (
+                        <p class={`font-heading text-xs tracking-widest uppercase ${isEarned ? 'text-primary-700' : 'text-neutral-700'}`}>{condLabel}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </details>
+
+      </div><!-- /tab-trophees -->
+
+    </div><!-- /max-w -->
+  </div>
+
+  <!-- ══ MODAL AMI ═══════════════════════════════════════ -->
+  <div id="friend-modal" class="fixed inset-0 z-50 hidden modal-overlay p-4">
+    <div class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm" id="modal-backdrop"></div>
+    <div class="relative card-parchment rounded-2xl w-full max-w-lg max-h-screen overflow-y-auto z-10">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-primary-400/15">
+        <h3 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Profil du guerrier</h3>
+        <button id="modal-close" class="font-heading text-xs text-neutral-500 hover:text-neutral-200 tracking-widest uppercase transition-colors">Fermer</button>
+      </div>
+      <div id="modal-body" class="px-6 py-6">
+        <!-- Rempli par JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL SUPPRESSION COMPTE ═══════════════════════ -->
+  <div id="delete-modal" class="fixed inset-0 z-50 hidden modal-overlay p-4">
+    <div class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm" id="delete-backdrop"></div>
+    <div class="relative card-parchment rounded-2xl w-full max-w-md z-10 p-8">
+      <h3 class="font-heading text-lg text-neutral-100 tracking-wide mb-3">Supprimer mon compte ?</h3>
+      <p class="font-body text-base text-neutral-400 leading-relaxed mb-8">
+        Cette action est irréversible. Toutes vos données, visites et badges seront définitivement effacés.
+      </p>
+      <div class="flex gap-4">
+        <button id="delete-cancel" class="btn-outline flex-1 py-3 text-sm">Annuler</button>
+        <form method="POST" class="flex-1">
+          <input type="hidden" name="action" value="delete_account" />
+          <button type="submit" class="w-full py-3 text-sm font-heading tracking-widest uppercase bg-accent-blood text-neutral-100 rounded-lg hover:opacity-90 transition-opacity">
+            Supprimer
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</Layout>
+
+<style>
+  .tab-btn {
+    color: var(--color-neutral-500);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab-btn.active {
+    color: var(--color-primary-400);
+    border-bottom-color: var(--color-primary-400);
+  }
+  .modal-overlay.open {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tab-col:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .search-results-list:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  details > summary .summary-arrow {
+    transition: transform 0.25s ease;
+  }
+  details[open] > summary .summary-arrow {
+    transform: rotate(180deg);
+  }
+  .badge-toast {
+    position: fixed;
+    top: 6rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    opacity: 0;
+    z-index: 200;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    white-space: nowrap;
+  }
+  .badge-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .badge-toast.hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-16px);
+  }
+</style>
+
+<div id="profile-data"
+  data-user-id={userId}
+  data-token={token ?? ''}
+  data-pb-base-url={PB_BASE_URL}
+  data-active-tab={activeTab}
+  data-friends={JSON.stringify(friendsForClient)}
+  data-all-users={JSON.stringify(allUsersForSearch)}
+  hidden
+  aria-hidden="true"
+/>
+<script>
+  import '../../js/profile.js';
+</script>
+
+<script define:vars={{ _newBadges: allBadges.filter((b: any) => toAward.includes(b.id)).map((b: any) => ({ nom: b.nom ?? 'Trophée', img: b.img ?? '', collectionId: b.collectionId ?? '', id: b.id })), _pbBaseUrl: PB_BASE_URL }} is:inline>
+  function showBadgeToast(badge) {
+    var toast = document.createElement('div');
+    toast.className = 'badge-toast card-parchment rounded-2xl px-5 py-3 flex items-center gap-3 border border-primary-400/40 shadow-xl';
+    var imgHtml = badge.img
+      ? '<img src="' + _pbBaseUrl + '/api/files/' + badge.collectionId + '/' + badge.id + '/' + badge.img + '" class="w-10 h-10 rounded-full object-cover border border-primary-400/30 shrink-0" alt="' + badge.nom + '" />'
+      : '<div class="w-10 h-10 rounded-full bg-dark-600 border border-primary-400/20 flex items-center justify-center shrink-0"><span class="text-primary-400 text-lg">🏅</span></div>';
+    toast.innerHTML = imgHtml +
+      '<div><p class="font-heading text-xs text-primary-400 tracking-widest uppercase">Trophée débloqué !</p>' +
+      '<p class="font-heading text-sm text-neutral-100 tracking-wide">' + badge.nom + '</p></div>';
+    document.body.appendChild(toast);
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() { toast.classList.add('show'); });
+    });
+    setTimeout(function() {
+      toast.classList.remove('show');
+      toast.classList.add('hide');
+      setTimeout(function() { toast.remove(); }, 400);
+    }, 4000);
+  }
+
+  if (_newBadges && _newBadges.length) {
+    _newBadges.forEach(function(badge, i) {
+      setTimeout(function() { showBadgeToast(badge); }, i * 800);
+    });
+  }
+</script>

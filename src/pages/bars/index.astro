@@ -1,0 +1,205 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PbImage from '../../components/PbImage.astro';
+import HeroSection from '../../components/HeroSection.astro';
+import { Image } from 'astro:assets';
+import { getCollection, getRecord } from '../../js/backend.js';
+import carteIcon  from '../../assets/icon/carte.svg';
+import bierreIcon from '../../assets/icon/bierre.svg';
+import ProgressBar  from '../../components/ProgressBar.astro';
+import StatusBadge  from '../../components/StatusBadge.astro';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+const [bars, me] = await Promise.all([
+  getCollection('bar', { sort: 'nom', token }),
+  getRecord('users', userId, { fields: 'id,id_taverne_visiter', token }),
+]);
+
+const visitedIds  = me?.id_taverne_visiter ?? [];
+const progression = bars.length ? Math.round((visitedIds.length / bars.length) * 100) : 0;
+
+const mapBars = bars
+  .filter((b: any) => b.localisation?.lat && b.localisation?.lon)
+  .map((b: any) => ({
+    id: b.id,
+    nom: b.nom,
+    lat: b.localisation.lat,
+    lng: b.localisation.lon,
+    ordre: b.ordre ?? 0,
+    adresse: b.adresse ?? ''
+  }));
+---
+<Layout title="La Route des Jarls">
+
+  <HeroSection title="La Route des Jarls" subtitle={`${visitedIds.length} / ${bars.length} tavernes conquises`} />
+
+  <!-- ── CARTE LEAFLET ─────────────────────────────────────── -->
+  <section class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
+    <h2 class="font-heading text-xl text-neutral-200 tracking-wide mb-6 flex items-center gap-2">
+      <Image src={carteIcon} alt="" width={22} height={22} class="invert opacity-70" aria-hidden="true" />
+      Carte des Tavernes
+    </h2>
+    <div id="map-data"
+      data-bars={JSON.stringify(mapBars)}
+      data-visited={JSON.stringify(visitedIds)}
+      hidden
+    />
+    <div class="relative rounded-xl overflow-hidden border border-primary-400/20 map-bars-container">
+      <div id="map" class="w-full h-full" />
+    </div>
+    <div class="flex flex-wrap gap-4 mt-4 justify-end">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded-full bg-accent-rune border border-green-400/60 inline-block" />
+        <span class="font-heading text-xs text-neutral-400 tracking-wide">Visitée</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded-full bg-primary-600 border border-primary-300/60 inline-block" />
+        <span class="font-heading text-xs text-neutral-400 tracking-wide">À conquérir</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── BARRE DE PROGRESSION ──────────────────────────────── -->
+  <section class="max-w-360 mx-auto px-4 lg:px-20 pb-6">
+    <div class="card-parchment rounded-lg p-4 lg:p-6 flex flex-col lg:flex-row lg:items-center gap-4">
+      <div class="flex-1">
+        <div class="flex justify-between mb-2">
+          <span class="font-heading text-xs text-neutral-400 tracking-widest uppercase">Progression globale</span>
+          <span class="font-heading text-sm text-primary-400">{progression}%</span>
+        </div>
+        <ProgressBar value={progression} label={`Progression globale : ${progression}%`} />
+      </div>
+      <a href="/classement" class="btn-outline text-xs px-5 py-2 shrink-0">Classement</a>
+    </div>
+  </section>
+
+  <!-- ── LISTE DES BARS ────────────────────────────────────── -->
+  <section class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
+    <h2 class="font-heading text-2xl text-neutral-200 tracking-wide mb-8 flex items-center gap-3">
+      <Image src={bierreIcon} alt="" width={24} height={24} class="invert opacity-70" aria-hidden="true" />
+      Les Tavernes de la Horde
+    </h2>
+
+    {bars.length === 0 && (
+      <div class="card-parchment rounded-lg p-10 text-center">
+        <p class="font-body text-neutral-500 text-lg">Aucune taverne trouvée.</p>
+      </div>
+    )}
+
+    <div class="flex flex-col gap-4">
+      {bars.map((bar: any) => {
+        const visited = visitedIds.includes(bar.id);
+        return (
+          <div class={`card-parchment rounded-lg overflow-hidden flex flex-col lg:flex-row group transition-colors hover:border-primary-400/40 ${visited ? 'opacity-80' : ''}`}>
+
+            <!-- Image (lien) -->
+            <a href={`/bars/${bar.id}`} class="h-44 lg:h-auto lg:w-48 shrink-0 relative overflow-hidden block" tabindex="-1" aria-hidden="true">
+              <PbImage record={bar} recordImage={bar.img} width={192} height={176} />
+              <div class="absolute inset-0 bg-linear-to-r from-transparent to-dark-800/40 pointer-events-none" />
+            </a>
+
+            <!-- Contenu (pas de <a> wrapper — le bouton doit être ici) -->
+            <div class="flex-1 p-5 lg:p-6 flex flex-col justify-center">
+
+              <!-- Ligne nom + badge + bouton -->
+              <div class="flex items-start justify-between gap-4 mb-2">
+                <div class="flex items-center gap-3">
+                  {bar.ordre && (
+                    <span class={`w-8 h-8 rounded-full flex items-center justify-center font-heading text-sm shrink-0 ${visited ? 'bg-accent-rune/20 border border-accent-rune/50 text-green-400' : 'bg-primary-600/20 border border-primary-600/50 text-primary-400'}`}>
+                      {bar.ordre}
+                    </span>
+                  )}
+                  <a href={`/bars/${bar.id}`} class="font-heading text-lg text-neutral-200 tracking-wide hover:text-primary-300 transition-colors">
+                    {bar.nom}
+                  </a>
+                </div>
+                <!-- Droite : badge + bouton empilés -->
+                <div class="flex flex-col items-end gap-2 shrink-0">
+                  <StatusBadge variant={visited ? 'visited' : 'pending'} class="px-2 py-1 rounded">
+                    {visited ? 'Conquise' : 'À conquérir'}
+                  </StatusBadge>
+                  <div data-checkin-footer>
+                    {!visited && (
+                      <button
+                        class="checkin-btn btn-primary-sm"
+                        data-bar-id={bar.id}
+                        aria-label={`Marquer ${bar.nom} comme conquise`}
+                      >
+                        ⚔ J'ai conquis ce bar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {bar.adresse && (
+                <p class="font-body text-neutral-500 text-sm">{bar.adresse}</p>
+              )}
+              {bar.desciption && (
+                <p class="font-body text-neutral-400 text-base mt-2 line-clamp-2 hidden lg:block">{bar.desciption}</p>
+              )}
+            </div>
+
+            <!-- Flèche (lien) -->
+            <a href={`/bars/${bar.id}`} class="hidden lg:flex items-center pr-6 text-neutral-600 hover:text-primary-400 transition-colors" aria-label={`Voir ${bar.nom}`}>
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+
+          </div>
+        );
+      })}
+    </div>
+  </section>
+
+</Layout>
+
+<script>
+  import '../../js/map.js';
+</script>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.checkin-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var barId  = btn.dataset.barId;
+      var footer = btn.closest('[data-checkin-footer]');
+
+      btn.disabled = true;
+      btn.textContent = '…';
+
+      fetch('/bars/' + barId, { method: 'POST' })
+      .then(function(r) {
+        if (r.ok || r.redirected) {
+          if (footer) {
+            footer.innerHTML =
+              '<span class="font-heading text-xs text-accent-rune tracking-widest uppercase flex items-center gap-2">' +
+              '<span aria-hidden="true">✓</span> Taverne conquise' +
+              '</span>';
+          }
+          var card  = footer && footer.closest('.card-parchment');
+          var badge = card && card.querySelector('.badge-pending');
+          if (badge) {
+            badge.textContent = 'Conquise';
+            badge.classList.replace('badge-pending', 'badge-visited');
+          }
+        } else {
+          btn.disabled = false;
+          btn.textContent = '⚔ J\'ai conquis ce bar';
+        }
+      })
+      .catch(function() {
+        btn.disabled = false;
+        btn.textContent = '⚔ J\'ai conquis ce bar';
+      });
+    });
+  });
+</script>
+
+<style>
+  .map-bars-container { height: 300px; }
+  @media (min-width: 1024px) { .map-bars-container { height: 520px; } }
+</style>

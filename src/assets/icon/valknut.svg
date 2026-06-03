@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Valknut unicursal — symbole viking des guerriers morts au combat -->
+  <path d="M100 15 L168 130 L32 130 Z" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M100 42 L155 135 L45 135 Z" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M100 68 L143 140 L57 140 Z" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Cercle extérieur -->
+  <circle cx="100" cy="100" r="88" stroke="currentColor" stroke-width="3" stroke-dasharray="6 4"/>
+  <!-- Cercle intérieur -->
+  <circle cx="100" cy="100" r="10" fill="currentColor" opacity="0.6"/>
+</svg>

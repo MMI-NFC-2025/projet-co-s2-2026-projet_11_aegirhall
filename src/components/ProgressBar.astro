@@ -1,0 +1,13 @@
+---
+const { value, label, variant = 'gold', class: className = '' } = Astro.props;
+---
+<div
+  class={`progress-bar-track ${className}`}
+  role="progressbar"
+  aria-valuenow={value}
+  aria-valuemin={0}
+  aria-valuemax={100}
+  aria-label={label}
+>
+  <div class={`progress-bar-fill${variant === 'green' ? ' progress-bar-fill-green' : ''}`} style={`width:${value}%`} />
+</div>

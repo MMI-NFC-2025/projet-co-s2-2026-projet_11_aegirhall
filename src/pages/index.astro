@@ -1,11 +1,382 @@
----
-import Welcome from '../components/Welcome.astro';
+﻿---
 import Layout from '../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+import { getCollection, getMe } from '../js/backend.js';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import heroImg       from '../assets/img/darkar_neige.avif';
+import taverne1Img   from '../assets/img/taverne.avif';
+import bouclierImg   from '../assets/img/bouciler.avif';
+import nuitImg       from '../assets/img/taverne_nuit.avif';
+import interImg      from '../assets/img/taverne_interieur.avif';
+import cascadeImg    from '../assets/img/cascade.avif';
+import loinImg       from '../assets/img/taverne_loin.avif';
+import vegvisirIcon  from '../assets/icon/vegvisir.svg';
+import personnesIcon from '../assets/icon/personnes.svg';
+import bouclierIcon  from '../assets/icon/bouclier.svg';
+import eclaireIcon   from '../assets/icon/eclaire.svg';
+import navigationIcon from '../assets/icon/navigation.svg';
+import notifIcon     from '../assets/icon/notif.svg';
+import jeuxIcon      from '../assets/icon/jeux.svg';
+import medailIcon    from '../assets/icon/medail.svg';
+import biereIcon     from '../assets/icon/bierre.svg';
+import voitureIcon   from '../assets/icon/voiture.svg';
+import couroneIcon   from '../assets/icon/courone.svg';
+import etoileFill    from '../assets/icon/etoile_fill.svg';
+import citationIcon  from '../assets/icon/citation.svg';
+import arrowIcon     from '../assets/icon/arrow_droite.svg';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/LandingPage');
+
+const [user, bars] = await Promise.all([
+  getMe(userId, token),
+  getCollection('bar', { sort: 'nom', token }),
+]);
+
+if (!user) {
+  Astro.cookies.delete('pb_token',     { path: '/' });
+  Astro.cookies.delete('pb_user_id',   { path: '/' });
+  Astro.cookies.delete('pb_user_name', { path: '/' });
+  return Astro.redirect('/LandingPage');
+}
+
+const visitedIds  = user.id_taverne_visiter ?? [];
+const progression = bars.length ? Math.round((visitedIds.length / bars.length) * 100) : 0;
+const nextBar     = bars.find(b => !visitedIds.includes(b.id));
+const displayName = user?.pseudo ?? user?.nom ?? 'Guerrier';
 ---
+<Layout title="Accueil — AEgirhall">
 
-<Layout>
-	<Welcome />
+  <!-- ══════════════════════════════════════════════════════════════
+       HERO
+       ══════════════════════════════════════════════════════════════ -->
+  <section class="relative overflow-hidden" style="min-height: calc(100vh - 92px);">
+
+    <!-- Fond -->
+    <div class="absolute inset-0" aria-hidden="true">
+      <Image src={heroImg} alt="" width={1440} height={900} class="w-full h-full object-cover animate-ken-burns" />
+      <div class="absolute inset-0 bg-black/55" />
+      <div class="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-dark-900/80" />
+    </div>
+    <div class="absolute inset-0 bg-diamond opacity-20 pointer-events-none" aria-hidden="true" />
+    <div class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/20 to-transparent" aria-hidden="true" />
+    <div class="absolute bottom-0 left-0 right-0 h-0.75 bg-linear-to-r from-transparent via-primary-400/45 to-transparent" aria-hidden="true" />
+
+    <div class="relative z-10 max-w-360 mx-auto px-4 lg:px-20 flex flex-col items-center justify-center text-center py-20 lg:py-28" style="min-height: calc(100vh - 92px);">
+
+      <!-- Vegvisir déco -->
+      <div class="w-28 h-32 lg:w-40 lg:h-44 mb-8 opacity-60">
+        <Image src={vegvisirIcon} alt="" width={161} height={178} class="w-full h-full object-contain invert opacity-80" aria-hidden="true" />
+      </div>
+
+      <!-- Runes divider -->
+      <div class="flex items-center gap-4 mb-10">
+        <div class="h-px w-16 bg-linear-to-r from-transparent to-primary-400/40" />
+        <p class="font-heading text-primary-400/50 text-xs tracking-rune-widest select-none">ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ ᚷ ᚹ ᚺ ᚾ ᛁ ᛃ</p>
+        <div class="h-px w-16 bg-linear-to-l from-transparent to-primary-400/40" />
+      </div>
+
+      <!-- Titre principal -->
+      <h1 class="font-display text-4xl lg:text-7xl text-primary-400 tracking-widest mb-6 leading-tight drop-shadow-gold-lg">
+        Fais la fête comme les Vikings.<br />Rentre comme une Légende.
+      </h1>
+
+      <!-- Description -->
+      <p class="font-body text-lg lg:text-2xl text-neutral-100 leading-relaxed max-w-3xl mx-auto mb-4">
+        AEgirhall est une application de sécurité nocturne inspirée de la camaraderie viking.
+        Créez votre groupe, désignez un gardien sobre, et profitez de vos soirées en toute confiance.
+      </p>
+
+      <!-- Mention personnalisée -->
+      <p class="font-heading text-sm text-primary-500 tracking-widest mb-10 uppercase">
+        Bienvenue, {displayName} — {progression}% de la route accomplie
+      </p>
+
+      <!-- CTA -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href={nextBar ? `/bars/${nextBar.id}` : '/bars'} class="btn-primary px-10 py-4 text-base flex items-center gap-3">
+          <span>{nextBar ? 'Continuer la Route' : 'Voir les Tavernes'}</span>
+          <Image src={arrowIcon} alt="" width={16} height={16} class="invert" aria-hidden="true" />
+        </a>
+        <a href="/session" class="btn-outline px-10 py-4 text-base">Mes Sessions</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       COMMENT ÇA FONCTIONNE
+       ══════════════════════════════════════════════════════════════ -->
+  <section class="bg-dark-900 py-16 lg:py-24">
+    <div class="max-w-360 mx-auto px-4 lg:px-20">
+
+      <div class="text-center mb-14">
+        <p class="font-heading text-primary-600 text-xs tracking-rune-wider uppercase mb-4">✦ En trois actes ✦</p>
+        <h2 class="font-display text-4xl lg:text-5xl text-primary-400 tracking-wide mb-5">Comment ça fonctionne</h2>
+        <p class="font-body text-lg text-neutral-400 max-w-lg mx-auto leading-relaxed">
+          Trois étapes simples pour garantir une soirée mémorable et un retour en toute sécurité
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-14 lg:gap-20">
+
+        <!-- Étape 1 — image gauche, texte droite -->
+        <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-14 reveal">
+          <div class="w-full lg:w-1/2 rounded-xl overflow-hidden relative border border-primary-400/20 shrink-0 h-56 lg:h-88">
+            <Image src={taverne1Img} alt="Créer son équipage" width={700} height={352} class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-linear-to-t from-dark-900/60 to-transparent" />
+          </div>
+          <div class="w-full lg:w-1/2">
+            <div class="flex items-center gap-4 mb-5">
+              <div class="w-16 h-16 rounded-full bg-transparent border border-primary-400/30 flex items-center justify-center shrink-0 glow-teal">
+                <Image src={personnesIcon} alt="" width={28} height={28} class="invert opacity-80" aria-hidden="true" />
+              </div>
+              <div>
+                <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-1">Étape 01</p>
+                <h3 class="font-display text-2xl text-neutral-200 tracking-wide">Crée ton équipage</h3>
+              </div>
+            </div>
+            <p class="font-body text-base text-neutral-400 leading-relaxed mb-6">
+              Rassemblez vos amis avant de sortir. Invitez vos compagnons de confiance à rejoindre votre groupe pour la soirée.
+            </p>
+            <div class="h-px bg-linear-to-r from-primary-400/20 to-transparent w-3/4" />
+          </div>
+        </div>
+
+        <!-- Étape 2 — texte gauche, image droite -->
+        <div class="flex flex-col lg:flex-row-reverse items-center gap-8 lg:gap-14 reveal">
+          <div class="w-full lg:w-1/2 rounded-xl overflow-hidden relative border border-primary-400/20 shrink-0 h-56 lg:h-88">
+            <Image src={bouclierImg} alt="Choisir son Gardien" width={700} height={352} class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-linear-to-t from-dark-900/60 to-transparent" />
+          </div>
+          <div class="w-full lg:w-1/2">
+            <div class="flex items-center gap-4 mb-5">
+              <div class="w-16 h-16 rounded-full bg-transparent border border-primary-400/30 flex items-center justify-center shrink-0 glow-teal">
+                <Image src={bouclierIcon} alt="" width={28} height={28} class="invert opacity-80" aria-hidden="true" />
+              </div>
+              <div>
+                <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-1">Étape 02</p>
+                <h3 class="font-display text-2xl text-neutral-200 tracking-wide">Choisis ton Gardien</h3>
+              </div>
+            </div>
+            <p class="font-body text-base text-neutral-400 leading-relaxed mb-6">
+              Désigne un ou plusieurs amis responsables comme Gardiens qui restent sobres et assurent la sécurité du groupe tout au long de la soirée.
+            </p>
+            <div class="h-px bg-linear-to-r from-primary-400/20 to-transparent w-3/4" />
+          </div>
+        </div>
+
+        <!-- Étape 3 — image gauche, texte droite -->
+        <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-14 reveal">
+          <div class="w-full lg:w-1/2 rounded-xl overflow-hidden relative border border-primary-400/20 shrink-0 h-56 lg:h-88">
+            <Image src={nuitImg} alt="Profiter en sécurité" width={700} height={352} class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-linear-to-t from-dark-900/60 to-transparent" />
+          </div>
+          <div class="w-full lg:w-1/2">
+            <div class="flex items-center gap-4 mb-5">
+              <div class="w-16 h-16 rounded-full bg-transparent border border-primary-400/30 flex items-center justify-center shrink-0 glow-teal">
+                <Image src={eclaireIcon} alt="" width={28} height={28} class="invert opacity-80" aria-hidden="true" />
+              </div>
+              <div>
+                <p class="font-heading text-primary-600 text-xs tracking-widest uppercase mb-1">Étape 03</p>
+                <h3 class="font-display text-2xl text-neutral-200 tracking-wide">Profite en sécurité</h3>
+              </div>
+            </div>
+            <p class="font-body text-base text-neutral-400 leading-relaxed mb-6">
+              Relève des défis, trace ton odyssée et fais la fête en toute confiance sachant que tout le monde est protégé.
+            </p>
+            <div class="h-px bg-linear-to-r from-primary-400/20 to-transparent w-3/4" />
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       FONCTIONNALITÉS PRINCIPALES
+       ══════════════════════════════════════════════════════════════ -->
+  <section class="relative bg-dark-800 py-16 lg:py-24 overflow-hidden">
+    <div class="absolute inset-0 bg-diamond opacity-15 pointer-events-none" aria-hidden="true" />
+    <div class="relative z-10 max-w-360 mx-auto px-4 lg:px-20">
+
+      <div class="text-center mb-14 reveal">
+        <h2 class="font-display text-4xl lg:text-5xl text-primary-400 tracking-wide mb-5">Fonctionnalités principales</h2>
+        <p class="font-body text-lg text-neutral-400 max-w-lg mx-auto">Des outils conçus pour vos aventures nocturnes modernes</p>
+      </div>
+
+      <!-- Feature 1 — Système de gardien -->
+      <div class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16 mb-14 lg:mb-20 reveal">
+        <div class="w-full lg:w-1/2 rounded-xl overflow-hidden relative border border-primary-400/20 shrink-0 h-88">
+          <Image src={interImg} alt="Système de gardien" width={700} height={352} class="w-full h-full object-cover" />
+        </div>
+        <div class="w-full lg:w-1/2">
+          <div class="w-16 h-16 rounded-xl flex items-center justify-center mb-6 shrink-0 icon-gold-bg">
+            <Image src={bouclierIcon} alt="" width={32} height={32} class="invert" aria-hidden="true" />
+          </div>
+          <h3 class="font-heading text-2xl lg:text-3xl text-neutral-100 tracking-wide mb-4">Système de gardien</h3>
+          <p class="font-body text-base text-neutral-400 leading-relaxed mb-6">
+            Désignez des gardiens sobres qui bénéficient de capacités spéciales pour suivre leur groupe, recevoir des alertes et coordonner le transport sécurisé.
+          </p>
+          <ul class="flex flex-col gap-3">
+            {['Suivi GPS du groupe en temps réel', 'Alertes automatiques de sécurité', 'Coordination de transport'].map(item => (
+              <li class="flex items-center gap-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0" />
+                <span class="font-body text-sm text-neutral-400">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Feature 2 — Mode Odyssée -->
+      <div class="flex flex-col lg:flex-row-reverse items-center gap-10 lg:gap-16 mb-14 lg:mb-20 reveal">
+        <div class="w-full lg:w-1/2 rounded-xl overflow-hidden relative border border-primary-400/20 shrink-0 h-88">
+          <Image src={cascadeImg} alt="Mode Odyssée" width={700} height={352} class="w-full h-full object-cover" />
+        </div>
+        <div class="w-full lg:w-1/2">
+          <div class="w-16 h-16 rounded-xl flex items-center justify-center mb-6 shrink-0 icon-gold-bg">
+            <Image src={navigationIcon} alt="" width={32} height={32} class="invert" aria-hidden="true" />
+          </div>
+          <h3 class="font-heading text-2xl lg:text-3xl text-neutral-100 tracking-wide mb-4">Mode Odyssée</h3>
+          <p class="font-body text-base text-neutral-400 leading-relaxed mb-6">
+            Participez à un parcours de bars légendaire avec des défis amusants. Collectez des succès, relevez des défis et devenez une légende de la nuit.
+          </p>
+          <ul class="flex flex-col gap-3">
+            {['Parcours thématiques uniques', 'Défis et succès à débloquer', 'Classement entre groupes'].map(item => (
+              <li class="flex items-center gap-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0" />
+                <span class="font-body text-sm text-neutral-400">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <!-- 4 icônes -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 reveal">
+        {[
+          { icon: navigationIcon, label: 'Géolocalisation en temps réel' },
+          { icon: notifIcon,      label: 'Alertes intelligentes' },
+          { icon: jeuxIcon,       label: 'Chat de groupe' },
+          { icon: medailIcon,     label: 'Système de succès' },
+        ].map(item => (
+          <div class="flex flex-col items-center text-center gap-4">
+            <div class="w-14 h-14 rounded-xl bg-dark-700 border border-primary-400/15 flex items-center justify-center">
+              <Image src={item.icon} alt="" width={24} height={24} class="invert opacity-70" aria-hidden="true" />
+            </div>
+            <p class="font-body text-sm text-neutral-400 leading-snug">{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       NOS PARTENAIRES
+       ══════════════════════════════════════════════════════════════ -->
+  <section class="relative bg-dark-900 py-16 lg:py-24 overflow-hidden">
+    <div class="absolute inset-0" aria-hidden="true">
+      <Image src={loinImg} alt="" width={1440} height={600} class="w-full h-full object-cover opacity-5" />
+      <div class="absolute inset-0 bg-dark-900/95" />
+    </div>
+    <div class="relative z-10 max-w-360 mx-auto px-4 lg:px-20">
+
+      <div class="text-center mb-12 reveal">
+        <h2 class="font-display text-4xl lg:text-5xl text-primary-400 tracking-wide mb-5">Nos partenaires</h2>
+        <p class="font-body text-lg text-neutral-400 max-w-lg mx-auto">Construire un réseau de partenaires pour améliorer vos soirées</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 reveal">
+        {[
+          { icon: biereIcon,    title: 'Réseau de bars',      desc: 'Bars et établissements partenaires offrant des offres exclusives aux membres AEgirhall.' },
+          { icon: voitureIcon,  title: 'Retour sécurisé',     desc: 'Services de transport intégrés pour des trajets en toute sécurité à la fin de chaque soirée.' },
+          { icon: couroneIcon,  title: 'Avantages premium',   desc: 'Réductions exclusives auprès de nos partenaires pour récompenser les groupes responsables.' },
+        ].map(card => (
+          <div class="card-parchment card-highlight rounded-xl p-8 text-center flex flex-col items-center gap-4">
+            <div class="w-16 h-16 rounded-xl flex items-center justify-center shrink-0 icon-gold-bg">
+              <Image src={card.icon} alt="" width={32} height={32} class="invert" aria-hidden="true" />
+            </div>
+            <h3 class="font-heading text-lg text-neutral-100 tracking-wide">{card.title}</h3>
+            <p class="font-body text-sm text-neutral-500 leading-relaxed text-center">{card.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <!-- Banner Devenir partenaire -->
+      <div class="card-parchment rounded-xl overflow-hidden reveal">
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-6 px-8 py-8">
+          <div>
+            <h3 class="font-heading text-xl text-neutral-100 tracking-wide mb-2">Devenir partenaire</h3>
+            <p class="font-body text-base text-neutral-500 max-w-xl leading-relaxed">
+              Vous êtes un bar, un établissement ou un prestataire de services ? Rejoignez AEgirhall pour toucher une clientèle engagée et responsable.
+            </p>
+          </div>
+          <a href="/contact" class="btn-primary px-8 py-3 whitespace-nowrap shrink-0 flex items-center gap-2">
+            <span>Nous contacter</span>
+            <Image src={arrowIcon} alt="" width={16} height={16} class="invert" aria-hidden="true" />
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       CE QUE DISENT NOS GUERRIERS
+       ══════════════════════════════════════════════════════════════ -->
+  <section class="bg-dark-800 py-16 lg:py-24">
+    <div class="max-w-360 mx-auto px-4 lg:px-20">
+
+      <div class="text-center mb-14 reveal">
+        <div class="rune-divider text-primary-400/40 text-sm font-heading tracking-rune-wider mb-6 justify-center">ᛏ ᛒ ᛖ</div>
+        <h2 class="font-display text-4xl lg:text-5xl text-primary-400 tracking-wide mb-4">Ce que disent nos guerriers</h2>
+        <p class="font-body text-lg text-neutral-400">La communauté AEgirhall témoigne de ses expériences</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 reveal">
+        {[
+          {
+            quote: '"AEgirhall a complètement changé notre façon de sortir. On se sent tellement plus en sécurité avec le système de gardien. Mes parents sont rassurés aussi !"',
+            name: 'Sophie L.', role: 'Étudiante, Oslo', initial: 'S',
+          },
+          {
+            quote: '"En tant que professionnel de la nuit, je vois la différence. Les groupes utilisant AEgirhall sont plus responsables et profitent mieux de leur soirée."',
+            name: 'Thomas B.', role: 'Barman, Bergen', initial: 'T',
+          },
+          {
+            quote: '"Le mode Odyssée rend le rôle de gardien amusant ! On ne se sent pas mis à l\'écart, au contraire. C\'est devenu un jeu entre amis."',
+            name: 'Emma K.', role: 'Gardienne régulière', initial: 'E',
+          },
+        ].map(t => (
+          <div class="card-parchment rounded-xl p-7 flex flex-col gap-5">
+            <div class="flex items-center gap-1">
+              {[1,2,3,4,5].map(() => (
+                <Image src={etoileFill} alt="" width={16} height={16} class="opacity-90 filter-star-gold" aria-hidden="true" />
+              ))}
+            </div>
+            <Image src={citationIcon} alt="" width={28} height={28} class="invert opacity-25" aria-hidden="true" />
+            <p class="font-body text-sm text-neutral-400 leading-relaxed flex-1">{t.quote}</p>
+            <div class="flex items-center gap-3 pt-3 border-t border-dark-700">
+              <div class="w-10 h-10 rounded-full bg-dark-600 border border-primary-400/30 flex items-center justify-center font-heading text-sm text-primary-400 shrink-0">
+                {t.initial}
+              </div>
+              <div>
+                <p class="font-heading text-sm text-neutral-200 tracking-wide">{t.name}</p>
+                <p class="font-body text-xs text-neutral-600">{t.role}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  </section>
+
 </Layout>
+
+<script>
+  import '../js/reveal.js';
+</script>

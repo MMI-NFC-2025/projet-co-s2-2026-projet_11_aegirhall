@@ -1,0 +1,225 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PbImage from '../../components/PbImage.astro';
+import { Image } from 'astro:assets';
+import { getRecord, getCollection, updateUser, PB_BASE_URL } from '../../js/backend.js';
+import pingIcon   from '../../assets/icon/ping.svg';
+import tempsIcon  from '../../assets/icon/Temps.svg';
+import bierreIcon from '../../assets/icon/bierre.svg';
+import carteIcon  from '../../assets/icon/carte.svg';
+import boussol    from '../../assets/icon/boussol.svg';
+import StatusBadge from '../../components/StatusBadge.astro';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+const { id } = Astro.params;
+
+// Checkin POST
+if (Astro.request.method === 'POST') {
+  const json = { 'Content-Type': 'application/json' };
+  const me = await getRecord('users', userId, { fields: 'id,id_taverne_visiter', token });
+  const existing: string[] = me?.id_taverne_visiter ?? [];
+  if (!existing.includes(id)) {
+    await updateUser(userId, { id_taverne_visiter: [...existing, id] }, token);
+  }
+  return new Response(JSON.stringify({ ok: true }), { status: 200, headers: json });
+}
+
+const [bar, me, allBars] = await Promise.all([
+  getRecord('bar', id),
+  getRecord('users', userId, { fields: 'id,id_taverne_visiter', token }),
+  getCollection('bar', { sort: 'nom', fields: 'id', token }),
+]);
+
+if (!bar) return Astro.redirect('/bars');
+
+const visitedIds = me?.id_taverne_visiter ?? [];
+const hasVisited = visitedIds.includes(bar.id);
+const barIndex   = allBars.findIndex(b => b.id === bar.id);
+const prevBar    = barIndex > 0 ? allBars[barIndex - 1] : null;
+const nextBar    = barIndex < allBars.length - 1 ? allBars[barIndex + 1] : null;
+
+const hasMap = bar.localisation?.lat && bar.localisation?.lon;
+---
+<Layout title={bar.nom}>
+
+  <!-- ── HERO BAR ──────────────────────────────────────────── -->
+  <section class="relative h-72 lg:h-96 overflow-hidden">
+    <PbImage record={bar} recordImage={bar.img} width={1440} height={384} />
+    <div class="absolute inset-0 bg-linear-to-t from-dark-900 via-dark-800/50 to-transparent" />
+    <div class="absolute bottom-0 left-0 right-0 max-w-360 mx-auto px-4 lg:px-20 pb-8 flex items-end justify-between">
+      <div>
+        {bar.ordre && (
+          <span class="inline-flex items-center gap-1 font-heading text-xs text-primary-400 tracking-widest uppercase mb-2">
+            Étape {bar.ordre}
+          </span>
+        )}
+        <h1 class="font-display text-3xl lg:text-6xl text-neutral-100 tracking-widest">{bar.nom}</h1>
+      </div>
+      <StatusBadge variant={hasVisited ? 'visited' : 'pending'} class="px-3 py-1.5 rounded">
+        {hasVisited ? '⚔ Conquise' : '○ À conquérir'}
+      </StatusBadge>
+    </div>
+  </section>
+
+  <!-- ── CONTENU ───────────────────────────────────────────── -->
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+
+      <!-- Infos principales -->
+      <div class="lg:col-span-2 flex flex-col gap-8">
+
+        {bar.desciption && (
+          <div class="card-parchment rounded-lg p-6">
+            <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-4 flex items-center gap-2">
+              <Image src={bierreIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+              La Taverne
+            </h2>
+            <p class="font-body text-lg text-neutral-300 leading-relaxed">{bar.desciption}</p>
+          </div>
+        )}
+
+        <!-- Détails -->
+        <div class="card-parchment rounded-lg p-6">
+          <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-5">Informations</h2>
+          <dl class="flex flex-col gap-4">
+            {bar.adresse && (
+              <div class="flex gap-4 items-start">
+                <dt class="font-heading text-xs text-neutral-500 tracking-widest uppercase w-28 shrink-0 pt-0.5 flex items-center gap-1.5">
+                  <Image src={pingIcon} alt="" width={14} height={14} class="invert opacity-50" aria-hidden="true" />
+                  Adresse
+                </dt>
+                <dd class="font-body text-base text-neutral-300">{bar.adresse}</dd>
+              </div>
+            )}
+            {bar.contact && (
+              <div class="flex gap-4 items-start">
+                <dt class="font-heading text-xs text-neutral-500 tracking-widest uppercase w-28 shrink-0 pt-0.5 flex items-center gap-1.5">
+                  <Image src={tempsIcon} alt="" width={14} height={14} class="invert opacity-50" aria-hidden="true" />
+                  Contact
+                </dt>
+                <dd class="font-body text-base text-neutral-300">{bar.contact}</dd>
+              </div>
+            )}
+            {bar.liens && (
+              <div class="flex gap-4 items-start">
+                <dt class="font-heading text-xs text-neutral-500 tracking-widest uppercase w-28 shrink-0 pt-0.5">
+                  Liens
+                </dt>
+                <dd class="font-body text-base">
+                  <a href={bar.liens} target="_blank" rel="noopener" class="text-primary-400 hover:text-primary-300 transition-colors break-all">
+                    {bar.liens}
+                  </a>
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+
+        <!-- Galerie -->
+        {bar.galerie?.length > 0 && (
+          <div>
+            <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-4">Galerie</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              {bar.galerie.map(img => (
+                <div class="rounded-lg overflow-hidden aspect-square">
+                  <PbImage record={bar} recordImage={img} width={300} height={300} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <!-- Mini-carte -->
+        {hasMap && (
+          <div>
+            <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase mb-4 flex items-center gap-2">
+              <Image src={carteIcon} alt="" width={18} height={18} class="invert opacity-60" aria-hidden="true" />
+              Localisation
+            </h2>
+            <div id="map-data"
+              data-bars={JSON.stringify([{ id: bar.id, nom: bar.nom, lat: bar.localisation.lat, lng: bar.localisation.lon, ordre: bar.ordre ?? 0, adresse: bar.adresse ?? '' }])}
+              data-visited={JSON.stringify(hasVisited ? [bar.id] : [])}
+              hidden
+            />
+            <div class="rounded-xl overflow-hidden border border-primary-400/20" style="height:260px;">
+              <div id="map" class="w-full h-full" />
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      <!-- Sidebar actions -->
+      <div class="flex flex-col gap-5">
+
+        <!-- Check-in -->
+        <div class="card-parchment rounded-lg p-5">
+          <p class="font-heading text-base text-primary-500 tracking-widest uppercase mb-4">
+            {hasVisited ? 'Taverne Conquise' : 'Marquer ma Visite'}
+          </p>
+
+          {hasVisited ? (
+            <div class="text-center py-4">
+              <p class="font-display text-3xl text-accent-rune mb-2">⚔</p>
+              <p class="font-heading text-sm text-neutral-400 tracking-wide">Vos exploits sont gravés dans les runes.</p>
+            </div>
+          ) : (
+            <div>
+              <p class="font-body text-sm text-neutral-500 mb-4 leading-relaxed">
+                Vous y êtes ? Marquez votre passage pour que votre légende soit inscrite.
+              </p>
+              <button id="checkin-btn" class="btn-primary w-full py-3" aria-label="Marquer ma visite dans cette taverne">
+                J'y suis — Marquer la visite
+              </button>
+              <p id="checkin-error" class="hidden text-xs font-body text-accent-blood mt-2 text-center" role="alert" />
+            </div>
+          )}
+        </div>
+
+        <!-- Navigation entre bars -->
+        <div class="card-parchment rounded-lg p-5 flex flex-col gap-3">
+          <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-1 flex items-center gap-1.5">
+            <Image src={boussol} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+            Parcours
+          </p>
+          {prevBar && (
+            <a href={`/bars/${prevBar.id}`} class="flex items-center gap-3 text-neutral-400 hover:text-primary-300 transition-colors" aria-label={`Étape précédente : étape ${prevBar.ordre}`}>
+              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span class="font-heading text-sm tracking-wide">Étape {prevBar.ordre}</span>
+            </a>
+          )}
+          {nextBar && (
+            <a href={`/bars/${nextBar.id}`} class="flex items-center gap-3 text-neutral-400 hover:text-primary-300 transition-colors justify-end" aria-label={`Étape suivante : étape ${nextBar.ordre}`}>
+              <span class="font-heading text-sm tracking-wide">Étape {nextBar.ordre}</span>
+              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          )}
+          <a href="/bars" class="font-heading text-xs text-neutral-600 hover:text-neutral-400 tracking-widest uppercase text-center pt-1 transition-colors">
+            Voir toute la route
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</Layout>
+
+{!hasVisited && (
+  <script>
+    import '../../js/checkin-btn.js';
+  </script>
+)}
+
+{hasMap && (
+  <script>
+    import '../../js/map.js';
+  </script>
+)}

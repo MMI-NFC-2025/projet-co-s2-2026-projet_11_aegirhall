@@ -1,0 +1,227 @@
+﻿---
+import Layout from '../layouts/Layout.astro';
+import HeroSection from '../components/HeroSection.astro';
+import { Image } from 'astro:assets';
+import drakar         from '../assets/img/drakar.avif';
+import taverne        from '../assets/img/taverne.avif';
+import trone          from '../assets/img/trone.avif';
+import darkar_neige   from '../assets/img/darkar_neige.avif';
+import taverne_inter  from '../assets/img/taverne_interieur.avif';
+import coeurIcon      from '../assets/icon/coeur.svg';
+import bouclierIcon   from '../assets/icon/bouclier.svg';
+import tropheeIcon    from '../assets/icon/trophée.svg';
+import etoileIcon     from '../assets/icon/etoile_fill.svg';
+import instasIcon     from '../assets/icon/insta.svg';
+import linkedinIcon   from '../assets/icon/linkding.svg';
+import githubIcon     from '../assets/icon/guithub.svg';
+---
+<Layout title="À Propos — AEgirhall" description="Découvrez l'histoire et les règles de l'AEgirhall, le grand barathon viking.">
+
+  <HeroSection
+    title="À Propos"
+    subtitle="L'Histoire de l'AEgirhall"
+    descMobile="Le barathon des guerriers, entre légende et bière."
+    imgSrc={darkar_neige}
+  />
+
+  <div class="max-w-360 mx-auto px-4 lg:px-20 py-12 lg:py-20">
+
+    <!-- ── SECTION HISTOIRE + RÈGLES ──────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-20">
+
+      <!-- Histoire -->
+      <div>
+        <div class="rounded-xl overflow-hidden mb-7 h-52 relative">
+          <Image src={drakar} alt="Drakar viking sur les flots" width={700} height={208} class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent" />
+        </div>
+        <h2 class="font-heading text-2xl lg:text-3xl text-neutral-200 tracking-wide mb-6">L'Origine</h2>
+        <div class="rune-divider text-primary-700 text-sm mb-6 justify-start">ᚠ ᚢ ᚦ</div>
+        <div class="font-body text-lg text-neutral-400 leading-relaxed space-y-4">
+          <p>
+            Dans les temps anciens, AEgi — dieu de la mer et maître des festins — convoquait les dieux de l'Asgard dans sa halle sous les flots pour des banquets qui duraient des jours entiers.
+          </p>
+          <p>
+            L'AEgirhall s'en inspire : un parcours de tavernes, une route tracée entre les meilleurs établissements de la ville, que chaque guerrier doit conquérir pour graver son nom dans les runes du classement éternel.
+          </p>
+          <p>
+            Plus qu'un simple barathon, c'est un rite de passage. Une épopée liquide. Une légende que vous écrivez bière après bière.
+          </p>
+        </div>
+      </div>
+
+      <!-- Règles -->
+      <div>
+        <div class="rounded-xl overflow-hidden mb-7 h-52 relative">
+          <Image src={taverne} alt="Taverne viking" width={700} height={208} class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent" />
+        </div>
+        <h2 class="font-heading text-2xl lg:text-3xl text-neutral-200 tracking-wide mb-6">Le Code des Jarls</h2>
+        <div class="rune-divider text-primary-700 text-sm mb-6 justify-start">ᚱ ᚲ ᚷ</div>
+        <ul class="flex flex-col gap-4">
+          {[
+            { num: '01', règle: 'Inscrivez-vous et rejoignez la horde — seuls les guerriers enregistrés peuvent participer.' },
+            { num: '02', règle: 'Parcourez les tavernes dans l\'ordre indiqué sur la route.' },
+            { num: '03', règle: 'Consommez au moins une boisson dans chaque taverne avant de valider votre passage.' },
+            { num: '04', règle: 'Restez honorable — la horde respecte les établissements et leurs habitants.' },
+            { num: '05', règle: 'Le classement final est établi sur le nombre de tavernes conquises.' },
+          ].map(r => (
+            <li class="flex gap-4">
+              <span class="font-heading text-primary-600 text-sm tracking-widest shrink-0 pt-0.5">{r.num}</span>
+              <p class="font-body text-base text-neutral-400 leading-relaxed">{r.règle}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <!-- ── STATS GRID ──────────────────────────────────────── -->
+    <div class="mb-20 reveal">
+      <div class="text-center mb-10">
+        <p class="font-heading text-xs text-primary-600 tracking-rune-wide uppercase mb-3">✦ En chiffres ✦</p>
+        <h2 class="font-heading text-2xl lg:text-4xl text-neutral-200 tracking-wide">Notre mission en données</h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <!-- Groupes -->
+        <div class="card-parchment rounded-xl p-6 flex items-center gap-5 card-highlight">
+          <div class="w-12 h-12 rounded-xl bg-primary-400/10 border border-primary-400/20 flex items-center justify-center shrink-0">
+            <Image src={coeurIcon} alt="" width={22} height={22} class="invert opacity-70" aria-hidden="true" />
+          </div>
+          <div>
+            <p class="font-display text-3xl text-primary-400 leading-none mb-1">12 000+</p>
+            <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Groupes organisés</p>
+          </div>
+        </div>
+
+        <!-- Gardiens -->
+        <div class="card-parchment rounded-xl p-6 flex items-center gap-5 card-highlight">
+          <div class="w-12 h-12 rounded-xl bg-primary-400/10 border border-primary-400/20 flex items-center justify-center shrink-0">
+            <Image src={bouclierIcon} alt="" width={22} height={22} class="invert opacity-70" aria-hidden="true" />
+          </div>
+          <div>
+            <p class="font-display text-3xl text-primary-400 leading-none mb-1">8 200+</p>
+            <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Gardiens (SAM) formés</p>
+          </div>
+        </div>
+
+        <!-- Soirées -->
+        <div class="card-parchment rounded-xl p-6 flex items-center gap-5 card-highlight">
+          <div class="w-12 h-12 rounded-xl bg-primary-400/10 border border-primary-400/20 flex items-center justify-center shrink-0">
+            <Image src={tropheeIcon} alt="" width={22} height={22} class="invert opacity-70" aria-hidden="true" />
+          </div>
+          <div>
+            <p class="font-display text-3xl text-primary-400 leading-none mb-1">45 000+</p>
+            <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Soirées organisées</p>
+          </div>
+        </div>
+
+        <!-- Note — avec image de fond -->
+        <div class="card-parchment rounded-xl overflow-hidden flex items-center gap-5 card-highlight relative">
+          <div class="absolute inset-0" aria-hidden="true">
+            <Image src={taverne_inter} alt="" width={540} height={160} class="w-full h-full object-cover opacity-10" />
+          </div>
+          <div class="relative z-10 flex items-center gap-5 p-6">
+            <div class="w-12 h-12 rounded-xl bg-primary-400/10 border border-primary-400/20 flex items-center justify-center shrink-0">
+              <Image src={etoileIcon} alt="" width={22} height={22} class="invert opacity-70" aria-hidden="true" />
+            </div>
+            <div>
+              <p class="font-display text-3xl text-primary-400 leading-none mb-1">4,9 / 5</p>
+              <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Note moyenne</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── SECTION ÉQUIPE ──────────────────────────────────── -->
+    <div class="mb-20 reveal">
+      <div class="text-center mb-10">
+        <p class="font-heading text-xs text-primary-600 tracking-rune-wide uppercase mb-3">✦ Les artisans ✦</p>
+        <h2 class="font-heading text-2xl lg:text-4xl text-neutral-200 tracking-wide mb-3">L'équipe</h2>
+        <p class="font-body text-neutral-500 text-lg">
+          Les guerriers qui ont façonné AEgirhall depuis ses origines
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row justify-center gap-6">
+
+        <!-- Deniz OZER -->
+        <div class="card-parchment rounded-xl overflow-hidden w-full sm:w-72">
+          <div class="h-56 relative overflow-hidden">
+            <Image src={trone} alt="Deniz Ozer" width={288} height={224} class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-linear-to-t from-dark-700/90 via-dark-700/20 to-transparent" />
+          </div>
+          <div class="p-5 text-center">
+            <p class="font-heading text-base text-neutral-200 tracking-wide mb-1">Deniz OZER</p>
+            <p class="font-body text-sm text-primary-500 mb-4">Communication</p>
+            <div class="flex justify-center gap-3">
+              <a href="#" aria-label="LinkedIn de Deniz" class="w-8 h-8 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center hover:border-primary-400/40 transition-colors">
+                <Image src={linkedinIcon} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+              </a>
+              <a href="#" aria-label="Instagram de Deniz" class="w-8 h-8 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center hover:border-primary-400/40 transition-colors">
+                <Image src={instasIcon} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+              </a>
+              <a href="#" aria-label="GitHub de Deniz" class="w-8 h-8 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center hover:border-primary-400/40 transition-colors">
+                <Image src={githubIcon} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inès SITTLER -->
+        <div class="card-parchment rounded-xl overflow-hidden w-full sm:w-72">
+          <div class="h-56 relative overflow-hidden">
+            <Image src={taverne_inter} alt="Inès Sittler" width={288} height={224} class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-linear-to-t from-dark-700/90 via-dark-700/20 to-transparent" />
+          </div>
+          <div class="p-5 text-center">
+            <p class="font-heading text-base text-neutral-200 tracking-wide mb-1">Inès SITTLER</p>
+            <p class="font-body text-sm text-primary-500 mb-4">Design & Développement</p>
+            <div class="flex justify-center gap-3">
+              <a href="#" aria-label="LinkedIn d'Inès" class="w-8 h-8 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center hover:border-primary-400/40 transition-colors">
+                <Image src={linkedinIcon} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+              </a>
+              <a href="#" aria-label="Instagram d'Inès" class="w-8 h-8 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center hover:border-primary-400/40 transition-colors">
+                <Image src={instasIcon} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+              </a>
+              <a href="#" aria-label="GitHub d'Inès" class="w-8 h-8 rounded-lg bg-dark-700 border border-dark-600 flex items-center justify-center hover:border-primary-400/40 transition-colors">
+                <Image src={githubIcon} alt="" width={14} height={14} class="invert opacity-60" aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── CTA ─────────────────────────────────────────────── -->
+    <div class="card-parchment rounded-xl overflow-hidden reveal">
+      <div class="flex flex-col lg:flex-row items-stretch">
+        <div class="h-48 lg:h-auto lg:w-72 relative overflow-hidden shrink-0">
+          <Image src={trone} alt="" width={288} height={192} class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-linear-to-b lg:bg-linear-to-r from-transparent to-dark-600/95" />
+        </div>
+        <div class="p-8 lg:p-12 text-center flex-1 flex flex-col items-center justify-center">
+          <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-4">✦ Rejoindre la Horde ✦</p>
+          <h3 class="font-display text-2xl lg:text-4xl text-neutral-100 tracking-widest mb-4">Prêt pour l'aventure ?</h3>
+          <p class="font-body text-lg text-neutral-400 max-w-xl mx-auto mb-8 leading-relaxed">
+            La route vous attend. Les tavernes sont ouvertes. Votre corne de mead est vide.
+          </p>
+          <div class="flex flex-col lg:flex-row gap-4 justify-center">
+            <a href="/inscription" class="btn-primary px-8 py-4">Créer un compte</a>
+            <a href="/connexion"   class="btn-outline px-8 py-4">Se connecter</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</Layout>
+
+<script>
+  import '../js/reveal.js';
+</script>

@@ -1,0 +1,205 @@
+﻿---
+import { Image } from 'astro:assets';
+import logo from '../assets/icon/logo.svg';
+
+const token    = Astro.cookies.get('pb_token')?.value;
+const userId   = Astro.cookies.get('pb_user_id')?.value;
+const userName = Astro.cookies.get('pb_user_name')?.value;
+const isLoggedIn = !!(token && userId);
+
+const currentPath = Astro.url.pathname;
+
+const navLinks = isLoggedIn
+  ? [
+      { href: '/bars',         label: 'Bars'        },
+      { href: '/jeux',         label: 'Jeux'        },
+      { href: '/classement',   label: 'Classement'  },
+      { href: '/abonnement',   label: 'Abonnement' },
+      { href: '/Apropos',      label: 'À Propos'    },
+    ]
+  : [
+      { href: '/bars',     label: 'Bars'     },
+      { href: '/jeux',     label: 'Jeux'     },
+      { href: '/Apropos',  label: 'À Propos' },
+      { href: '/contact',  label: 'Contact'  },
+    ];
+---
+<header
+  id="site-header"
+  class="fixed top-0 left-0 right-0 z-40 transition-all duration-300 bg-transparent"
+>
+  <div class="max-w-360 mx-auto px-4 lg:px-20 h-23 flex items-center justify-between">
+
+    <!-- Logo -->
+    <a href={isLoggedIn ? '/' : '/LandingPage'} class="flex items-center gap-3 group shrink-0">
+      <Image
+        src={logo}
+        alt="AEgirhall"
+        width={32}
+        height={37}
+        class="group-hover:scale-110 transition-transform duration-200"
+      />
+      <span class="font-display text-xl text-primary-400 tracking-wider hidden lg:block">
+        AEgirhall
+      </span>
+    </a>
+
+    <!-- Nav desktop -->
+    <nav class="hidden lg:flex items-center gap-1" aria-label="Navigation principale">
+      {navLinks.map(link => {
+        const isActive = currentPath === link.href;
+        return (
+          <a
+            href={link.href}
+            aria-current={isActive ? 'page' : undefined}
+            class={`relative font-heading text-sm tracking-widest uppercase px-4 py-2 rounded-md transition-colors duration-200 ${
+              isActive
+                ? 'text-primary-400 bg-primary-400/8'
+                : 'text-neutral-400 hover:text-primary-300 hover:bg-dark-700/60'
+            }`}
+          >
+            {link.label}
+            {isActive && (
+              <span class="absolute bottom-0 left-3 right-3 h-px bg-primary-400/60 rounded-full" aria-hidden="true" />
+            )}
+          </a>
+        );
+      })}
+    </nav>
+
+    <!-- Actions desktop -->
+    <div class="hidden lg:flex items-center gap-3 shrink-0">
+      {isLoggedIn ? (
+        <div class="flex items-center gap-3">
+          <a href="/profil" class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-dark-700/60 transition-colors group">
+            <div class="w-8 h-8 rounded-full bg-dark-600 border border-primary-400/50 flex items-center justify-center font-heading text-sm text-primary-400 group-hover:border-primary-300 transition-colors shrink-0">
+              {userName ? userName.charAt(0).toUpperCase() : 'V'}
+            </div>
+            <span class="font-heading text-sm text-neutral-300 group-hover:text-primary-300 transition-colors">
+              {userName ?? 'Profil'}
+            </span>
+          </a>
+          <a href="/session" class="btn-primary text-xs px-5 py-2">Sessions</a>
+        </div>
+      ) : (
+        <>
+          <a href="/connexion"  class="btn-outline text-xs px-5 py-2">Connexion</a>
+          <a href="/inscription" class="btn-primary text-xs px-5 py-2">Rejoindre</a>
+        </>
+      )}
+    </div>
+
+    <!-- Hamburger mobile -->
+    <button
+      id="menu-btn"
+      class="lg:hidden p-2 text-neutral-300 hover:text-primary-400 transition-colors"
+      aria-label="Ouvrir le menu"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+    >
+      <span class="flex flex-col gap-1.5" aria-hidden="true">
+        <span class="block h-0.5 w-6 bg-current rounded-full transition-all duration-200" />
+        <span class="block h-0.5 w-4 bg-current rounded-full transition-all duration-200" />
+        <span class="block h-0.5 w-6 bg-current rounded-full transition-all duration-200" />
+      </span>
+    </button>
+  </div>
+</header>
+
+<!-- Menu mobile plein écran -->
+<div
+  id="mobile-menu"
+  class="fixed inset-0 z-50 -translate-y-full transition-transform duration-500 lg:hidden flex flex-col bg-dark-900"
+  aria-hidden="true"
+>
+  <!-- Fond décoratif -->
+  <div class="absolute inset-0 bg-diamond opacity-20 pointer-events-none" aria-hidden="true" />
+  <div class="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/30 to-transparent" aria-hidden="true" />
+  <div class="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-400/20 to-transparent" aria-hidden="true" />
+
+  <!-- Barre supérieure -->
+  <div class="relative z-10 flex items-center justify-between px-6 py-5 border-b border-primary-400/15 shrink-0">
+    <a href={isLoggedIn ? '/' : '/LandingPage'} class="flex items-center gap-3">
+      <Image src={logo} alt="AEgirhall" width={28} height={32} />
+      <span class="font-display text-lg text-primary-400 tracking-wider">AEgirhall</span>
+    </a>
+    <button
+      id="menu-close"
+      class="w-10 h-10 rounded-full border border-primary-400/30 flex items-center justify-center text-neutral-400 hover:text-primary-400 hover:border-primary-400/60 transition-colors"
+      aria-label="Fermer le menu"
+    >
+      <span class="relative w-4 h-4 flex items-center justify-center" aria-hidden="true">
+        <span class="absolute block h-px w-4 bg-current rounded-full rotate-45" />
+        <span class="absolute block h-px w-4 bg-current rounded-full -rotate-45" />
+      </span>
+    </button>
+  </div>
+
+  <!-- Profil connecté -->
+  {isLoggedIn && (
+    <a href="/profil" class="relative z-10 flex items-center gap-4 px-6 py-4 border-b border-dark-700/60 bg-dark-800/40 hover:bg-dark-800/80 transition-colors shrink-0">
+      <div class="w-11 h-11 rounded-full bg-dark-600 border-2 border-primary-400/50 flex items-center justify-center font-heading text-base text-primary-400 shrink-0">
+        {userName ? userName.charAt(0).toUpperCase() : 'V'}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-heading text-sm text-neutral-200 tracking-wide truncate">{userName ?? 'Mon Profil'}</p>
+        <p class="font-body text-xs text-primary-600">Voir mon profil →</p>
+      </div>
+    </a>
+  )}
+
+  <!-- Navigation principale -->
+  <nav class="relative z-10 flex-1 flex flex-col justify-center px-6 overflow-y-auto" aria-label="Navigation mobile">
+    <div class="flex flex-col">
+      {navLinks.map((link, i) => {
+        const isActive = currentPath === link.href;
+        return (
+          <a
+            href={link.href}
+            aria-current={isActive ? 'page' : undefined}
+            class={`menu-link flex items-center justify-between py-5 border-b border-dark-700/50 group transition-colors ${
+              isActive ? 'text-primary-400' : 'text-neutral-400 hover:text-primary-300'
+            }`}
+            style={`animation-delay:${i * 0.06}s`}
+          >
+            <span class="font-heading text-2xl tracking-widest uppercase">{link.label}</span>
+            <span class={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+              isActive
+                ? 'border-primary-400/60 bg-primary-400/10 text-primary-400'
+                : 'border-dark-600 text-neutral-700 group-hover:border-primary-400/40 group-hover:text-primary-400/60'
+            }`} aria-hidden="true">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+          </a>
+        );
+      })}
+    </div>
+  </nav>
+
+  <!-- Actions bas + runes déco -->
+  <div class="relative z-10 px-6 pt-5 pb-8 border-t border-primary-400/15 flex flex-col gap-3 shrink-0">
+    {isLoggedIn ? (
+      <>
+        <a href="/session" class="btn-primary text-sm text-center py-4">⚔ Mes Sessions</a>
+        <form action="/profil" method="POST">
+          <input type="hidden" name="action" value="logout" />
+          <button type="submit" class="w-full font-heading text-xs text-neutral-600 hover:text-accent-blood tracking-widest uppercase py-2 transition-colors">
+            Se déconnecter
+          </button>
+        </form>
+      </>
+    ) : (
+      <>
+        <a href="/connexion"   class="btn-outline text-sm text-center py-4">Se connecter</a>
+        <a href="/inscription" class="btn-primary text-sm text-center py-4">Rejoindre la Horde</a>
+      </>
+    )}
+    <p class="text-center font-heading text-primary-400/20 text-xs tracking-widest select-none mt-1" aria-hidden="true">ᚠ ᚢ ᚦ ᚨ ᚱ ᚲ ᚷ</p>
+  </div>
+</div>
+
+<script>
+  import '../js/header.js';
+</script>
