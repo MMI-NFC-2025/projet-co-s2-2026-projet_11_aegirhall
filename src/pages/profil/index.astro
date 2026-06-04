@@ -1,10 +1,10 @@
-﻿---
+---
 import Layout from '../../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import {
   getMe, getCollection, getRecord,
   updateUser, updateUserFile, deleteUser, PB_BASE_URL, getLevelFromXp,
-} from '../../js/backend.js';
+} from '../../../backend/backend.js';
 import homeIcon    from '../../assets/icon/home.svg';
 import notifIcon   from '../../assets/icon/notif.svg';
 import personnes   from '../../assets/icon/personnes.svg';
@@ -22,7 +22,7 @@ const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
 if (!token || !userId) return Astro.redirect('/connexion');
 
-/* ── Feedback messages ─────────────────────────────────── */
+/* -- Feedback messages ----------------------------------- */
 let profileSuccess  = false;
 let profileError    = '';
 let passwordSuccess = false;
@@ -30,7 +30,7 @@ let passwordError   = '';
 let actionFeedback  = '';
 let activeTab       = 'parametres'; // tab à ouvrir après POST
 
-/* ── POST handlers ─────────────────────────────────────── */
+/* -- POST handlers --------------------------------------- */
 if (Astro.request.method === 'POST') {
   const form   = await Astro.request.formData();
   const action = form.get('action')?.toString() ?? '';
@@ -171,7 +171,7 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-/* ── Données SSR ───────────────────────────────────────── */
+/* -- Données SSR ----------------------------------------- */
 const user = await getRecord('users', userId, {
   expand: 'amies,demande_amies',
   token,
@@ -192,7 +192,7 @@ const progression = bars.length ? Math.round((visitedIds.length / bars.length) *
 const friends: any[]  = user.expand?.amies          ?? [];
 const demandes: any[] = user.expand?.demande_amies  ?? [];
 
-/* ── Badges ────────────────────────────────────────────── */
+/* -- Badges ---------------------------------------------- */
 const allBadges = await getCollection('badges', { sort: 'condition_chiffre', perPage: 200, token });
 
 const finishedSessions = await getCollection('session_barathon', {
@@ -301,7 +301,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
   <div class="min-h-screen bg-dark-800 pt-24 pb-20">
     <div class="max-w-360 mx-auto px-4 lg:px-20">
 
-      <!-- ══ EN-TÊTE PROFIL ══════════════════════════════ -->
+      <!-- -- EN-TÊTE PROFIL ------------------------------ -->
       <div class="flex flex-col lg:flex-row items-center lg:items-end gap-6 mb-10">
         <!-- Avatar -->
         <div class="relative shrink-0">
@@ -325,11 +325,11 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
             <input type="file" id="avatar-input" name="avatar" accept="image/*" class="hidden" />
           </form>
           {featuredBadge && (
-            <div class="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-dark-700 border-2 border-primary-400/60 overflow-hidden flex items-center justify-center" title={featuredBadge.nom ?? 'Badge équipé'}>
+            <div class="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-dark-700 border-2 border-primary-400/60 overflow-hidden flex items-center justify-center" title={featuredBadge.nom ?? 'Badge Équipé'}>
               {featuredBadge.img ? (
                 <PbImage record={featuredBadge} recordImage={featuredBadge.img} width={40} height={40} alt={featuredBadge.nom ?? 'Badge'} class="w-full h-full object-cover" />
               ) : (
-                <Image src={medailIcon} alt="" width={20} height={20} class="invert opacity-80" />
+                <Image src={medailIcon} alt="" width={20} height={20} class="brightness-0 invert opacity-80" />
               )}
             </div>
           )}
@@ -338,7 +338,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <!-- Infos + stats -->
         <div class="flex-1 text-center lg:text-left">
           <p class="font-heading text-primary-500 text-xs tracking-widest uppercase mb-1">
-            Niv. {levelData.niveau} · {levelData.titre}
+            Niv. {levelData.niveau} — {levelData.titre}
           </p>
           <h1 class="font-heading text-3xl lg:text-4xl text-neutral-100 tracking-wide mb-4">
             {user.pseudo ?? user.nom ?? 'Guerrier'}
@@ -359,7 +359,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
             {noteSamMoyenne !== null && (
               <div class="text-center">
                 <p class="font-display text-2xl text-primary-400">
-                  {noteSamMoyenne}<span class="text-base text-primary-600">/5 ★</span>
+                  {noteSamMoyenne}<span class="text-base text-primary-600">/5 ?</span>
                 </p>
                 <p class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Note SAM</p>
               </div>
@@ -379,7 +379,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
               {userXp} / {levelData.next.xp_requis} XP
             </span>
           ) : (
-            <span class="font-heading text-xs text-primary-400 tracking-widest">Niveau max ✦</span>
+            <span class="font-heading text-xs text-primary-400 tracking-widest">Niveau max ?</span>
           )}
         </div>
         <ProgressBar value={levelData.pctNext} label={`Progression vers niveau ${levelData.next?.titre ?? 'max'} : ${levelData.pctNext}%`} />
@@ -399,7 +399,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <ProgressBar value={progression} label={`Tavernes conquises : ${visitedIds.length} sur ${bars.length}`} />
       </div>
 
-      <!-- ══ ONGLETS ══════════════════════════════════════ -->
+      <!-- -- ONGLETS -------------------------------------- -->
       <div class="flex gap-1 mb-8 border-b border-primary-400/15 overflow-x-auto">
         {[
           { id: 'parametres',   label: 'Paramètres',    icon: homeIcon },
@@ -411,7 +411,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
             class="tab-btn shrink-0 flex items-center gap-2 px-4 lg:px-6 py-3 font-heading text-xs tracking-widest uppercase transition-colors relative"
             data-tab={tab.id}
           >
-            <Image src={tab.icon} alt="" width={16} height={16} class="opacity-70 invert" />
+            <Image src={tab.icon} alt="" width={16} height={16} class="opacity-70 brightness-0 invert" />
             {tab.label}
             {tab.badge ? (
               <span class="w-4 h-4 rounded-full bg-accent-blood flex items-center justify-center font-heading text-xs text-neutral-100">
@@ -424,8 +424,8 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <a href="/abonnement"
            class={`shrink-0 flex items-center gap-2 px-4 lg:px-5 py-3 font-heading text-xs tracking-widest uppercase transition-colors rounded-t-lg mb-0 self-end ${user?.abonnements === 'premium' ? 'text-primary-400 hover:text-primary-300' : 'text-neutral-500 hover:text-neutral-300'}`}>
           {user?.abonnements === 'premium'
-            ? <span class="text-primary-400">♛</span>
-            : <span>⚡</span>
+            ? <span class="text-primary-400">?</span>
+            : <span>?</span>
           }
           {user?.abonnements === 'premium' ? 'Jarl' : 'Premium'}
         </a>
@@ -438,15 +438,15 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         </div>
       )}
 
-      <!-- ══════════════════════════════════════════════════
+      <!-- --------------------------------------------------
            ONGLET : PARAMÈTRES
-           ══════════════════════════════════════════════════ -->
+           -------------------------------------------------- -->
       <div id="tab-parametres" class="tab-panel tab-col">
 
         <!-- Informations personnelles -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
-            <Image src={homeIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <Image src={homeIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
             <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Informations personnelles</h2>
           </div>
           <form method="POST" class="px-6 lg:px-8 py-6">
@@ -496,28 +496,28 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <!-- Réseaux sociaux -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
-            <Image src={instasIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <Image src={instasIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
             <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Réseaux sociaux</h2>
           </div>
           <form method="POST" class="px-6 lg:px-8 py-6">
             <input type="hidden" name="action" value="update_social" />
             <div class="flex flex-col gap-5">
               <div class="flex items-center gap-3">
-                <Image src={instasIcon} alt="Instagram" width={20} height={20} class="invert opacity-50 shrink-0" />
+                <Image src={instasIcon} alt="Instagram" width={20} height={20} class="brightness-0 invert opacity-50 shrink-0" />
                 <div class="flex-1">
                   <label class="label-viking" for="insta">Instagram</label>
                   <input id="insta" name="insta" type="text" class="input-viking" placeholder="@votre_compte" value={user.insta ?? ''} />
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <Image src={linkedinIcon} alt="Facebook" width={20} height={20} class="invert opacity-50 shrink-0" />
+                <Image src={linkedinIcon} alt="Facebook" width={20} height={20} class="brightness-0 invert opacity-50 shrink-0" />
                 <div class="flex-1">
                   <label class="label-viking" for="facbook">Facebook</label>
                   <input id="facbook" name="facbook" type="text" class="input-viking" placeholder="votre.profil" value={user.facbook ?? ''} />
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <Image src={githubIcon} alt="Discord" width={20} height={20} class="invert opacity-50 shrink-0" />
+                <Image src={githubIcon} alt="Discord" width={20} height={20} class="brightness-0 invert opacity-50 shrink-0" />
                 <div class="flex-1">
                   <label class="label-viking" for="discord">Discord</label>
                   <input id="discord" name="discord" type="text" class="input-viking" placeholder="pseudo#0000" value={user.discord ?? ''} />
@@ -533,7 +533,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <!-- Sécurité -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
-            <Image src={lockIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <Image src={lockIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
             <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Sécurité</h2>
           </div>
           <form method="POST" class="px-6 lg:px-8 py-6">
@@ -571,7 +571,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <!-- Zone danger -->
         <div class="card-parchment rounded-2xl overflow-hidden border border-accent-blood/20">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-accent-blood/20">
-            <Image src={waringIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <Image src={waringIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
             <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Zone dangereuse</h2>
           </div>
           <div class="px-6 lg:px-8 py-6 flex flex-col sm:flex-row gap-4">
@@ -591,20 +591,20 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
 
       </div><!-- /tab-parametres -->
 
-      <!-- ══════════════════════════════════════════════════
+      <!-- --------------------------------------------------
            ONGLET : AMIS
-           ══════════════════════════════════════════════════ -->
+           -------------------------------------------------- -->
       <div id="tab-amis" class="tab-panel hidden tab-col">
 
         <!-- Recherche -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
-            <Image src={seachIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <Image src={seachIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
             <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Trouver un guerrier</h2>
           </div>
           <div class="px-6 lg:px-8 py-6">
             <div class="relative">
-              <Image src={seachIcon} alt="" width={16} height={16} class="absolute left-4 top-1/2 -translate-y-1/2 invert opacity-40" />
+              <Image src={seachIcon} alt="" width={16} height={16} class="absolute left-4 top-1/2 -translate-y-1/2 brightness-0 invert opacity-40" />
               <input
                 id="friend-search"
                 type="text"
@@ -620,7 +620,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <!-- Liste des amis -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
-            <Image src={personnes} alt="" width={18} height={18} class="invert opacity-60" />
+            <Image src={personnes} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
             <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">
               Mes amis
               <span class="ml-2 font-body text-neutral-500 normal-case tracking-normal">({friends.length})</span>
@@ -669,14 +669,14 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
 
       </div><!-- /tab-amis -->
 
-      <!-- ══════════════════════════════════════════════════
+      <!-- --------------------------------------------------
            ONGLET : NOTIFICATIONS
-           ══════════════════════════════════════════════════ -->
+           -------------------------------------------------- -->
       <div id="tab-notifications" class="tab-panel hidden tab-col">
 
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center gap-3 px-6 lg:px-8 py-4 border-b border-primary-400/15">
-            <Image src={notifIcon} alt="" width={18} height={18} class="invert opacity-60" />
+            <Image src={notifIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
             <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">
               Demandes d'amitié
               {demandes.length > 0 && (
@@ -730,16 +730,16 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
 
       </div><!-- /tab-notifications -->
 
-      <!-- ══════════════════════════════════════════════════
+      <!-- --------------------------------------------------
            ONGLET : TROPHÉES
-           ══════════════════════════════════════════════════ -->
+           -------------------------------------------------- -->
       <div id="tab-trophees" class="tab-panel hidden tab-col">
 
         <!-- Trophées obtenus -->
         <div class="card-parchment rounded-2xl overflow-hidden">
           <div class="flex items-center justify-between px-6 lg:px-8 py-4 border-b border-primary-400/15">
             <div class="flex items-center gap-3">
-              <Image src={medailIcon} alt="" width={18} height={18} class="invert opacity-60" />
+              <Image src={medailIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
               <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Mes trophées</h2>
             </div>
             <span class="font-heading text-xs text-neutral-500 tracking-widest">{earnedBadges.length} / {allBadges.length}</span>
@@ -747,7 +747,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
           <div class="px-6 lg:px-8 py-6">
             {earnedBadges.length === 0 ? (
               <div class="text-center py-10">
-                <Image src={medailIcon} alt="" width={40} height={40} class="invert opacity-15 mx-auto mb-3" />
+                <Image src={medailIcon} alt="" width={40} height={40} class="brightness-0 invert opacity-15 mx-auto mb-3" />
                 <p class="font-heading text-sm text-neutral-600 tracking-wide">Aucun trophée débloqué</p>
                 <p class="font-body text-xs text-neutral-700 mt-1">Explorez des tavernes et terminez des sessions !</p>
               </div>
@@ -772,7 +772,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
                             <PbImage record={badge} recordImage={badge.img} width={56} height={56} alt={badge.nom ?? 'Trophée'} class="w-full h-full object-cover" />
                           ) : (
                             <div class="w-full h-full bg-dark-600 flex items-center justify-center">
-                              <Image src={medailIcon} alt="" width={24} height={24} class="invert opacity-60" />
+                              <Image src={medailIcon} alt="" width={24} height={24} class="brightness-0 invert opacity-60" />
                             </div>
                           )}
                         </div>
@@ -796,11 +796,11 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
         <details class="card-parchment rounded-2xl overflow-hidden">
           <summary class="flex items-center justify-between px-6 lg:px-8 py-4 cursor-pointer list-none select-none border-b border-primary-400/15 hover:bg-dark-700/30 transition-colors">
             <div class="flex items-center gap-3">
-              <Image src={medailIcon} alt="" width={18} height={18} class="invert opacity-60" />
+              <Image src={medailIcon} alt="" width={18} height={18} class="brightness-0 invert opacity-60" />
               <h2 class="font-heading text-sm text-neutral-200 tracking-widest uppercase">Tous les trophées disponibles</h2>
               <span class="font-body text-neutral-500 text-xs">({allBadges.length})</span>
             </div>
-            <span class="summary-arrow font-heading text-xs text-neutral-500">▼</span>
+            <span class="summary-arrow font-heading text-xs text-neutral-500">?</span>
           </summary>
           <div class="px-6 lg:px-8 py-6">
             {allBadges.length === 0 ? (
@@ -824,7 +824,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
                           <PbImage record={badge} recordImage={badge.img} width={56} height={56} alt={badge.nom ?? 'Trophée'} class={`w-full h-full object-cover ${isEarned ? '' : 'grayscale'}`} />
                         ) : (
                           <div class="w-full h-full bg-dark-600 flex items-center justify-center">
-                            <Image src={medailIcon} alt="" width={24} height={24} class="invert opacity-50" />
+                            <Image src={medailIcon} alt="" width={24} height={24} class="brightness-0 invert opacity-50" />
                           </div>
                         )}
                       </div>
@@ -845,7 +845,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
     </div><!-- /max-w -->
   </div>
 
-  <!-- ══ MODAL AMI ═══════════════════════════════════════ -->
+  <!-- -- MODAL AMI --------------------------------------- -->
   <div id="friend-modal" class="fixed inset-0 z-50 hidden modal-overlay p-4">
     <div class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm" id="modal-backdrop"></div>
     <div class="relative card-parchment rounded-2xl w-full max-w-lg max-h-screen overflow-y-auto z-10">
@@ -859,7 +859,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
     </div>
   </div>
 
-  <!-- ══ MODAL SUPPRESSION COMPTE ═══════════════════════ -->
+  <!-- -- MODAL SUPPRESSION COMPTE ----------------------- -->
   <div id="delete-modal" class="fixed inset-0 z-50 hidden modal-overlay p-4">
     <div class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm" id="delete-backdrop"></div>
     <div class="relative card-parchment rounded-2xl w-full max-w-md z-10 p-8">
@@ -953,7 +953,7 @@ const noteSamMoyenne: number | null = ratedSamSessions.length > 0
     toast.className = 'badge-toast card-parchment rounded-2xl px-5 py-3 flex items-center gap-3 border border-primary-400/40 shadow-xl';
     var imgHtml = badge.img
       ? '<img src="' + _pbBaseUrl + '/api/files/' + badge.collectionId + '/' + badge.id + '/' + badge.img + '" class="w-10 h-10 rounded-full object-cover border border-primary-400/30 shrink-0" alt="' + badge.nom + '" />'
-      : '<div class="w-10 h-10 rounded-full bg-dark-600 border border-primary-400/20 flex items-center justify-center shrink-0"><span class="text-primary-400 text-lg">🏅</span></div>';
+      : '<div class="w-10 h-10 rounded-full bg-dark-600 border border-primary-400/20 flex items-center justify-center shrink-0"><span class="text-primary-400 text-lg">??</span></div>';
     toast.innerHTML = imgHtml +
       '<div><p class="font-heading text-xs text-primary-400 tracking-widest uppercase">Trophée débloqué !</p>' +
       '<p class="font-heading text-sm text-neutral-100 tracking-wide">' + badge.nom + '</p></div>';

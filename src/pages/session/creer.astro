@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import PbImage from '../../components/PbImage.astro';
 import { Image } from 'astro:assets';
-import { getCollection, getRecord, createSession } from '../../js/backend.js';
+import { getCollection, getRecord, createSession } from '../../../backend/backend.js';
 import personnesIcon from '../../assets/icon/personnes.svg';
 import voitureIcon   from '../../assets/icon/voiture.svg';
 import bierreIcon    from '../../assets/icon/bierre.svg';
@@ -86,7 +86,7 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
             <div class="flex flex-col items-center gap-1.5">
               <div class={`step-dot w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${n === 1 ? 'border-primary-400 bg-primary-400/20' : 'border-dark-600 bg-dark-700'}`} data-step={n}>
                 <span class="step-num pointer-events-none">
-                  <Image src={icon} alt="" width={18} height={18} class={n === 1 ? 'invert opacity-80' : 'invert opacity-25'} aria-hidden="true" />
+                  <Image src={icon} alt="" width={18} height={18} class={n === 1 ? 'brightness-0 invert opacity-80' : 'brightness-0 invert opacity-25'} aria-hidden="true" />
                 </span>
                 <span class="step-check hidden font-heading text-sm text-primary-400 font-bold select-none">✓</span>
               </div>
@@ -114,7 +114,7 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
           <div class="card-parchment rounded-xl p-6 lg:p-8 flex flex-col gap-5">
             <div class="flex items-center gap-2.5 mb-1">
               <div class="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center shrink-0">
-                <Image src={bierreIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+                <Image src={bierreIcon} alt="" width={16} height={16} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase">La Session</h2>
             </div>
@@ -132,7 +132,7 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
           <div class="card-parchment rounded-xl p-6 lg:p-8">
             <div class="flex items-center gap-2.5 mb-2">
               <div class="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center shrink-0">
-                <Image src={personnesIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+                <Image src={personnesIcon} alt="" width={16} height={16} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase">Inviter vos compagnons</h2>
             </div>
@@ -172,7 +172,7 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
             <!-- Header -->
             <div class="flex items-start gap-4">
               <div class="w-10 h-10 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center shrink-0">
-                <Image src={voitureIcon} alt="" width={20} height={20} class="invert opacity-70" aria-hidden="true" />
+                <Image src={voitureIcon} alt="" width={20} height={20} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <div>
                 <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase">Le Gardien</h2>
@@ -208,7 +208,7 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
           <div class="card-parchment rounded-xl p-6 lg:p-8 flex flex-col gap-5">
             <div class="flex items-center gap-2.5 mb-1">
               <div class="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center shrink-0">
-                <Image src={tempsIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+                <Image src={tempsIcon} alt="" width={16} height={16} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase">Horaires</h2>
             </div>
@@ -228,7 +228,7 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
           <div class="card-parchment rounded-xl p-6 lg:p-8">
             <div class="flex items-center gap-2.5 mb-2">
               <div class="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center shrink-0">
-                <Image src={bierreIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+                <Image src={bierreIcon} alt="" width={16} height={16} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase">Tavernes</h2>
             </div>
@@ -257,7 +257,7 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
           <div class="card-parchment rounded-xl p-6 lg:p-8">
             <div class="flex items-center gap-2.5 mb-2">
               <div class="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center shrink-0">
-                <Image src={jeuIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+                <Image src={jeuIcon} alt="" width={16} height={16} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase">Jeux</h2>
             </div>
@@ -326,7 +326,7 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
             <!-- Header -->
             <div class="flex items-center gap-2.5 mb-1">
               <div class="w-8 h-8 rounded-lg bg-primary-600/20 border border-primary-500/30 flex items-center justify-center shrink-0">
-                <Image src={bouclierIcon} alt="" width={16} height={16} class="invert opacity-70" aria-hidden="true" />
+                <Image src={bouclierIcon} alt="" width={16} height={16} class="brightness-0 invert opacity-70" aria-hidden="true" />
               </div>
               <h2 class="font-heading text-base text-primary-500 tracking-widest uppercase">Résumé</h2>
             </div>
@@ -349,14 +349,14 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <div>
                 <p class="label-viking mb-2 flex items-center gap-1.5">
-                  <Image src={personnesIcon} alt="" width={12} height={12} class="invert opacity-50" aria-hidden="true" />
+                  <Image src={personnesIcon} alt="" width={12} height={12} class="brightness-0 invert opacity-50" aria-hidden="true" />
                   Membres
                 </p>
                 <p id="res-membres" class="font-body text-sm text-neutral-400 leading-relaxed">—</p>
               </div>
               <div>
                 <p class="label-viking mb-2 flex items-center gap-1.5">
-                  <Image src={voitureIcon} alt="" width={12} height={12} class="invert opacity-50" aria-hidden="true" />
+                  <Image src={voitureIcon} alt="" width={12} height={12} class="brightness-0 invert opacity-50" aria-hidden="true" />
                   Gardien (SAM)
                 </p>
                 <p id="res-sam" class="font-heading text-sm text-primary-400 tracking-wide">—</p>
@@ -382,14 +382,14 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
             <!-- Tavernes + Jeux -->
             <div>
               <p class="label-viking mb-2 flex items-center gap-1.5">
-                <Image src={bierreIcon} alt="" width={12} height={12} class="invert opacity-50" aria-hidden="true" />
+                <Image src={bierreIcon} alt="" width={12} height={12} class="brightness-0 invert opacity-50" aria-hidden="true" />
                 Tavernes
               </p>
               <p id="res-bars" class="font-body text-sm text-neutral-400 leading-relaxed">Aucune taverne sélectionnée</p>
             </div>
             <div>
               <p class="label-viking mb-2 flex items-center gap-1.5">
-                <Image src={jeuIcon} alt="" width={12} height={12} class="invert opacity-50" aria-hidden="true" />
+                <Image src={jeuIcon} alt="" width={12} height={12} class="brightness-0 invert opacity-50" aria-hidden="true" />
                 Jeux
               </p>
               <p id="res-jeux" class="font-body text-sm text-neutral-400 leading-relaxed">Aucun jeu sélectionné</p>

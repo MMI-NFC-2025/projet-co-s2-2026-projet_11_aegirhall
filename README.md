@@ -4,13 +4,13 @@
 Éléménts à renseigner pour la soutenance :
 
 - [ ] Nom du projet : AegirHall
-- [ ] URL de la landing page :
-- [ ] URL de l'application finale :
-- [ ] URL de connexion au back office :
-- [ ] Identifiant de connexion au backoffice :
-- [ ] Mot de passe de connexion au backoffice :
-- [ ] URL de la maquette FIGMA :
-- [ ] Description du projet :
+- [ ] URL de la landing page : https://aegirhall.ines-sittler.fr/LandingPage
+- [ ] URL de l'application finale : https://aegirhall.ines-sittler.fr/
+- [ ] URL de connexion au back office : https://pbaegirhall.ines-sittler.fr/_/
+- [ ] Identifiant de connexion au backoffice : Prof@gmail.com
+- [ ] Mot de passe de connexion au backoffice :AyA73r48y9GUcg2
+- [ ] URL de la maquette FIGMA :https://www.figma.com/design/X5hI7y7KoLsIhFMdqLsuky/%C3%86girHall?node-id=0-1&t=vbgG3hjuLPrbXnfv-1
+- [ ] Description du projet : 
 
 ## 🚀 Équipe
 

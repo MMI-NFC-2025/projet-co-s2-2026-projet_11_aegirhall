@@ -1,8 +1,8 @@
-﻿---
+---
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
-import { createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
-import cascade from '../assets/img/cascade.avif';
+import { createUser, authWithPassword, PB_BASE_URL } from '../../backend/backend.js';
+import cascade from '../assets/img/pexels-introspectivedsgn-50237371.avif';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;

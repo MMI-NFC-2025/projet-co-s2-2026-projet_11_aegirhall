@@ -1,14 +1,15 @@
-﻿---
+---
 import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import vegvisir from '../assets/icon/vegvisir.svg';
 
-import doorHero  from '../assets/img/door-stretching-into-fantasy-world.jpg';
-import helmetImg from '../assets/img/vintage-style-soldier-helmet-still-life.jpg';
-import trone    from '../assets/img/trone.avif';
-import drakar   from '../assets/img/drakar.avif';
-import taverne  from '../assets/img/taverne_ornement.avif';
-import { getCollection, getCount, createUser, authWithPassword, PB_BASE_URL } from '../js/backend.js';
+import doorHero  from '../assets/img/door-stretching-into-fantasy-world1.avif';
+import helmetImg from '../assets/img/vintage-style-soldier-helmet-still-life1.avif';
+import trone    from '../assets/img/pexels-introspectivedsgn-50237371.avif';
+import drakar   from '../assets/img/bateau1.avif';
+import taverne  from '../assets/img/pexels-white-noiise-77351716-266460931.avif';
+import legende  from '../assets/img/pexels-maximilian-orlowsky-515733-298239061 (1).avif';
+import { getCollection, getCount, createUser, authWithPassword, PB_BASE_URL } from '../../backend/backend.js';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
@@ -66,7 +67,7 @@ const barsForClient = allBars.map((bar: any) => ({
 const voie = [
   { num: 'I',   titre: 'Rejoindre la Horde',    desc: "Créez votre compte, choisissez votre titre et rejoignez les guerriers qui arpentent la route.", img: drakar,  alt: 'Drakar viking' },
   { num: 'II',  titre: 'Parcourir les Tavernes', desc: "Suivez la Route des Jarls, visitez chaque taverne dans l'ordre et marquez votre passage.",       img: taverne, alt: 'Taverne viking' },
-  { num: 'III', titre: 'Gravez Votre Légende',   desc: "Montez dans le classement éternel, débloquez titres et badges de guerre.",                        img: trone, alt: 'Trône des Jarls' },
+  { num: 'III', titre: 'Gravez Votre Légende',   desc: "Montez dans le classement éternel, débloquez titres et badges de guerre.",                        img: legende, alt: 'Guerrier viking légendaire' },
 ];
 ---
 
@@ -151,7 +152,7 @@ const voie = [
 
       <!-- Image droite pleine hauteur -->
       <div class="features-img-col lg:w-96 xl:w-md shrink-0 overflow-hidden reveal">
-        <Image src={helmetImg} alt="Casque de guerrier viking" width={600} height={900} class="w-full h-full object-cover" />
+        <Image src={trone} alt="Trône viking dans une salle en pierre" width={600} height={900} class="w-full h-full object-cover" />
       </div>
     </div>
   </section>
@@ -161,7 +162,7 @@ const voie = [
        ══════════════════════════════════════════════════════ -->
   <section class="relative bg-dark-900 py-16 lg:py-28 overflow-hidden">
     <div class="absolute right-10 lg:right-20 top-1/2 -translate-y-1/2 pointer-events-none select-none" aria-hidden="true">
-      <Image src={vegvisir} alt="" width={300} height={300} class="opacity-5" style="color:#C49A2C;" />
+      <Image src={vegvisir} alt="" width={300} height={300} class="opacity-5 brightness-0 invert" />
     </div>
     <div class="max-w-360 mx-auto px-4 lg:px-20 relative z-10 reveal">
       <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 lg:gap-24">

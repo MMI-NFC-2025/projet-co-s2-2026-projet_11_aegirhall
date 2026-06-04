@@ -1,0 +1,197 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection, PB_BASE_URL } from '../../../backend/backend.js';
+
+const token  = Astro.cookies.get('pb_token')?.value;
+const userId = Astro.cookies.get('pb_user_id')?.value;
+if (!token || !userId) return Astro.redirect('/connexion');
+
+const defis = await getCollection('jeux', { sort: 'nom', token });
+
+const sessions = await getCollection('session_barathon', {
+  filter: `id_menbre ~ "${userId}" && etat_session = "en_court"`,
+  token,
+  perPage: 1,
+  fields: 'id,id_jeux_reussi',
+});
+const activeSession = sessions[0] ?? null;
+---
+<Layout title="Défis de la Horde — AEgirhall">
+
+  <!-- ── HEADER ─────────────────────────────────────────── -->
+  <section class="bg-dark-900 border-b border-dark-700 py-8 lg:py-10">
+    <div class="max-w-360 mx-auto px-4 lg:px-20">
+      <a href="/jeux" class="font-heading text-xs text-neutral-600 hover:text-neutral-400 tracking-widest uppercase transition-colors">
+        ← Tous les jeux
+      </a>
+      <div class="mt-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-2">Jeu physique</p>
+          <h1 class="font-display text-3xl lg:text-5xl text-neutral-100 tracking-widest">Défis de la Horde</h1>
+          <p class="font-body text-neutral-400 text-base mt-2 max-w-xl">
+            Relevez chaque défi et marquez votre résultat. Les défis réussis sont enregistrés dans votre session.
+          </p>
+        </div>
+        {activeSession ? (
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-rune/10 border border-accent-rune/30 shrink-0">
+            <span class="w-2 h-2 rounded-full bg-accent-rune" aria-hidden="true" />
+            <span class="font-heading text-xs text-accent-rune tracking-widest uppercase">Session active</span>
+          </div>
+        ) : (
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-dark-700 border border-dark-600 shrink-0">
+            <span class="w-2 h-2 rounded-full bg-neutral-600" aria-hidden="true" />
+            <span class="font-heading text-xs text-neutral-600 tracking-widest uppercase">Hors session</span>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── LISTE DES DÉFIS ────────────────────────────────── -->
+  <section class="max-w-360 mx-auto px-4 lg:px-20 py-8 lg:py-12">
+
+    {defis.length === 0 && (
+      <div class="card-parchment rounded-xl p-10 text-center">
+        <p class="font-body text-neutral-500 text-lg">Aucun défi disponible pour l'instant.</p>
+      </div>
+    )}
+
+    <div class="flex flex-col gap-5">
+      {defis.map((defi: any) => (
+        <div
+          class="card-parchment rounded-xl overflow-hidden"
+          data-defi-id={defi.id}
+          data-defi-xp={defi.xp ?? 0}
+        >
+          <!-- En-tête carte -->
+          <div class="bg-dark-900 px-5 py-3 border-b border-dark-700 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <span class="font-heading text-xs text-primary-500 tracking-widest uppercase">Défi</span>
+              {defi.type_de_jeux && (
+                <span class="px-2 py-0.5 rounded font-heading text-xs tracking-wide border border-dark-500 text-neutral-500">
+                  {defi.type_de_jeux}
+                </span>
+              )}
+            </div>
+            <div class="flex items-center gap-3">
+              {defi.xp > 0 && (
+                <span class="font-heading text-xs text-primary-300 tracking-widest">+{defi.xp} XP</span>
+              )}
+              {defi.difficulter != null && (
+                <div class="flex gap-1 items-center" aria-label={`Difficulté ${defi.difficulter}/10`}>
+                  {Array.from({ length: 10 }, (_: any, i: number) => (
+                    <span
+                      class={`w-1.5 h-1.5 rounded-full ${i < defi.difficulter ? 'bg-primary-400' : 'bg-dark-500'}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <!-- Corps -->
+          <div class="p-5 lg:p-6 flex flex-col gap-4">
+            <div>
+              <h2 class="font-heading text-xl text-neutral-200 tracking-wide mb-2">{defi.nom}</h2>
+              {defi.descrition && (
+                <p class="font-body text-neutral-400 text-base leading-relaxed">{defi.descrition}</p>
+              )}
+            </div>
+
+            <!-- Résultat (masqué par défaut) -->
+            <div class="result-panel hidden items-center gap-3 py-3 border-t border-dark-600">
+              <p class="result-msg font-heading text-base tracking-wide"></p>
+              <p class="result-xp font-display text-2xl text-primary-300"></p>
+            </div>
+
+            <!-- Boutons -->
+            <div class="btn-group flex flex-col sm:flex-row gap-3 pt-1">
+              <button
+                class="btn-reussi btn-primary flex-1 py-4 flex items-center justify-center gap-2"
+                aria-label={`Marquer "${defi.nom}" comme réussi`}
+              >
+                <span aria-hidden="true">✓</span>
+                Défi réussi
+              </button>
+              <button
+                class="btn-rate flex-1 py-4 font-heading text-sm tracking-widest uppercase rounded-lg border border-accent-blood/50 text-accent-blood hover:bg-accent-blood/10 transition-colors flex items-center justify-center gap-2"
+                aria-label={`Marquer "${defi.nom}" comme raté`}
+              >
+                <span aria-hidden="true">✗</span>
+                Défi raté
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+</Layout>
+
+<script define:vars={{ _token: token, _userId: userId, _pbUrl: PB_BASE_URL, _sessionId: activeSession?.id ?? null, _sessionReussis: activeSession?.id_jeux_reussi ?? [] }} is:inline>
+  var token         = _token;
+  var userId        = _userId;
+  var pbUrl         = _pbUrl;
+  var sessionId     = _sessionId;
+  var sessionReussis = Array.isArray(_sessionReussis) ? _sessionReussis.slice() : [];
+
+  function saveXp(xp) {
+    fetch(pbUrl + '/api/collections/users/records/' + userId, {
+      headers: { 'Authorization': 'Bearer ' + token },
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(user) {
+      return fetch(pbUrl + '/api/collections/users/records/' + userId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ xp: Number(user.xp || 0) + xp }),
+      });
+    }).catch(function() {});
+  }
+
+  function saveDefiReussi(defiId) {
+    if (!sessionId) return;
+    if (sessionReussis.indexOf(defiId) !== -1) return;
+    sessionReussis.push(defiId);
+    fetch(pbUrl + '/api/collections/session_barathon/records/' + sessionId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ id_jeux_reussi: sessionReussis }),
+    }).catch(function() {});
+  }
+
+  document.querySelectorAll('[data-defi-id]').forEach(function(card) {
+    var defiId  = card.dataset.defiId;
+    var xp      = Number(card.dataset.defiXp) || 0;
+    var btnOk   = card.querySelector('.btn-reussi');
+    var btnFail = card.querySelector('.btn-rate');
+    var panel   = card.querySelector('.result-panel');
+    var msg     = card.querySelector('.result-msg');
+    var xpEl    = card.querySelector('.result-xp');
+    var btnGrp  = card.querySelector('.btn-group');
+
+    function answer(win) {
+      btnOk.disabled   = true;
+      btnFail.disabled = true;
+      btnGrp.classList.add('opacity-40');
+      panel.classList.remove('hidden');
+      panel.classList.add('flex');
+
+      if (win) {
+        msg.textContent  = '⚔ Défi accompli !';
+        msg.style.color  = 'var(--color-accent-rune)';
+        xpEl.textContent = xp > 0 ? '+' + xp + ' XP' : '';
+        if (xp > 0) saveXp(xp);
+        saveDefiReussi(defiId);
+      } else {
+        msg.textContent  = '✗ Défaite notée.';
+        msg.style.color  = 'var(--color-accent-blood)';
+        xpEl.textContent = '';
+      }
+    }
+
+    btnOk.addEventListener('click',   function() { answer(true);  });
+    btnFail.addEventListener('click',  function() { answer(false); });
+  });
+</script>

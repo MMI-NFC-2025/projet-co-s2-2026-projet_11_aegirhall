@@ -11,7 +11,10 @@
       "Bash(git config *)",
       "Bash(git add *)",
       "Bash(rm .gitmodules)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\iness\\\\Documents\\\\MMI1\\\\Dev\\\\projet-co-s2-2026-projet_11_aegirhall\\\\src\\\\backend\" -Force)",
+      "PowerShell(Move-Item -Path \"c:\\\\Users\\\\iness\\\\Documents\\\\MMI1\\\\Dev\\\\projet-co-s2-2026-projet_11_aegirhall\\\\src\\\\js\\\\backend.js\" -Destination \"c:\\\\Users\\\\iness\\\\Documents\\\\MMI1\\\\Dev\\\\projet-co-s2-2026-projet_11_aegirhall\\\\src\\\\backend\\\\backend.js\")",
+      "Bash(curl -s \"https://pbaegirhall.ines-sittler.fr/api/collections/session_barathon/records?perPage=3&fields=id,nom,etat_session\")"
     ]
   }
 }
