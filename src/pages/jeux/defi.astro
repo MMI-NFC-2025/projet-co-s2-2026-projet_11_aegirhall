@@ -6,15 +6,23 @@ const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
 if (!token || !userId) return Astro.redirect('/connexion');
 
-const defis = await getCollection('jeux', { sort: 'nom', token });
-
+const defisRaw = await getCollection('jeux', { token });
 const sessions = await getCollection('session_barathon', {
   filter: `id_menbre ~ "${userId}" && etat_session = "en_court"`,
-  token,
-  perPage: 1,
-  fields: 'id,id_jeux_reussi',
+  token, perPage: 1, fields: 'id,id_jeux_reussi',
 });
 const activeSession = sessions[0] ?? null;
+
+const defisData = defisRaw.map((d: any) => ({
+  id:           d.id,
+  collectionId: d.collectionId,
+  nom:          d.nom ?? '',
+  descrition:   d.descrition ?? '',
+  type_de_jeux: d.type_de_jeux ?? '',
+  difficulter:  Number(d.difficulter ?? 0),
+  xp:           Number(d.xp ?? 0),
+  img:          d.img ?? '',
+}));
 ---
 <Layout title="Défis de la Horde — AEgirhall">
 
@@ -29,7 +37,7 @@ const activeSession = sessions[0] ?? null;
           <p class="font-heading text-xs text-primary-500 tracking-widest uppercase mb-2">Jeu physique</p>
           <h1 class="font-display text-3xl lg:text-5xl text-neutral-100 tracking-widest">Défis de la Horde</h1>
           <p class="font-body text-neutral-400 text-base mt-2 max-w-xl">
-            Relevez chaque défi et marquez votre résultat. Les défis réussis sont enregistrés dans votre session.
+            Un défi à la fois. Relevez-le ou passez — les archives de la horde jugent.
           </p>
         </div>
         {activeSession ? (
@@ -47,95 +55,272 @@ const activeSession = sessions[0] ?? null;
     </div>
   </section>
 
-  <!-- ── LISTE DES DÉFIS ────────────────────────────────── -->
-  <section class="max-w-360 mx-auto px-4 lg:px-20 py-8 lg:py-12">
+  <!-- ── TINDER STACK ───────────────────────────────────── -->
+  <section class="max-w-lg mx-auto px-4 py-10 lg:py-16">
 
-    {defis.length === 0 && (
+    {defisData.length === 0 ? (
       <div class="card-parchment rounded-xl p-10 text-center">
-        <p class="font-body text-neutral-500 text-lg">Aucun défi disponible pour l'instant.</p>
+        <p class="font-body text-neutral-500 text-lg">Aucun défi disponible.</p>
       </div>
-    )}
-
-    <div class="flex flex-col gap-5">
-      {defis.map((defi: any) => (
-        <div
-          class="card-parchment rounded-xl overflow-hidden"
-          data-defi-id={defi.id}
-          data-defi-xp={defi.xp ?? 0}
-        >
-          <!-- En-tête carte -->
-          <div class="bg-dark-900 px-5 py-3 border-b border-dark-700 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-              <span class="font-heading text-xs text-primary-500 tracking-widest uppercase">Défi</span>
-              {defi.type_de_jeux && (
-                <span class="px-2 py-0.5 rounded font-heading text-xs tracking-wide border border-dark-500 text-neutral-500">
-                  {defi.type_de_jeux}
-                </span>
-              )}
-            </div>
-            <div class="flex items-center gap-3">
-              {defi.xp > 0 && (
-                <span class="font-heading text-xs text-primary-300 tracking-widest">+{defi.xp} XP</span>
-              )}
-              {defi.difficulter != null && (
-                <div class="flex gap-1 items-center" aria-label={`Difficulté ${defi.difficulter}/10`}>
-                  {Array.from({ length: 10 }, (_: any, i: number) => (
-                    <span
-                      class={`w-1.5 h-1.5 rounded-full ${i < defi.difficulter ? 'bg-primary-400' : 'bg-dark-500'}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <!-- Corps -->
-          <div class="p-5 lg:p-6 flex flex-col gap-4">
-            <div>
-              <h2 class="font-heading text-xl text-neutral-200 tracking-wide mb-2">{defi.nom}</h2>
-              {defi.descrition && (
-                <p class="font-body text-neutral-400 text-base leading-relaxed">{defi.descrition}</p>
-              )}
-            </div>
-
-            <!-- Résultat (masqué par défaut) -->
-            <div class="result-panel hidden items-center gap-3 py-3 border-t border-dark-600">
-              <p class="result-msg font-heading text-base tracking-wide"></p>
-              <p class="result-xp font-display text-2xl text-primary-300"></p>
-            </div>
-
-            <!-- Boutons -->
-            <div class="btn-group flex flex-col sm:flex-row gap-3 pt-1">
-              <button
-                class="btn-reussi btn-primary flex-1 py-4 flex items-center justify-center gap-2"
-                aria-label={`Marquer "${defi.nom}" comme réussi`}
-              >
-                <span aria-hidden="true">✓</span>
-                Défi réussi
-              </button>
-              <button
-                class="btn-rate flex-1 py-4 font-heading text-sm tracking-widest uppercase rounded-lg border border-accent-blood/50 text-accent-blood hover:bg-accent-blood/10 transition-colors flex items-center justify-center gap-2"
-                aria-label={`Marquer "${defi.nom}" comme raté`}
-              >
-                <span aria-hidden="true">✗</span>
-                Défi raté
-              </button>
-            </div>
+    ) : (
+      <>
+        <!-- Compteur -->
+        <div class="flex items-center justify-between mb-6">
+          <p id="progress-txt" class="font-heading text-xs text-neutral-600 tracking-widest uppercase">— / —</p>
+          <div id="score-wrap" class="flex items-center gap-4">
+            <span class="font-heading text-xs text-accent-rune tracking-widest uppercase">
+              ✓ <span id="score-ok">0</span>
+            </span>
+            <span class="font-heading text-xs text-accent-blood tracking-widest uppercase">
+              ✗ <span id="score-fail">0</span>
+            </span>
           </div>
         </div>
-      ))}
-    </div>
+
+        <!-- Stack de cartes -->
+        <div id="card-stack" class="relative" style="height: 540px;">
+
+          <!-- Carte fantôme 2 (fond) -->
+          <div id="ghost2" class="absolute inset-x-4 inset-y-0 card-parchment rounded-2xl pointer-events-none" style="transform: translateY(12px) scale(0.92); opacity: 0.35;" aria-hidden="true" />
+          <!-- Carte fantôme 1 -->
+          <div id="ghost1" class="absolute inset-x-2 inset-y-0 card-parchment rounded-2xl pointer-events-none" style="transform: translateY(6px) scale(0.96); opacity: 0.6;" aria-hidden="true" />
+
+          <!-- Carte principale -->
+          <div id="main-card" class="absolute inset-0 card-parchment rounded-2xl overflow-hidden flex flex-col" style="transition: transform 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.45s ease; will-change: transform;">
+
+            <!-- Image -->
+            <div class="relative overflow-hidden shrink-0" style="height: 300px;">
+              <img id="card-img" src="" alt="" class="w-full h-full object-cover" style="object-position: center 35%" />
+              <div class="absolute inset-0 bg-linear-to-t from-dark-700/90 via-dark-700/20 to-transparent" />
+
+              <!-- Label overlay (réussi / raté) -->
+              <div id="label-ok"   class="absolute top-8 left-6 px-4 py-2 rounded-lg border-2 border-accent-rune font-heading text-xl tracking-widest uppercase text-accent-rune rotate-[-15deg] opacity-0 transition-opacity duration-200 pointer-events-none">
+                Réussi !
+              </div>
+              <div id="label-fail" class="absolute top-8 right-6 px-4 py-2 rounded-lg border-2 border-accent-blood font-heading text-xl tracking-widest uppercase text-accent-blood rotate-15 opacity-0 transition-opacity duration-200 pointer-events-none">
+                Raté !
+              </div>
+
+              <!-- Tags bas de l'image -->
+              <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                <span id="card-type" class="px-2 py-1 rounded font-heading text-xs tracking-widest uppercase bg-dark-900/70 border border-primary-500/40 text-primary-300"></span>
+                <div id="card-diff" class="flex gap-1 items-center"></div>
+              </div>
+            </div>
+
+            <!-- Contenu texte -->
+            <div class="p-6 flex flex-col gap-3 flex-1">
+              <div class="flex items-start justify-between gap-3">
+                <h2 id="card-nom" class="font-heading text-xl text-neutral-200 tracking-wide leading-snug flex-1"></h2>
+                <span id="card-xp" class="font-heading text-sm text-primary-300 tracking-widest shrink-0 mt-0.5"></span>
+              </div>
+              <p id="card-desc" class="font-body text-neutral-400 text-base leading-relaxed line-clamp-3"></p>
+            </div>
+          </div>
+
+          <!-- Écran fin -->
+          <div id="end-screen" class="absolute inset-0 card-parchment rounded-2xl hidden flex-col items-center justify-center text-center p-10 gap-5">
+            <p class="font-display text-4xl text-primary-300 tracking-widest">⚔</p>
+            <h2 class="font-heading text-2xl text-neutral-200 tracking-wide">Tous les défis relevés</h2>
+            <p id="end-txt" class="font-body text-neutral-400 text-lg"></p>
+            <button id="btn-restart" class="btn-primary px-8 py-3 mt-2">Recommencer</button>
+          </div>
+        </div>
+
+        <!-- Boutons -->
+        <div id="action-btns" class="flex gap-5 mt-8 justify-center">
+          <button
+            id="btn-fail"
+            class="w-20 h-20 rounded-full border-2 border-accent-blood/60 bg-dark-700 text-accent-blood flex items-center justify-center text-2xl hover:bg-accent-blood/10 hover:border-accent-blood transition-all duration-200 active:scale-95"
+            aria-label="Défi raté"
+          >✗</button>
+
+          <button
+            id="btn-skip"
+            class="w-14 h-14 self-center rounded-full border border-dark-500 bg-dark-700 text-neutral-600 flex items-center justify-center text-base hover:text-neutral-400 transition-colors"
+            aria-label="Passer ce défi"
+            title="Passer"
+          >→</button>
+
+          <button
+            id="btn-ok"
+            class="w-20 h-20 rounded-full border-2 border-accent-rune/60 bg-dark-700 text-accent-rune flex items-center justify-center text-2xl hover:bg-accent-rune/10 hover:border-accent-rune transition-all duration-200 active:scale-95"
+            aria-label="Défi réussi"
+          >✓</button>
+        </div>
+      </>
+    )}
   </section>
 
 </Layout>
 
-<script define:vars={{ _token: token, _userId: userId, _pbUrl: PB_BASE_URL, _sessionId: activeSession?.id ?? null, _sessionReussis: activeSession?.id_jeux_reussi ?? [] }} is:inline>
+<style>
+  .swipe-right {
+    transform: translateX(160%) rotate(20deg) !important;
+    opacity: 0 !important;
+  }
+  .swipe-left {
+    transform: translateX(-160%) rotate(-20deg) !important;
+    opacity: 0 !important;
+  }
+  .card-enter {
+    transform: scale(0.85) translateY(30px);
+    opacity: 0;
+  }
+</style>
+
+<script define:vars={{ _defis: defisData, _token: token, _userId: userId, _pbUrl: PB_BASE_URL, _sessionId: activeSession?.id ?? null, _sessionReussis: activeSession?.id_jeux_reussi ?? [] }} is:inline>
+
+  /* ── Données ─────────────────────────────────────────── */
+  var pbUrl         = _pbUrl;
   var token         = _token;
   var userId        = _userId;
-  var pbUrl         = _pbUrl;
   var sessionId     = _sessionId;
   var sessionReussis = Array.isArray(_sessionReussis) ? _sessionReussis.slice() : [];
 
+  /* Mélange Fisher-Yates */
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  var defis   = shuffle(_defis);
+  var current = 0;
+  var scoreOk = 0;
+  var scoreFail = 0;
+
+  /* ── Éléments DOM ──────────────────────────────────────  */
+  var card       = document.getElementById('main-card');
+  var cardImg    = document.getElementById('card-img');
+  var cardNom    = document.getElementById('card-nom');
+  var cardDesc   = document.getElementById('card-desc');
+  var cardType   = document.getElementById('card-type');
+  var cardDiff   = document.getElementById('card-diff');
+  var cardXp     = document.getElementById('card-xp');
+  var labelOk    = document.getElementById('label-ok');
+  var labelFail  = document.getElementById('label-fail');
+  var progressTxt = document.getElementById('progress-txt');
+  var scoreOkEl  = document.getElementById('score-ok');
+  var scoreFailEl = document.getElementById('score-fail');
+  var endScreen  = document.getElementById('end-screen');
+  var endTxt     = document.getElementById('end-txt');
+  var actionBtns = document.getElementById('action-btns');
+  var btnOk      = document.getElementById('btn-ok');
+  var btnFail    = document.getElementById('btn-fail');
+  var btnSkip    = document.getElementById('btn-skip');
+  var btnRestart = document.getElementById('btn-restart');
+
+  /* ── Rendre une carte ──────────────────────────────────  */
+  function renderCard(defi) {
+    var imgUrl = defi.img
+      ? pbUrl + '/api/files/' + defi.collectionId + '/' + defi.id + '/' + defi.img
+      : '';
+    cardImg.src = imgUrl;
+    cardImg.alt = defi.nom;
+    cardImg.style.display = imgUrl ? 'block' : 'none';
+
+    cardNom.textContent  = defi.nom;
+    cardDesc.textContent = defi.descrition;
+    cardType.textContent = defi.type_de_jeux || 'Défi';
+    cardXp.textContent   = defi.xp > 0 ? '+' + defi.xp + ' XP' : '';
+
+    /* Points de difficulté */
+    cardDiff.innerHTML = '';
+    if (defi.difficulter > 0) {
+      for (var i = 0; i < 10; i++) {
+        var dot = document.createElement('span');
+        dot.className = 'w-1.5 h-1.5 rounded-full ' + (i < defi.difficulter ? 'bg-primary-400' : 'bg-dark-500');
+        cardDiff.appendChild(dot);
+      }
+    }
+
+    progressTxt.textContent = (current + 1) + ' / ' + defis.length;
+    labelOk.style.opacity   = '0';
+    labelFail.style.opacity = '0';
+  }
+
+  /* ── Animation swipe → carte suivante ─────────────────  */
+  function swipe(direction, win) {
+    btnOk.disabled = btnFail.disabled = btnSkip.disabled = true;
+
+    /* Label overlay */
+    if (direction === 'right') labelOk.style.opacity   = '1';
+    else                       labelFail.style.opacity = '1';
+
+    /* Animation sortie */
+    card.classList.add(direction === 'right' ? 'swipe-right' : 'swipe-left');
+
+    setTimeout(function() {
+      /* Mise à jour score */
+      if (win === true)  { scoreOk++;   scoreOkEl.textContent   = scoreOk; }
+      if (win === false) { scoreFail++;  scoreFailEl.textContent = scoreFail; }
+
+      /* Sauvegardes PocketBase */
+      if (win === true) {
+        var xp = defis[current].xp;
+        if (xp > 0) saveXp(xp);
+        saveDefiReussi(defis[current].id);
+      }
+
+      current++;
+
+      if (current >= defis.length) {
+        showEnd();
+        return;
+      }
+
+      /* Réinitialiser carte */
+      card.classList.remove('swipe-right', 'swipe-left');
+      card.classList.add('card-enter');
+
+      renderCard(defis[current]);
+
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          card.classList.remove('card-enter');
+          btnOk.disabled = btnFail.disabled = btnSkip.disabled = false;
+        });
+      });
+    }, 480);
+  }
+
+  /* ── Fin de partie ────────────────────────────────────── */
+  function showEnd() {
+    card.style.display  = 'none';
+    actionBtns.classList.add('hidden');
+    endScreen.classList.remove('hidden');
+    endScreen.classList.add('flex');
+    endTxt.textContent  = scoreOk + ' défi' + (scoreOk > 1 ? 's' : '') + ' réussi' + (scoreOk > 1 ? 's' : '') + ' sur ' + defis.length + '.';
+  }
+
+  /* ── Redémarrer ───────────────────────────────────────── */
+  btnRestart.addEventListener('click', function() {
+    defis   = shuffle(_defis);
+    current = 0;
+    scoreOk = 0;
+    scoreFail = 0;
+    scoreOkEl.textContent   = '0';
+    scoreFailEl.textContent = '0';
+
+    endScreen.classList.add('hidden');
+    endScreen.classList.remove('flex');
+    card.style.display = '';
+    actionBtns.classList.remove('hidden');
+
+    renderCard(defis[0]);
+    btnOk.disabled = btnFail.disabled = btnSkip.disabled = false;
+  });
+
+  /* ── Boutons ──────────────────────────────────────────── */
+  btnOk.addEventListener('click',   function() { swipe('right', true);  });
+  btnFail.addEventListener('click', function() { swipe('left',  false); });
+  btnSkip.addEventListener('click', function() { swipe('left',  null);  });
+
+  /* ── PocketBase saves ─────────────────────────────────── */
   function saveXp(xp) {
     fetch(pbUrl + '/api/collections/users/records/' + userId, {
       headers: { 'Authorization': 'Bearer ' + token },
@@ -161,37 +346,6 @@ const activeSession = sessions[0] ?? null;
     }).catch(function() {});
   }
 
-  document.querySelectorAll('[data-defi-id]').forEach(function(card) {
-    var defiId  = card.dataset.defiId;
-    var xp      = Number(card.dataset.defiXp) || 0;
-    var btnOk   = card.querySelector('.btn-reussi');
-    var btnFail = card.querySelector('.btn-rate');
-    var panel   = card.querySelector('.result-panel');
-    var msg     = card.querySelector('.result-msg');
-    var xpEl    = card.querySelector('.result-xp');
-    var btnGrp  = card.querySelector('.btn-group');
-
-    function answer(win) {
-      btnOk.disabled   = true;
-      btnFail.disabled = true;
-      btnGrp.classList.add('opacity-40');
-      panel.classList.remove('hidden');
-      panel.classList.add('flex');
-
-      if (win) {
-        msg.textContent  = '⚔ Défi accompli !';
-        msg.style.color  = 'var(--color-accent-rune)';
-        xpEl.textContent = xp > 0 ? '+' + xp + ' XP' : '';
-        if (xp > 0) saveXp(xp);
-        saveDefiReussi(defiId);
-      } else {
-        msg.textContent  = '✗ Défaite notée.';
-        msg.style.color  = 'var(--color-accent-blood)';
-        xpEl.textContent = '';
-      }
-    }
-
-    btnOk.addEventListener('click',   function() { answer(true);  });
-    btnFail.addEventListener('click',  function() { answer(false); });
-  });
+  /* ── Init ─────────────────────────────────────────────── */
+  if (defis.length > 0) renderCard(defis[0]);
 </script>
