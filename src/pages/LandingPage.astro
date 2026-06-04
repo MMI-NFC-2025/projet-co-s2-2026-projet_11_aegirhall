@@ -36,9 +36,13 @@ if (Astro.request.method === 'POST') {
     } else {
       const auth = await authWithPassword(email, password);
       if (auth?.token) {
-        Astro.cookies.set('pb_token',     auth.token,       { path: '/', httpOnly: true, maxAge: 604800 });
-        Astro.cookies.set('pb_user_id',   auth.record.id,   { path: '/', httpOnly: true, maxAge: 604800 });
-        Astro.cookies.set('pb_user_name', auth.record.pseudo ?? auth.record.nom ?? pseudo, { path: '/', httpOnly: true, maxAge: 604800 });
+        const avatarUrl = auth.record.avatar
+          ? `${PB_BASE_URL}/api/files/users/${auth.record.id}/${auth.record.avatar}`
+          : '';
+        Astro.cookies.set('pb_token',       auth.token,       { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_user_id',     auth.record.id,   { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_user_name',   auth.record.pseudo ?? auth.record.nom ?? pseudo, { path: '/', httpOnly: true, maxAge: 604800 });
+        Astro.cookies.set('pb_user_avatar', avatarUrl,        { path: '/', maxAge: 604800 });
       }
       return Astro.redirect('/');
     }

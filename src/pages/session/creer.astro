@@ -292,27 +292,27 @@ const mePseudo   = me?.pseudo ?? me?.nom ?? 'Vous';
               </div>
 
               {([
-                { nom: 'Touche du Guerrier', desc: 'Réflexes — Rouge → Vert',    href: '/jeux/reflexes', xp: '50–200 XP', icon: '◉' },
-                { nom: 'Calculs du Jarl',   desc: 'Calcul mental — 30 sec',      href: '/jeux/calculs',  xp: '5–30 XP',   icon: '🧮' },
-                { nom: 'Vrai ou Faux',      desc: 'Équations — 30 sec',          href: '/jeux/vrai-faux',xp: '5–25 XP',   icon: '✓✗' },
-                { nom: 'Séquence Viking',   desc: 'Mémoire — reproduisez l\'ordre', href: '/jeux/sequence',xp: '20–100 XP', icon: '◆' },
+                { nom: 'Touche du Guerrier', desc: 'Réflexes — Rouge → Vert',       xp: '50–200 XP', icon: '◉' },
+                { nom: 'Calculs du Jarl',    desc: 'Calcul mental — 10 sec',         xp: '5–30 XP',   icon: '×' },
+                { nom: 'Vrai ou Faux',       desc: 'Équations — 30 sec',             xp: '5–25 XP',   icon: '✓✗' },
+                { nom: 'Défis de la Horde',  desc: 'Défis physiques aléatoires',     xp: 'selon défi', icon: '⚔' },
+                { nom: 'Séquence Viking',    desc: 'Mémoire — reproduisez l\'ordre', xp: '20–100 XP', icon: '◆' },
               ] as const).map(g => (
-                <div class="card-parchment rounded-lg overflow-hidden col-span-1">
+                <label class="selection-card card-parchment rounded-lg overflow-hidden cursor-pointer hover:border-primary-400/40 transition-colors">
+                  <input type="checkbox" name="jeux_en_ligne" value={g.nom} class="selection-cb sr-only" />
                   <div class="h-12 bg-dark-900 flex items-center justify-center select-none" aria-hidden="true">
                     <span class="text-2xl opacity-30">{g.icon}</span>
                   </div>
                   <div class="p-3 flex items-center gap-3">
                     <div class="flex-1 min-w-0">
                       <p class="font-heading text-sm text-neutral-200 tracking-wide">{g.nom}</p>
-                      <p class="font-body text-xs text-neutral-500">{g.desc}</p>
+                      <p class="font-body text-xs text-neutral-500">{g.desc} · {g.xp}</p>
                     </div>
-                    <a href={g.href} target="_blank" rel="noopener"
-                       class="font-heading text-xs text-primary-400 hover:text-primary-300 tracking-widest uppercase shrink-0 transition-colors"
-                       aria-label={`Jouer à ${g.nom}`}>
-                      Jouer →
-                    </a>
+                    <div class="check-icon w-6 h-6 rounded border-2 border-dark-500 flex items-center justify-center shrink-0 transition-all">
+                      <span class="check-mark hidden text-primary-400 text-xs font-bold">✓</span>
+                    </div>
                   </div>
-                </div>
+                </label>
               ))}
             </div>
           </div>
