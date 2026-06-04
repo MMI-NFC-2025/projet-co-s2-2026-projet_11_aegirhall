@@ -1,5 +1,6 @@
 ---
 import { Image } from 'astro:assets';
+import woodBg from '../assets/img/wood-texture-background1 (1).avif';
 
 interface Props {
   title: string;
@@ -14,16 +15,19 @@ const { title, subtitle, descMobile, rune = 'ᚱ', imgSrc } = Astro.props;
 
 <section class="relative bg-dark-900 overflow-hidden" style="padding-block: clamp(4rem, 8vw, 7rem);">
 
-  <!-- Image de fond optionnelle -->
+  <!-- Texture bois -->
+  <div class="absolute inset-0" aria-hidden="true">
+    <Image src={woodBg} alt="" width={1440} height={500} class="w-full h-full object-cover opacity-40" />
+    <div class="absolute inset-0 bg-linear-to-b from-dark-900/50 via-dark-900/10 to-dark-900/60" />
+  </div>
+
+  <!-- Image de fond optionnelle (prioritaire) -->
   {imgSrc && (
     <div class="absolute inset-0" aria-hidden="true">
       <Image src={imgSrc} alt="" width={1440} height={500} class="w-full h-full object-cover opacity-10" />
       <div class="absolute inset-0 bg-linear-to-b from-dark-900/80 via-dark-900/40 to-dark-900/90" />
     </div>
   )}
-
-  <!-- Texture losanges -->
-  <div class="absolute inset-0 bg-diamond pointer-events-none opacity-50" aria-hidden="true" />
 
   <!-- Lueur torchlight bas -->
   <div
