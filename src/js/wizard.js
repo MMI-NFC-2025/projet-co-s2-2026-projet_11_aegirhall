@@ -176,8 +176,10 @@ function populateResume() {
   const barIds   = Array.from(document.querySelectorAll('input[name="bars"]:checked')).map(cb => cb.value);
   const barNames = _bars.filter(b => barIds.includes(b.id)).map(b => b.nom);
 
-  const jeuIds   = Array.from(document.querySelectorAll('input[name="jeux"]:checked')).map(cb => cb.value);
-  const jeuNames = _jeux.filter(j => jeuIds.includes(j.id)).map(j => j.nom);
+  const jeuIds      = Array.from(document.querySelectorAll('input[name="jeux"]:checked')).map(cb => cb.value);
+  const jeuPbNames  = _jeux.filter(j => jeuIds.includes(j.id)).map(j => j.nom);
+  const jeuOnline   = Array.from(document.querySelectorAll('input[name="jeux_en_ligne"]:checked')).map(cb => cb.value);
+  const jeuNames    = [...jeuPbNames, ...jeuOnline];
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 

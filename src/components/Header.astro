@@ -2,9 +2,10 @@
 import { Image } from 'astro:assets';
 import logo from '../assets/icon/logo.svg';
 
-const token    = Astro.cookies.get('pb_token')?.value;
-const userId   = Astro.cookies.get('pb_user_id')?.value;
-const userName = Astro.cookies.get('pb_user_name')?.value;
+const token      = Astro.cookies.get('pb_token')?.value;
+const userId     = Astro.cookies.get('pb_user_id')?.value;
+const userName   = Astro.cookies.get('pb_user_name')?.value;
+const userAvatar = Astro.cookies.get('pb_user_avatar')?.value || '';
 const isLoggedIn = !!(token && userId);
 
 const currentPath = Astro.url.pathname;
@@ -72,8 +73,11 @@ const navLinks = isLoggedIn
       {isLoggedIn ? (
         <div class="flex items-center gap-3">
           <a href="/profil" class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-dark-700/60 transition-colors group">
-            <div class="w-8 h-8 rounded-full bg-dark-600 border border-primary-400/50 flex items-center justify-center font-heading text-sm text-primary-400 group-hover:border-primary-300 transition-colors shrink-0">
-              {userName ? userName.charAt(0).toUpperCase() : 'V'}
+            <div class="w-8 h-8 rounded-full bg-dark-600 border border-primary-400/50 overflow-hidden flex items-center justify-center font-heading text-sm text-primary-400 group-hover:border-primary-300 transition-colors shrink-0">
+              {userAvatar
+                ? <img src={userAvatar} alt="" class="w-full h-full object-cover" />
+                : (userName ? userName.charAt(0).toUpperCase() : 'V')
+              }
             </div>
             <span class="font-heading text-sm text-neutral-300 group-hover:text-primary-300 transition-colors">
               {userName ?? 'Profil'}
@@ -138,8 +142,11 @@ const navLinks = isLoggedIn
   <!-- Profil connecté -->
   {isLoggedIn && (
     <a href="/profil" class="relative z-10 flex items-center gap-4 px-6 py-4 border-b border-dark-700/60 bg-dark-800/40 hover:bg-dark-800/80 transition-colors shrink-0">
-      <div class="w-11 h-11 rounded-full bg-dark-600 border-2 border-primary-400/50 flex items-center justify-center font-heading text-base text-primary-400 shrink-0">
-        {userName ? userName.charAt(0).toUpperCase() : 'V'}
+      <div class="w-11 h-11 rounded-full bg-dark-600 border-2 border-primary-400/50 overflow-hidden flex items-center justify-center font-heading text-base text-primary-400 shrink-0">
+        {userAvatar
+          ? <img src={userAvatar} alt="" class="w-full h-full object-cover" />
+          : (userName ? userName.charAt(0).toUpperCase() : 'V')
+        }
       </div>
       <div class="flex-1 min-w-0">
         <p class="font-heading text-sm text-neutral-200 tracking-wide truncate">{userName ?? 'Mon Profil'}</p>

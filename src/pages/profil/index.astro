@@ -37,9 +37,10 @@ if (Astro.request.method === 'POST') {
 
   /* Logout */
   if (action === 'logout') {
-    Astro.cookies.delete('pb_token',     { path: '/' });
-    Astro.cookies.delete('pb_user_id',   { path: '/' });
-    Astro.cookies.delete('pb_user_name', { path: '/' });
+    Astro.cookies.delete('pb_token',       { path: '/' });
+    Astro.cookies.delete('pb_user_id',     { path: '/' });
+    Astro.cookies.delete('pb_user_name',   { path: '/' });
+    Astro.cookies.delete('pb_user_avatar', { path: '/' });
     return Astro.redirect('/LandingPage');
   }
 
@@ -47,9 +48,10 @@ if (Astro.request.method === 'POST') {
   if (action === 'delete_account') {
     const ok = await deleteUser(userId, token);
     if (ok) {
-      Astro.cookies.delete('pb_token',     { path: '/' });
-      Astro.cookies.delete('pb_user_id',   { path: '/' });
-      Astro.cookies.delete('pb_user_name', { path: '/' });
+      Astro.cookies.delete('pb_token',       { path: '/' });
+      Astro.cookies.delete('pb_user_id',     { path: '/' });
+      Astro.cookies.delete('pb_user_name',   { path: '/' });
+      Astro.cookies.delete('pb_user_avatar', { path: '/' });
       return Astro.redirect('/LandingPage');
     }
     profileError = 'Impossible de supprimer le compte.';
