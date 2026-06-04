@@ -1,10 +1,80 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import HeroSection from '../../components/HeroSection.astro';
+import { Image } from 'astro:assets';
+
+import imgReflexes  from '../../assets/img/vintage-style-soldier-helmet-still-life1.avif';
+import imgCalculs   from '../../assets/img/pexels-introspectivedsgn-50237271.avif';
+import imgVraiFaux  from '../../assets/img/pexels-introspectivedsgn-50236981.avif';
+import imgDefi      from '../../assets/img/bateau1.avif';
+import imgSequence  from '../../assets/img/pexels-introspectivedsgn-50237371.avif';
 
 const token  = Astro.cookies.get('pb_token')?.value;
 const userId = Astro.cookies.get('pb_user_id')?.value;
 if (!token || !userId) return Astro.redirect('/connexion');
+
+const jeux = [
+  {
+    href:       '/jeux/reflexes',
+    img:        imgReflexes,
+    alt:        'Casque de guerrier viking',
+    badge:      'Réflexes',
+    titre:      'Touche du Guerrier',
+    type:       'Jeu en ligne',
+    meta:       [{ label: 'XP', value: 'jusqu\'à 200 XP / manche' }],
+    desc:       'Rouge : attendez. Vert : cliquez ! Testez votre temps de réaction et gagnez jusqu\'à 200 XP par manche.',
+    cta:        'Jouer maintenant',
+    objectPos:  'center 30%',
+  },
+  {
+    href:       '/jeux/calculs',
+    img:        imgCalculs,
+    alt:        'Salle viking',
+    badge:      'Calcul mental',
+    titre:      'Calculs du Jarl',
+    type:       'Jeu en ligne',
+    meta:       [{ label: 'Durée', value: '10 secondes' }, { label: 'XP', value: 'jusqu\'à 30 XP / calcul' }],
+    desc:       'Maximum de calculs en 10 secondes. Plus vous en réussissez, plus ils deviennent difficiles — et plus vous rapportez d\'XP.',
+    cta:        'Jouer maintenant',
+    objectPos:  'center 40%',
+  },
+  {
+    href:       '/jeux/vrai-faux',
+    img:        imgVraiFaux,
+    alt:        'Intérieur taverne viking',
+    badge:      'Rapidité',
+    titre:      'Vrai ou Faux',
+    type:       'Jeu en ligne',
+    meta:       [{ label: 'Durée', value: '30 secondes' }, { label: 'XP', value: 'jusqu\'à 25 XP / bonne réponse' }],
+    desc:       'Une équation s\'affiche avec un résultat. Vrai ou faux ? Décidez le plus vite possible en 30 secondes.',
+    cta:        'Jouer maintenant',
+    objectPos:  'center 50%',
+  },
+  {
+    href:       '/jeux/defi',
+    img:        imgDefi,
+    alt:        'Drakar viking',
+    badge:      'Physique',
+    titre:      'Défis de la Horde',
+    type:       'Jeu physique',
+    meta:       [{ label: 'XP', value: 'selon le défi' }],
+    desc:       'Un défi aléatoire tiré des archives de la horde. Relevez-le pour gagner de l\'XP. Échouez, et l\'honneur devra attendre.',
+    cta:        'Relever le défi',
+    objectPos:  'center 40%',
+  },
+  {
+    href:       '/jeux/sequence',
+    img:        imgSequence,
+    alt:        'Trône viking',
+    badge:      'Mémoire',
+    titre:      'Séquence Viking',
+    type:       'Jeu en ligne',
+    meta:       [{ label: 'Séquence', value: '3 → 9+ runes' }, { label: 'XP', value: 'jusqu\'à 100 XP / round' }],
+    desc:       'Les runes s\'allument dans un ordre secret. Mémorisez, puis reproduisez. Chaque round réussi ajoute une rune.',
+    cta:        'Jouer maintenant',
+    objectPos:  'center 35%',
+  },
+];
 ---
 <Layout title="Les Jeux">
 
@@ -12,190 +82,60 @@ if (!token || !userId) return Astro.redirect('/connexion');
 
   <section class="max-w-360 mx-auto px-4 lg:px-20 py-10 lg:py-14">
 
+    <div class="flex flex-col gap-5">
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {jeux.map(j => (
+        <a href={j.href} class="card-parchment rounded-xl overflow-hidden flex flex-col lg:flex-row group hover:border-primary-400/40 transition-colors">
 
-      <!-- ── Jeu statique : Touche du Guerrier ── -->
-      <a href="/jeux/reflexes" class="card-parchment rounded-lg overflow-hidden flex flex-col group hover:border-primary-400/40 transition-colors">
-        <!-- Visuel -->
-        <div class="h-48 bg-dark-900 flex items-center justify-center relative overflow-hidden">
-          <div class="flex gap-6 items-center select-none" aria-hidden="true">
-            <span class="text-6xl opacity-30" style="color:var(--color-accent-blood)">◉</span>
-            <span class="font-heading text-2xl text-neutral-600 tracking-widest">→</span>
-            <span class="text-6xl opacity-30" style="color:#16a34a">◉</span>
-          </div>
-          <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent pointer-events-none" />
-          <div class="absolute top-3 right-3 px-2 py-1 rounded font-heading text-xs tracking-widest uppercase bg-primary-500/20 border border-primary-500/40 text-primary-300">
-            Réflexes
-          </div>
-        </div>
-        <!-- Contenu -->
-        <div class="p-5 lg:p-6 flex flex-col gap-3 flex-1">
-          <div class="flex items-start justify-between gap-3">
-            <h3 class="font-heading text-lg text-neutral-200 tracking-wide group-hover:text-primary-300 transition-colors">
-              Touche du Guerrier
-            </h3>
-            <span class="font-heading text-xs text-neutral-600 tracking-widest uppercase shrink-0 mt-1">Jeu en ligne</span>
-          </div>
-          <div class="flex items-center gap-3 flex-wrap">
-            <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Difficulté</span>
-            <div class="flex gap-1.5 items-center">
-              <span class="px-2 py-0.5 rounded-full text-xs font-heading tracking-wide border border-accent-rune/50 text-accent-rune">Facile</span>
-              <span class="px-2 py-0.5 rounded-full text-xs font-heading tracking-wide border border-primary-500/50 text-primary-400">Moyen</span>
-              <span class="px-2 py-0.5 rounded-full text-xs font-heading tracking-wide border border-accent-blood/50 text-accent-blood">Difficile</span>
+          <!-- Image -->
+          <div class="h-52 lg:h-auto lg:w-72 shrink-0 relative overflow-hidden">
+            <Image
+              src={j.img}
+              alt={j.alt}
+              width={576}
+              height={416}
+              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              style={`object-position: ${j.objectPos}`}
+            />
+            <div class="absolute inset-0 bg-linear-to-t lg:bg-linear-to-r from-dark-700/80 via-dark-700/20 to-transparent" />
+            <div class="absolute top-3 left-3 px-2 py-1 rounded font-heading text-xs tracking-widest uppercase bg-dark-900/70 border border-primary-500/40 text-primary-300">
+              {j.badge}
             </div>
           </div>
-          <p class="font-body text-neutral-400 text-base line-clamp-3">
-            Rouge : attendez. Vert : cliquez ! Testez votre temps de réaction et gagnez jusqu'à 200 XP par manche.
-          </p>
-          <div class="mt-auto pt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors" aria-hidden="true">
-            <span class="font-heading text-xs tracking-widest uppercase">Jouer maintenant</span>
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          </div>
-        </div>
-      </a>
 
-      <!-- ── Jeu statique : Calculs du Jarl ── -->
-      <a href="/jeux/calculs" class="card-parchment rounded-lg overflow-hidden flex flex-col group hover:border-primary-400/40 transition-colors">
-        <!-- Visuel -->
-        <div class="h-48 bg-dark-900 flex items-center justify-center relative overflow-hidden">
-          <div class="flex flex-col items-center gap-1 select-none" aria-hidden="true">
-            <span class="font-display text-3xl text-neutral-600 opacity-60">7 × 8 + 3</span>
-            <span class="font-display text-xl text-primary-400 opacity-40">= ?</span>
-          </div>
-          <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent pointer-events-none" />
-          <div class="absolute top-3 right-3 px-2 py-1 rounded font-heading text-xs tracking-widest uppercase bg-primary-500/20 border border-primary-500/40 text-primary-300">
-            Calcul mental
-          </div>
-        </div>
-        <!-- Contenu -->
-        <div class="p-5 lg:p-6 flex flex-col gap-3 flex-1">
-          <div class="flex items-start justify-between gap-3">
-            <h3 class="font-heading text-lg text-neutral-200 tracking-wide group-hover:text-primary-300 transition-colors">
-              Calculs du Jarl
-            </h3>
-            <span class="font-heading text-xs text-neutral-600 tracking-widest uppercase shrink-0 mt-1">Jeu en ligne</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Durée</span>
-            <span class="font-heading text-xs text-primary-400">30 secondes</span>
-            <span class="text-neutral-600">·</span>
-            <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">XP</span>
-            <span class="font-heading text-xs text-primary-400">jusqu'à 30 XP / calcul</span>
-          </div>
-          <p class="font-body text-neutral-400 text-base line-clamp-3">
-            Maximum de calculs en 10 secondes. Plus vous en réussissez, plus ils deviennent difficiles — et plus vous rapportez d'XP.
-          </p>
-          <div class="mt-auto pt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors" aria-hidden="true">
-            <span class="font-heading text-xs tracking-widest uppercase">Jouer maintenant</span>
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          </div>
-        </div>
-      </a>
-
-      <!-- ── Jeu statique : Vrai ou Faux ── -->
-      <a href="/jeux/vrai-faux" class="card-parchment rounded-lg overflow-hidden flex flex-col group hover:border-primary-400/40 transition-colors">
-        <div class="h-48 bg-dark-900 flex items-center justify-center relative overflow-hidden">
-          <div class="flex items-center gap-6 select-none" aria-hidden="true">
-            <div class="flex flex-col items-center gap-1">
-              <span class="font-display text-2xl opacity-50" style="color:#16a34a">✓</span>
-              <span class="font-heading text-xs tracking-widest uppercase opacity-40" style="color:#16a34a">Vrai</span>
+          <!-- Contenu -->
+          <div class="p-5 lg:p-8 flex flex-col gap-3 flex-1 justify-center">
+            <div class="flex items-start justify-between gap-3">
+              <h3 class="font-heading text-xl text-neutral-200 tracking-wide group-hover:text-primary-300 transition-colors">
+                {j.titre}
+              </h3>
+              <span class="font-heading text-xs text-neutral-600 tracking-widest uppercase shrink-0 mt-1">{j.type}</span>
             </div>
-            <span class="font-display text-3xl text-neutral-600 opacity-40">7×8 = 54</span>
-            <div class="flex flex-col items-center gap-1">
-              <span class="font-display text-2xl opacity-50" style="color:#ef4444">✗</span>
-              <span class="font-heading text-xs tracking-widest uppercase opacity-40" style="color:#ef4444">Faux</span>
+
+            <div class="flex items-center gap-3 flex-wrap">
+              {j.meta.map((m, i) => (
+                <>
+                  {i > 0 && <span class="text-neutral-700">·</span>}
+                  <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">{m.label}</span>
+                  <span class="font-heading text-xs text-primary-400">{m.value}</span>
+                </>
+              ))}
+            </div>
+
+            <p class="font-body text-neutral-400 text-base leading-relaxed max-w-xl">
+              {j.desc}
+            </p>
+
+            <div class="mt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors" aria-hidden="true">
+              <span class="font-heading text-xs tracking-widest uppercase">{j.cta}</span>
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           </div>
-          <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent pointer-events-none" />
-          <div class="absolute top-3 right-3 px-2 py-1 rounded font-heading text-xs tracking-widest uppercase bg-primary-500/20 border border-primary-500/40 text-primary-300">
-            Rapidité
-          </div>
-        </div>
-        <div class="p-5 lg:p-6 flex flex-col gap-3 flex-1">
-          <div class="flex items-start justify-between gap-3">
-            <h3 class="font-heading text-lg text-neutral-200 tracking-wide group-hover:text-primary-300 transition-colors">Vrai ou Faux</h3>
-            <span class="font-heading text-xs text-neutral-600 tracking-widest uppercase shrink-0 mt-1">Jeu en ligne</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Durée</span>
-            <span class="font-heading text-xs text-primary-400">30 secondes</span>
-            <span class="text-neutral-600">·</span>
-            <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">XP</span>
-            <span class="font-heading text-xs text-primary-400">jusqu'à 25 XP / bonne réponse</span>
-          </div>
-          <p class="font-body text-neutral-400 text-base line-clamp-3">Une équation s'affiche avec un résultat. Vrai ou faux ? Décidez le plus vite possible en 30 secondes.</p>
-          <div class="mt-auto pt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors" aria-hidden="true">
-            <span class="font-heading text-xs tracking-widest uppercase">Jouer maintenant</span>
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          </div>
-        </div>
-      </a>
 
-      <!-- ── Jeu statique : Défis de la Horde ── -->
-      <a href="/jeux/defi" class="card-parchment rounded-lg overflow-hidden flex flex-col group hover:border-primary-400/40 transition-colors">
-        <div class="h-48 bg-dark-900 flex items-center justify-center relative overflow-hidden">
-          <div class="flex flex-col items-center gap-2 select-none" aria-hidden="true">
-            <span class="font-display text-5xl text-primary-400 opacity-35">⚔</span>
-            <span class="font-display text-xl text-neutral-600 opacity-30 tracking-widest">DÉFI</span>
-          </div>
-          <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent pointer-events-none" />
-          <div class="absolute top-3 right-3 px-2 py-1 rounded font-heading text-xs tracking-widest uppercase bg-primary-500/20 border border-primary-500/40 text-primary-300">
-            Physique
-          </div>
-        </div>
-        <div class="p-5 lg:p-6 flex flex-col gap-3 flex-1">
-          <div class="flex items-start justify-between gap-3">
-            <h3 class="font-heading text-lg text-neutral-200 tracking-wide group-hover:text-primary-300 transition-colors">
-              Défis de la Horde
-            </h3>
-            <span class="font-heading text-xs text-neutral-600 tracking-widest uppercase shrink-0 mt-1">Jeu physique</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">XP</span>
-            <span class="font-heading text-xs text-primary-400">selon le défi</span>
-          </div>
-          <p class="font-body text-neutral-400 text-base line-clamp-3">
-            Un défi aléatoire tiré des archives de la horde. Relevez-le pour gagner de l'XP. Échouez, et l'honneur devra attendre.
-          </p>
-          <div class="mt-auto pt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors" aria-hidden="true">
-            <span class="font-heading text-xs tracking-widest uppercase">Relever le défi</span>
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          </div>
-        </div>
-      </a>
-
-      <!-- ── Jeu statique : Séquence Viking ── -->
-      <a href="/jeux/sequence" class="card-parchment rounded-lg overflow-hidden flex flex-col group hover:border-primary-400/40 transition-colors">
-        <div class="h-48 bg-dark-900 flex items-center justify-center relative overflow-hidden">
-          <div class="grid grid-cols-3 gap-2.5 select-none" aria-hidden="true">
-            {['#dc2626','#2563eb','#16a34a','#ca8a04','#9333ea','#0891b2'].map((c, i) => (
-              <div class={`w-10 h-10 rounded-xl ${i < 3 ? 'opacity-60' : 'opacity-20'}`} style={`background:${c}`} />
-            ))}
-          </div>
-          <div class="absolute inset-0 bg-linear-to-t from-dark-800/80 to-transparent pointer-events-none" />
-          <div class="absolute top-3 right-3 px-2 py-1 rounded font-heading text-xs tracking-widest uppercase bg-primary-500/20 border border-primary-500/40 text-primary-300">
-            Mémoire
-          </div>
-        </div>
-        <div class="p-5 lg:p-6 flex flex-col gap-3 flex-1">
-          <div class="flex items-start justify-between gap-3">
-            <h3 class="font-heading text-lg text-neutral-200 tracking-wide group-hover:text-primary-300 transition-colors">Séquence Viking</h3>
-            <span class="font-heading text-xs text-neutral-600 tracking-widest uppercase shrink-0 mt-1">Jeu en ligne</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="font-heading text-xs text-neutral-500 tracking-widest uppercase">Séquence</span>
-            <span class="font-heading text-xs text-primary-400">3 → 9+ runes</span>
-            <span class="text-neutral-600">·</span>
-            <span class="font-heading text-xs text-primary-400">jusqu'à 100 XP / round</span>
-          </div>
-          <p class="font-body text-neutral-400 text-base line-clamp-3">Les runes s'allument dans un ordre secret. Mémorisez, puis reproduisez. Chaque round réussi ajoute une rune.</p>
-          <div class="mt-auto pt-2 flex items-center gap-2 text-neutral-600 group-hover:text-primary-400 transition-colors" aria-hidden="true">
-            <span class="font-heading text-xs tracking-widest uppercase">Jouer maintenant</span>
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          </div>
-        </div>
-      </a>
+        </a>
+      ))}
 
     </div>
   </section>
